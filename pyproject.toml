@@ -1,5 +1,5 @@
 [build-system]
-requires-python = ">=3.8"
+# requires-python = ">=3.8" # XXX: Recommended to set this, but unsupported by pyodide...
 requires = ["scikit-build-core"]
 build-backend = "scikit_build_core.build"
 
@@ -33,11 +33,12 @@ USE_XLIB="OFF"
 [tool.cibuildwheel]
 enable = "cpython-prerelease"
 test-command = "python -c \"import OCP; help(OCP);\"" # TODO: Real tests...
+environment.CIBW_PROJECT_REQUIRES_PYTHON = ">=3.8"
 
 [tool.cibuildwheel.linux]
 environment-pass = ["CFLAGS", "LDFLAGS"] # Uses docker, so need to pass host variables manually
 
 [tool.cibuildwheel.pyodide]
-pyodide-version = "0.27.6"
+# pyodide-version = "0.27.6" # By default, cibuildwheel uses the latest stable?
 build-frontend = "build[uv]; args: --exports=whole_archive"
 environment.LDFLAGS = "-O1" # It is heavily optimized after this (this is a hack for a bug)

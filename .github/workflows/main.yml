@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v4"
 
-      - uses: "pypa/cibuildwheel@v3.0.0b4" # Beta version supports newer pyodide
+      - uses: "pypa/cibuildwheel@v2.23.3"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           # TODO: Build multiple pyodide versions (stable and latest)
