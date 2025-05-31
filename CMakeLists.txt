@@ -48,7 +48,7 @@ FetchContent_Declare(
   GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
   GIT_TAG "V7_8_1"
   GIT_PROGRESS TRUE
-  PATCH_COMMANDTODO: Real tests.
+  PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
