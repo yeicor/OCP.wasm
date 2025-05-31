@@ -45,7 +45,7 @@ set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # TODO: For some reason this toolkit from t
 FetchContent_Declare(
   OpenCASCADE
   GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
-  GIT_TAG V7_8_1
+  GIT_TAG "V7_8_1"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
@@ -60,7 +60,7 @@ set(PYBIND11_USE_CROSSCOMPILING ON) # Will enable this if it is actually used (e
 FetchContent_Declare(
   pybind11
   GIT_REPOSITORY "https://github.com/pybind/pybind11.git"
-  GIT_TAG v2.13.2
+  GIT_TAG "v2.13.2"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
@@ -73,8 +73,8 @@ FetchContent_Declare(
 # ##### rapidjson #####
 FetchContent_Declare(
   rapidjson
-  GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
-  GIT_TAG v1.1.0
+  GIT_REPOSITORY "https://github.com/Tencent/rapidjson.git"
+  GIT_TAG "v1.1.0"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}

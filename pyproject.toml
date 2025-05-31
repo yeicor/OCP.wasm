@@ -1,6 +1,6 @@
 [build-system]
 # requires-python = ">=3.8" # XXX: Recommended to set this, but unsupported by pyodide...
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core==0.11.3"]
 build-backend = "scikit_build_core.build"
 
 [project]

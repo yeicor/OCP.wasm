@@ -10,5 +10,15 @@
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [ "* * * * 0,6" ]
-  }
+  },
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: ["CMakeLists.txt"],
+      matchStrings: [
+        'FetchContent_Declare[ \\t]*\\([^)]*GIT_REPOSITORY[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*?)(.git)?"[^)]*GIT_TAG[ \\t]*"(?<currentValue>[^"]*)"'
+      ],
+      datasourceTemplate: "github-tags",
+    },
+  ],
 }
