@@ -1,4 +1,4 @@
-on: ["push", "pull_request"]
+on: ["push", "pull_request", "workflow_dispatch"]
 
 jobs:
   build_wheels:
@@ -6,17 +6,51 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["wasm"] # TODO: ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
-
+        os: ["wasm", "ubuntu-latest"] # TODO: ubuntu-24.04-arm, windows-latest, macos-13, macos-14
     steps:
       - uses: "actions/checkout@v4"
 
-      - uses: "pypa/cibuildwheel@v2.23.3"
+      - uses: "yeicor/cibuildwheel@v3.1.0"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
-          # TODO: Build multiple pyodide versions (stable and latest)
 
       - uses: "actions/upload-artifact@v4"
         with:
-          #name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          name: "cibw-wheels-${{ matrix.os }}"
           path: "./wheelhouse/*.whl"
+
+  deploy_wheels_to_pages:
+    needs: "build_wheels"
+    if: "github.ref == 'refs/heads/master'"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/download-artifact@v4"
+        with:
+          path: "./public"
+
+      - uses: "actions/configure-pages@v4"
+
+      - uses: "actions/upload-pages-artifact@v2"
+        with:
+          path: "./public"
+
+      - uses: "actions/deploy-pages@v3"
+
+  # deploy_wheels_to_pypi:
+  #   needs: "build_wheels"
+  #   if: "github.ref == 'refs/heads/main'"
+  #   runs-on: "ubuntu-latest"
+  #   steps:
+  #     - uses: "actions/download-artifact@v4"
+  #       with:
+  #         path: "all-wheels"
+  # 
+  #     - run: "find all-wheels -type f -name '*_wasm32.whl' -delete"
+  # 
+  #     - env:
+  #         TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+  #         TWINE_API_TOKEN: "${{ secrets.TWINE_API_TOKEN }}"
+  #         # or use TWINE_API_TOKEN instead
+  #       run: |
+  #         python -m pip install twine
+  #         twine upload all-wheels/**/*.whl

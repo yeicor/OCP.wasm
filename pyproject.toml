@@ -39,6 +39,6 @@ environment.CIBW_PROJECT_REQUIRES_PYTHON = ">=3.8"
 environment-pass = ["CFLAGS", "LDFLAGS"] # Uses docker, so need to pass host variables manually
 
 [tool.cibuildwheel.pyodide]
-# pyodide-version = "0.27.6" # By default, cibuildwheel uses the latest stable?
+pyodide-version = "0.28.0a3" # unimplemented --allow-multiple-definition before 0.28.0
 build-frontend = "build[uv]; args: --exports=whole_archive"
 environment.LDFLAGS = "-O1" # It is heavily optimized after this (this is a hack for a bug)

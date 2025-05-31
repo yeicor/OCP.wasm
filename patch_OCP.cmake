@@ -49,5 +49,4 @@ string(REGEX REPLACE "(target_include_directories\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t
 string(REGEX REPLACE "(target_link_libraries\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)\\)" "\\1 ${OpenCASCADE_LIBRARIES})" content "${content}")
 string(REGEX REPLACE "SET\\(PYTHON_SP_DIR \\\"site-packages\\\"" "SET(PYTHON_SP_DIR \".\"" content "${content}")
 string(REGEX REPLACE "\n\n([ \t]*install\\( *TARGETS +OCP)" "\nadd_custom_command(TARGET OCP POST_BUILD COMMAND ${CMAKE_COMMAND} -E env \"PYTHONPATH=$ENV{PYTHONPATH}\" python3 \"${ROOT_SOURCE_DIR}/repair_and_optimize_wasm.py\" \"\$<TARGET_FILE:OCP>\")\n\\1" content "${content}")
-string(REGEX REPLACE "if\\(UNIX AND NOT APPLE\\)" "if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)" content "${content}")
 file(WRITE "${OCP_CMAKE}" "${content}")
