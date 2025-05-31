@@ -12,6 +12,13 @@ jobs:
             cibw-build: "cp313-*"
     steps:
       - uses: "actions/checkout@v4"
+      
+      - uses: "actions/cache@v4"
+        with:
+          path: "./build"
+          key: "${{ matrix.os }}-cibuildwheel"
+          restore-keys: "${{ matrix.os }}-cibuildwheel"
+      
       - uses: "yeicor/cibuildwheel@v3.1.0"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
