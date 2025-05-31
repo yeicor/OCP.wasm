@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["wasm", "ubuntu-latest"] # TODO: ubuntu-24.04-arm, windows-latest, macos-13, macos-14
-        cibw-build: "*"
+        cibw-build: ["*"]
         include:
           - os: "wasm"
             cibw-build: "cp313-*"
