@@ -19,6 +19,7 @@
         'FetchContent_Declare[ \\t]*\\([^)]*GIT_REPOSITORY[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*?)(.git)?"[^)]*GIT_TAG[ \\t]*"(?<currentValue>[^"]*)"'
       ],
       datasourceTemplate: "github-tags",
+      versioningTemplate: "loose",
     },
     {
       customType: "regex",
