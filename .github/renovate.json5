@@ -24,7 +24,7 @@
       customType: "regex",
       managerFilePatterns: ["CMakeLists.txt"],
       matchStrings: [
-        'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*)\\\/releases\\\/download\\\/(?<currentVersion>[^\/]+)\\\/(?<depName>[^"]*)"'
+        'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*)\\\/releases\\\/download\\\/(?<currentValue>[^\/]+)\\\/(?<depName>[^"]*)"'
       ],
       datasourceTemplate: "github-release-attachments",
     },
