@@ -2,7 +2,7 @@ on: ["push", "pull_request"]
 
 jobs:
   build_wheels:
-    runs-on: "${{ matrix.os == 'wasm' && 'ubuntu-latest' || matrix.os }}"
+    runs-on: '${{ matrix.os == "wasm" && "ubuntu-latest" || matrix.os }}'
     strategy:
       fail-fast: false
       matrix:
@@ -11,9 +11,9 @@ jobs:
     steps:
       - uses: "actions/checkout@v4"
 
-      - uses: "pypa/cibuildwheel@v2.23.3"
-        with:
-          platform: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
+      - uses: "pypa/cibuildwheel@v2"
+        env:
+          CIBW_PLATFORM: '${{ matrix.os == "wasm" && "pyodide" || "auto" }}'
 
       - uses: "actions/upload-artifact@v4"
         with:
