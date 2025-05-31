@@ -12,9 +12,6 @@ jobs:
             cibw-build: "cp313-*"
     steps:
       - uses: "actions/checkout@v4"
-      - uses: "pierotofy/set-swap-space@master"
-        with:
-          swap-size-gb: 50
       - uses: "yeicor/cibuildwheel@v3.1.0"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"

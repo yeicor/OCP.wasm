@@ -6,8 +6,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE)
 
-# TODO: IPO/LTO makes required symbols dissappear?
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+# IPO/LTO requires ~50GiB RAM+SWAP, which is not available on GitHub actions
+option(ENABLE_IPO "Enable Interprocedural Optimization / Link Time Optimization (requires lots of RAM)" OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND ENABLE_IPO)
   include(CheckIPOSupported)
   check_ipo_supported(RESULT check_ipo_res)
   if(check_ipo_res)
@@ -47,7 +48,7 @@ FetchContent_Declare(
   GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
   GIT_TAG "V7_8_1"
   GIT_PROGRESS TRUE
-  PATCH_COMMAND
+  PATCH_COMMANDTODO: Real tests.
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
