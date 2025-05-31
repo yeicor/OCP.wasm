@@ -1,0 +1,6 @@
+
+/.venv*/
+/.pyodide_build/
+/build/
+/dist/
+/wheelhouse/

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cadquery-ocp"
+version = "7.8.1.2"
+description = "Python bindings for OCP using scikit-build-core"
+authors = [{ name = "Yeicor" }]
+license = { text = "MIT" }
+
+
+[tool.scikit-build]
+cmake.version = ">=3.5"
+cmake.build-type = "Release"
+build-dir = "build/{wheel_tag}-{build_type}"
+wheel.packages = [] # disable Python file inclusion entirely, and rely only on CMake’s install mechanism
+sdist.include = ["CMakeLists.txt"]
+
+[tool.scikit-build.cmake.define]
+# Common
+CMAKE_POLICY_VERSION_MINIMUM="3.5"
+# OCCT
+BUILD_LIBRARY_TYPE="Static"
+BUILD_MODULE_Draw="OFF"
+BUILD_MODULE_DETools="OFF"
+USE_FREETYPE="OFF"
+USE_OPENGL="OFF"
+USE_XLIB="OFF"
+
+
+[tool.cibuildwheel]
+enable = "cpython-prerelease"
+test-command = "python -c \"import OCP; help(OCP);\"" # TODO: Real tests...
+
+[tool.cibuildwheel.linux]
+environment-pass = ["CFLAGS", "LDFLAGS"] # Uses docker, so need to pass host variables manually
+
+[tool.cibuildwheel.pyodide]
+pyodide-version = "0.27.6"
+build-frontend = "build[uv]; args: --exports=whole_archive"
+environment.LDFLAGS = "-O1" # It is heavily optimized after this (this is a hack for a bug)
