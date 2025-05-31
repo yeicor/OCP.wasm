@@ -7,12 +7,17 @@ jobs:
       fail-fast: false
       matrix:
         os: ["wasm", "ubuntu-latest"] # TODO: ubuntu-24.04-arm, windows-latest, macos-13, macos-14
+        cibw-build: "*"
+        include:
+          - os: "wasm"
+            cibw-build: "cp313-*"
     steps:
       - uses: "actions/checkout@v4"
 
       - uses: "yeicor/cibuildwheel@v3.1.0"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
+          CIBW_BUILD: "${{ matrix.cibw-build }}"
 
       - uses: "actions/upload-artifact@v4"
         with:
