@@ -7,7 +7,7 @@ import re
 def get_error_offset(wasm_file):
     try:
         subprocess.run(
-            ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O1', wasm_file, '-o', os.devnull],
+            ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O0', wasm_file, '-o', os.devnull],
             stderr=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
             check=True
@@ -15,11 +15,11 @@ def get_error_offset(wasm_file):
         return None  # No errors
     except subprocess.CalledProcessError as e:
         stderr = e.stderr.decode()
+        print(stderr)
         for line in stderr.splitlines():
-            all_non_zero_integers = re.findall('[0-9]+', line)
-            print(f"all_non_zero_integers {all_non_zero_integers}")
-            if len(all_non_zero_integers) > 1:
-                return int(all_non_zero_integers[1])
+            all_non_zero_integers = re.findall('[1-9][0-9]*', line)
+            if len(all_non_zero_integers) > 0:
+                return int(all_non_zero_integers[0])
         raise RuntimeError(f"Could not parse offset from wasm-dis stderr: {stderr} | {all_non_zero_integers}")
 
 def patch_wasm(wasm_bytes, error_offset):
@@ -54,7 +54,7 @@ def repair_and_optimize_wasm(wasm_path):
     print("Patches complete, optimizing \"fixed\" build")
     optimized_path = wasm_path + '.opt.wasm'
     subprocess.run(
-        ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O4', fixed_path, '-o', optimized_path], env={'BINARYEN_PASS_DEBUG': 1}, check=True
+        ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O4', fixed_path, '-o', optimized_path], env={'BINARYEN_PASS_DEBUG': '1'}, check=True
     )
     shutil.move(optimized_path, wasm_path)
     os.remove(fixed_path)
