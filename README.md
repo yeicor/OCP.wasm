@@ -10,8 +10,15 @@ Go to [the Pyodide REPL](https://pyodide.org/en/latest/console.html).
 Run the following code:
 
 ```py
-import micropip; await micropip.install(["https://yeicor.github.io/OCP-wasm/cadquery_ocp-7.8.1.2-cp313-cp313-pyodide_2025_0_wasm32.whl", "build123d", "sqlite3"]); from build123d import *
+import micropip;
+await micropip.install([
+    "https://yeicor.github.io/OCP-wasm/cadquery_ocp-7.8.1.2-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "build123d", "sqlite3"]);
+
+from build123d import *
+
 L, w, t, b, h, n = 60.0, 18.0, 9.0, 0.9, 90.0, 6.0
+
 with BuildPart() as ex29:
     with BuildSketch(Plane.XY.offset(-b)) as ex29_ow_sk:
         with BuildLine() as ex29_ow_ln:

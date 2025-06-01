@@ -14,8 +14,8 @@ jobs:
         id: "cache"
         with:
           path: "./build"
-          key: "${{ matrix.os }}-cibuildwheel-${{ hashFiles('/CMakeLists.txt', '/*.cmake', '/pyproject.toml') }}"
-          restore-key: "${{ matrix.os }}-cibuildwheel-"
+          key: "${{ matrix.os }}-cibuildwheel-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml') }}"
+          restore-keys: "${{ matrix.os }}-cibuildwheel-"
       
       - uses: "yeicor/cibuildwheel@v3.1.0"
         env:
@@ -53,7 +53,7 @@ jobs:
       - name: "Copy new wheels into registry and rebuild index"
         run: |
           cd gh-pages
-          find artifacts -name '*.whl' -exec cp {} . \; # Overwrites matching versions
+          find ../artifacts -name '*.whl' -exec cp {} . \; # Overwrites matching versions
           
           # Create PEP 503 simple index (with only one package at root index.html)
           echo "<!DOCTYPE html><html><head><title>OCP wasm registry</title></head><body><h1>OCP wasm PEP503 registry</h1>" >index.html
