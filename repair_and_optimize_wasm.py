@@ -54,7 +54,7 @@ def repair_and_optimize_wasm(wasm_path):
     print("Patches complete, optimizing \"fixed\" build")
     optimized_path = wasm_path + '.opt.wasm'
     subprocess.run(
-        ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O4', fixed_path, '-o', optimized_path], env={'BINARYEN_PASS_DEBUG': '1'}, check=True
+        ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O4', fixed_path, '-o', optimized_path], check=True
     )
     shutil.move(optimized_path, wasm_path)
     os.remove(fixed_path)

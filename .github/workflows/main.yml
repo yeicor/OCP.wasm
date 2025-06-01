@@ -13,7 +13,9 @@ jobs:
       - uses: "actions/cache@v4"
         id: "cache"
         with:
-          path: "./build"
+          path: |
+            ./build
+            ~/.cache/ccache
           key: "${{ matrix.os }}-cibuildwheel-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml') }}"
           restore-keys: "${{ matrix.os }}-cibuildwheel-"
       
@@ -39,21 +41,17 @@ jobs:
     steps:
       - uses: "actions/checkout@v4"
         with:
-          fetch-depth: 0
-
-      - name: "Clone gh-pages branch"
-        run: |
-          git fetch origin gh-pages
-          git worktree add gh-pages origin/gh-pages
+          ref: "gh-pages"
       
       - uses: "actions/download-artifact@v4"
         with:
-          path: "artifacts"
+          path: "__artifacts"
           
       - name: "Copy new wheels into registry and rebuild index"
         run: |
           cd gh-pages
-          find ../artifacts -name '*.whl' -exec cp {} . \; # Overwrites matching versions
+          find __artifacts -name '*.whl' -exec cp {} . \; # Overwrites matching versions
+          rm -rf __artifacts
           
           # Create PEP 503 simple index (with only one package at root index.html)
           echo "<!DOCTYPE html><html><head><title>OCP wasm registry</title></head><body><h1>OCP wasm PEP503 registry</h1>" >index.html
