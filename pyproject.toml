@@ -39,5 +39,10 @@ environment.CIBW_PROJECT_REQUIRES_PYTHON = ">=3.8"
 environment-pass = ["CFLAGS", "LDFLAGS"] # Uses docker, so need to pass host variables manually
 
 [tool.cibuildwheel.pyodide]
+# wasm-opt required, supp
+before-all = "command -v wasm-opt >/dev/null 2>&1 || { (command -v apt >/dev/null && sudo apt update && sudo apt install -y binaryen) || (command -v dnf >/dev/null && sudo dnf install -y binaryen) || (command -v yum >/dev/null && sudo yum install -y binaryen) || (command -v pacman >/dev/null && sudo pacman -Sy --noconfirm binaryen) || { echo \"Error: Could not detect supported package manager to install wasm-opt (binaryen).\"; exit 1; }; }; wasm-opt --version"
 build-frontend = "build[uv]; args: --exports=whole_archive"
+skip = "cp3{7,8,9,10,11,12}-*_wasm32"  # Emscripten too old, disable
 environment.LDFLAGS = "-O1" # It is heavily optimized after this (this is a hack for a bug)
+
+

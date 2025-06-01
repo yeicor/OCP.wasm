@@ -7,7 +7,7 @@ import re
 def get_error_offset(wasm_file):
     try:
         subprocess.run(
-            ['wasm-dis', '--enable-exception-handling', wasm_file, '-o', os.devnull],
+            ['wasm-opt', '--no-validation', '--enable-exception-handling', '-O1', wasm_file, '-o', os.devnull],
             stderr=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
             check=True
