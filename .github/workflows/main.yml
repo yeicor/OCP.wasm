@@ -34,73 +34,35 @@ jobs:
     if: "github.ref == 'refs/heads/master'"
     runs-on: "ubuntu-latest"
     steps:
+      steps:
       - uses: "actions/checkout@v4"
         with:
-          ref: "gh-pages"
-          path: "gh-pages"
           fetch-depth: 0
 
-      - uses: "actions/download-artifact@v4"
-        with:
-          path: "gh-pages"
+      - name: "Clone gh-pages branch"
+        run: |
+          git fetch origin gh-pages
+          git worktree add gh-pages origin/gh-pages
 
-      - run: | # Add a simple index.html listing all wheels
+      - name: "Copy new wheels into registry and rebuild index"
+        run: |
           cd gh-pages
-          cat << 'EOF' > index.html
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>Wheels</title>
-          <style>
-            body {
-              font-family: system-ui, sans-serif;
-              background: #fdfdfd;
-              color: #222;
-              padding: 2rem;
-              max-width: 720px;
-              margin: auto;
-            }
-            h1 {
-              font-size: 1.5rem;
-              margin-bottom: 1rem;
-            }
-            a {
-              display: block;
-              padding: 0.4rem 0.6rem;
-              margin: 0.2rem 0;
-              background: #f0f0f0;
-              color: #0366d6;
-              border-radius: 4px;
-              text-decoration: none;
-              font-family: monospace;
-            }
-            a:hover {
-              background: #e6e6e6;
-              text-decoration: underline;
-            }
-          </style>
-          </head>
-          <body>
-          <h1>Wheels</h1>
-          EOF
-
-          for f in *.whl; do
-            echo "  <a href=\"$f\">$f</a>" >> index.html
+          find artifacts -name '*.whl' -exec cp {} . \; # Overwrites matching versions
+          
+          # Create PEP 503 simple index (with only one package at root index.html)
+          echo "<!DOCTYPE html><html><head><title>OCP wasm registry</title></head><body><h1>OCP wasm PEP503 registry</h1>" >index.html
+          for whl in *.whl; do
+            echo "<a href=\"$whl\">$whl</a><br/>" >>index.html
           done
+          echo "</body></html>" >>index.html
 
-          cat << 'EOF' >> index.html
-          </body>
-          </html>
-          EOF
-
-      - run: |
+      - name: "Commit and push"
+        run: |
           cd gh-pages
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add wasm
-          git commit -m "Add new wasm wheels $(date -u +'%Y-%m-%d %H:%M:%S')" || true
+          git add -v .
+          git commit -m "Update wheel registry" || echo "No changes to commit"
           git push origin gh-pages
 
 
