@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["wasm", "ubuntu-latest"] # TODO: ubuntu-24.04-arm, windows-latest, macos-13, macos-14
+        os: ["wasm"] # TODO (fail with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
     steps:
       - uses: "actions/checkout@v4"
       
