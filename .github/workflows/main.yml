@@ -20,17 +20,17 @@ jobs:
       - uses: "yeicor/cibuildwheel@v3.1.0"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
+
+      - uses: "actions/upload-artifact@v4"
+        with:
+          name: "cibw-wheels-${{ matrix.os }}"
+          path: "./wheelhouse/*.whl"
           
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
         with:
           key: "${{ steps.cache-prime-numbers-restore.outputs.cache-primary-key }}"
           path: "./build"
-
-      - uses: "actions/upload-artifact@v4"
-        with:
-          name: "cibw-wheels-${{ matrix.os }}"
-          path: "./wheelhouse/*.whl"
           
   deploy_wheels_to_pages: # keeping old ones
     needs: "build_wheels"
@@ -45,7 +45,11 @@ jobs:
         run: |
           git fetch origin gh-pages
           git worktree add gh-pages origin/gh-pages
-
+      
+      - uses: "actions/download-artifact@v4"
+        with:
+          path: "artifacts"
+          
       - name: "Copy new wheels into registry and rebuild index"
         run: |
           cd gh-pages
