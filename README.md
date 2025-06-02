@@ -10,10 +10,10 @@ Go to [the Pyodide REPL](https://pyodide.org/en/latest/console.html).
 Run the following code:
 
 ```py
-import micropip;
+import micropip
 await micropip.install([
     "https://yeicor.github.io/OCP-wasm/cadquery_ocp-7.8.1.2-cp313-cp313-pyodide_2025_0_wasm32.whl",
-    "build123d", "sqlite3"]);
+    "build123d", "sqlite3"])
 
 from build123d import *
 
