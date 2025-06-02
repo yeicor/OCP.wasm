@@ -15,6 +15,7 @@ jobs:
         with:
           path: |
             ./build
+            !./build/*/_deps/*-src
             ~/.cache/ccache
           key: "${{ matrix.os }}-cibuildwheel-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml') }}"
           restore-keys: "${{ matrix.os }}-cibuildwheel-"
@@ -32,7 +33,10 @@ jobs:
         uses: "actions/cache/save@v4"
         with:
           key: "${{ steps.cache-prime-numbers-restore.outputs.cache-primary-key }}"
-          path: "./build"
+          path: |
+            ./build
+            !./build/*/_deps/*-src
+            ~/.cache/ccache
           
   deploy_wheels_to_pages: # keeping old ones
     needs: "build_wheels"
