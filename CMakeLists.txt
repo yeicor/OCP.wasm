@@ -69,7 +69,7 @@ set(PYBIND11_USE_CROSSCOMPILING ON) # Will enable this if it is actually used (e
 FetchContent_Declare(
   pybind11
   GIT_REPOSITORY "https://github.com/pybind/pybind11.git"
-  GIT_TAG "v2.13.2"
+  GIT_TAG "v2.13.6"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
