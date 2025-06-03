@@ -31,7 +31,7 @@ USE_XLIB="OFF"
 
 
 [tool.cibuildwheel]
-enable = "cpython-prerelease"
+enable = ["cpython-prerelease", "pyodide-prerelease"]
 test-command = "python -c \"import OCP; help(OCP);\"" # TODO: Real tests...
 environment.CIBW_PROJECT_REQUIRES_PYTHON = ">=3.8"
 

@@ -20,7 +20,7 @@ jobs:
           key: "${{ matrix.os }}-cibuildwheel-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml') }}"
           restore-keys: "${{ matrix.os }}-cibuildwheel-"
       
-      - uses: "yeicor/cibuildwheel@v3.1.0"
+      - uses: "pypa/cibuildwheel@v3.0.0b5"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
 
