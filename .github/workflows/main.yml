@@ -28,6 +28,15 @@ jobs:
         with:
           name: "cibw-wheels-${{ matrix.os }}"
           path: "./wheelhouse/*.whl"
+
+      - if: "always()"  # Always run this step, even if previous ones fail
+        uses: "actions/upload-artifact@v4"
+        with:
+          name: "cache-${{ matrix.os }}"
+          path: |
+            ./build
+            !./build/*/_deps/*-src
+            ~/.cache/ccache
           
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
