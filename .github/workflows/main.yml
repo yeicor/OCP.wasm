@@ -7,6 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["wasm"] # TODO (fail with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
+        build_type: ["Debug", "Release"]
     steps:
       - uses: "actions/checkout@v4"
       
@@ -14,38 +15,42 @@ jobs:
         id: "cache"
         with:
           path: |
-            ./build
-            !./build/*/_deps/*-src
-            ~/.cache/ccache
-          key: "${{ matrix.os }}-cibuildwheel-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml') }}"
-          restore-keys: "${{ matrix.os }}-cibuildwheel-"
+            build
+            ~/.cache
+          key: "${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-${{ github.ref_name }}-
+            ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-master-
+            ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-
       
       - uses: "pypa/cibuildwheel@v3.0.0b5"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
+          SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
+          SKBUILD_BUILD_TOOL_ARGS: "-d;explain" # Useful to debug if caches are not working as expected
+          
+      - run: 'mkdir -p "${{ matrix.build_type }}" && mv wheelhouse/*.whl "${{ matrix.build_type }}"'
 
       - uses: "actions/upload-artifact@v4"
         with:
           name: "cibw-wheels-${{ matrix.os }}"
-          path: "./wheelhouse/*.whl"
+          path: "${{ matrix.build_type }}/*.whl"
 
       - if: "always()"  # Always run this step, even if previous ones fail
         uses: "actions/upload-artifact@v4"
         with:
           name: "cache-${{ matrix.os }}"
           path: |
-            ./build
-            !./build/*/_deps/*-src
-            ~/.cache/ccache
+            build
+            ~/.cache
           
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
         with:
           key: "${{ steps.cache-prime-numbers-restore.outputs.cache-primary-key }}"
           path: |
-            ./build
-            !./build/*/_deps/*-src
-            ~/.cache/ccache
+            build
+            ~/.cache
           
   deploy_wheels_to_pages: # keeping old ones
     needs: "build_wheels"
@@ -56,19 +61,15 @@ jobs:
         with:
           ref: "gh-pages"
       
-      - uses: "actions/download-artifact@v4"
+      - uses: "actions/download-artifact@v4"  # Overwrites matching versions
         with:
-          path: "__artifacts"
+          path: "."
           
-      - name: "Copy new wheels into registry and rebuild index"
+      - name: "Rebuild index of registry"
         run: |
-          find __artifacts -name '*.whl' -exec cp {} . \; # Overwrites matching versions
-          rm -rf __artifacts
-          
-          # Create PEP 503 simple index (with only one package at root index.html)
           echo "<!DOCTYPE html><html><head><title>OCP wasm registry</title></head><body><h1>OCP wasm PEP503 registry</h1>" >index.html
-          for whl in *.whl; do
-            echo "<a href=\"$whl\">$whl</a><br/>" >>index.html
+          find . -type f -name "*.whl" | sort -u | while read -r file; do
+            echo "<a href=\"${file#./}\">${file#./}</a>" >>index.html
           done
           echo "</body></html>" >>index.html
 

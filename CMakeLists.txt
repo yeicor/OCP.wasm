@@ -16,7 +16,8 @@ endif()
 
 # IPO/LTO requires ~50GiB RAM+SWAP, which is not available on GitHub actions
 option(ENABLE_IPO "Enable Interprocedural Optimization / Link Time Optimization (requires lots of RAM)" OFF)
-if(CMAKE_BUILD_TYPE STREQUAL "Release" AND ENABLE_IPO)
+set(_IS_DEBUG "$<STREQUAL:$<CONFIG>,Debug>")
+if(NOT _IS_DEBUG AND ENABLE_IPO)
   include(CheckIPOSupported)
   check_ipo_supported(RESULT check_ipo_res)
   if(check_ipo_res)
@@ -27,24 +28,18 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" AND ENABLE_IPO)
   endif()
 endif()
 
-if(EMSCRIPTEN)
-  message(STATUS "Enabling emscripten hacks")
-  # XXX: Avoid some final linking arguments assuming they are implicit
-  list(APPEND CMAKE_CXX_IMPLICIT_LINK_LIBRARIES stubs c dlmalloc compiler_rt-legacysjlj c++-legacyexcept c++abi-legacyexcept unwind-legacyexcept c++abi-debug-legacyexcept)
-  message(NOTICE "CMAKE_CXX_IMPLICIT_LINK_LIBRARIES=${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES}")
-  # XXX: Builds are broken, which means that automatic post-processing of -O2+ fails
-  # Furthermore, pyodide defaults to O2 without a way to overwrite it from cmake, so ask the user to set it
-  if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "-O1")
-      message(FATAL_ERROR "Please set LDFLAGS=\"-O1\" before building with pyodide")
-  endif()
-endif()
-
+# XXX: I only want to install the final static build, not intermediate outputs
 function(install)
-  if("${ARGV1}" STREQUAL "OCP")
-    message(STATUS "XXX: Calling real install for: ${ARGV1}" )
+  # XXX: This may ignore installation of some system files required for some operations? But its mostly docs and static libraries...
+  if(NOT EMSCRIPTEN AND "${ARGV1}" STREQUAL "OCP")
+    message(STATUS "XXX: Calling real install for: ${ARGV1}")
     _install(${ARGV})
+  elseif("${ARGV0}" STREQUAL "INSTALL_ME")
+    message(STATUS "XXX: Calling real install for: ${ARGV2}")
+    list(SUBLIST ARGV 1 -1 rest_args)
+    _install(${rest_args})
   else()
-    message(STATUS "XXX: Skipping install of statically-linked dependency: ${ARGV1}")
+    message(STATUS "XXX: Skipping install for: ${ARGV1}")
   endif()
 endfunction()
 
@@ -130,3 +125,38 @@ FetchContent_Declare(
 
 # Make main target available
 FetchContent_MakeAvailable(OCP)
+
+
+if(EMSCRIPTEN)
+  message(STATUS "Enabling emscripten hacks")
+  # The build tries to link the following libraries, so they must be available (they are cached by emscripten)
+  execute_process(
+    COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept --pic
+    RESULT_VARIABLE EMBUILD_RESULT
+  )
+  if(NOT EMBUILD_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to run embuilder")
+  endif()
+
+  # XXX: Builds are broken, which means that automatic post-processing of -O2+ fails
+  # Furthermore, pyodide defaults to O2 without a way to overwrite it from cmake, so ask the user to set it
+  if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "-O1")
+      message(FATAL_ERROR "Please set LDFLAGS=\"-O1\" before building with pyodide")
+  endif()
+
+  # Declare custom output generation
+  FetchContent_GetProperties(OCP)
+  set(OPTIMIZED_DIR "${CMAKE_CURRENT_BINARY_DIR}/optimized")
+  file(MAKE_DIRECTORY "${OPTIMIZED_DIR}")
+  add_custom_command(
+    DEPENDS OCP
+    OUTPUT "${OPTIMIZED_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${OPTIMIZED_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E env DEBUG=${_IS_DEBUG} PYTHONPATH=$ENV{PYTHONPATH}
+            python3 "${CMAKE_CURRENT_SOURCE_DIR}/repair_and_optimize_wasm.py" "${OCP_BINARY_DIR}" "${OPTIMIZED_DIR}"
+  )
+  add_custom_target(ocp-fixed ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
+  install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION ".")
+endif()
+
+

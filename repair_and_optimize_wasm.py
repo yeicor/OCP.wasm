@@ -17,51 +17,72 @@ def get_error_offset(wasm_file):
         stderr = e.stderr.decode()
         print(stderr)
         for line in stderr.splitlines():
-            all_non_zero_integers = re.findall('[1-9][0-9]*', line)
-            if len(all_non_zero_integers) > 0:
+            all_non_zero_integers = re.findall(r'[1-9][0-9]*', line)
+            if all_non_zero_integers:
                 return int(all_non_zero_integers[0])
-        raise RuntimeError(f"Could not parse offset from wasm-dis stderr: {stderr} | {all_non_zero_integers}")
+        raise RuntimeError(f"Could not parse offset from wasm-opt stderr:\n{stderr}")
 
 def patch_wasm(wasm_bytes, error_offset):
     start = error_offset
     while start >= 0 and wasm_bytes[start] != 0x0E:
         start -= 1
     if start < 0:
-        raise RuntimeError(f"Could not find br_table (0x0E) before the error offset off {error_offset}.")
+        raise RuntimeError(f"Could not find br_table (0x0E) before the error offset at {error_offset}.")
     print(f"Fixing invalid instruction at bytes [{start}, {error_offset}]...")
     for i in range(start, error_offset + 1):
         wasm_bytes[i] = 0x00  # Replace with 'unreachable'
     return wasm_bytes
 
-def repair_and_optimize_wasm(wasm_path):
-    print(f"Copying {wasm_path} to fix it...")
-    with open(wasm_path, 'rb') as f:
+def repair_and_optimize_wasm(input_path, output_path):
+    print(f"Copying and repairing: {input_path}")
+    with open(input_path, 'rb') as f:
         wasm_bytes = bytearray(f.read())
 
-    fixed_path = wasm_path + '.fixed.wasm'
+    fixed_path = input_path + '.fixed.wasm'
 
     while True:
         with open(fixed_path, 'wb') as f:
             f.write(wasm_bytes)
 
-        print(f"Looking for (more) errors...")
+        print("Looking for (more) errors...")
         offset = get_error_offset(fixed_path)
         if offset is None:
-            break  # Success
+            break  # All errors fixed
 
         wasm_bytes = patch_wasm(wasm_bytes, offset)
+        
+    is_debug = os.environ.get("DEBUG", "").lower() in {"1", "on", "true", "yes"}
+    opt_level = "-O0" if is_debug else "-O4"
 
-    print("Patches complete, optimizing \"fixed\" build")
-    optimized_path = wasm_path + '.opt.wasm'
+    print("Patching complete. Starting optimization (" + opt_level + ")...")
+
     subprocess.run(
-        ['wasm-opt', '--no-validation', '--enable-exception-handling', '--post-emscripten', '-O4', fixed_path, '-o', optimized_path], check=True
+        ['wasm-opt', '--no-validation', '--enable-exception-handling', '--post-emscripten', opt_level,
+         fixed_path, '-o', output_path],
+        check=True
     )
-    shutil.move(optimized_path, wasm_path)
+
     os.remove(fixed_path)
-    print("WASM file successfully patched and optimized.")
+    print(f"Optimized WebAssembly written to: {output_path}")
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python repair_and_optimize_wasm.py <wasm_file>")
+    if len(sys.argv) != 3:
+        print("Usage: python repair_and_optimize_wasm.py <input_dir> <output_dir>")
         sys.exit(1)
-    repair_and_optimize_wasm(sys.argv[1])
+        
+    # Find the actual input and output paths... (CMake is hard)
+    input_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Find the first .wasm file in the input directory
+    wasm_files = [f for f in os.listdir(input_dir) if f.endswith('.wasm') or f.endswith('.so')]
+    if len(wasm_files) != 1:
+        print(f"No wasm/so file or too many wasm/so files found ({wasm_files}) in input directory: {input_dir}")
+        sys.exit(1)
+
+    input_filename = wasm_files[0]
+    input_path = os.path.join(input_dir, input_filename)
+    output_path = os.path.join(output_dir, input_filename)
+
+    repair_and_optimize_wasm(input_path, output_path)
