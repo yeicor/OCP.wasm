@@ -52,7 +52,7 @@ def repair_and_optimize_wasm(input_path, output_path):
         wasm_bytes = patch_wasm(wasm_bytes, offset)
         
     is_debug = os.environ.get("DEBUG", "").lower() in {"1", "on", "true", "yes"}
-    opt_level = "-O2" if is_debug else "-O4"
+    opt_level = "-O1" if is_debug else "-O4"
 
     print("Patching complete. Starting optimization (" + opt_level + ")...")
 
