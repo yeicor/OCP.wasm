@@ -66,6 +66,7 @@ jobs:
           
       - name: "Rebuild index of registry"
         run: |
+          rm -r cache-* # Cache artifacts are not wanted
           echo "<!DOCTYPE html><html><head><title>OCP wasm registry</title></head><body><h1>OCP wasm PEP503 registry</h1>" >index.html
           find . -type f -name "*.whl" | sort -u | while read -r file; do
             echo "<a href=\"${file#./}\">${file#./}</a>" >>index.html
