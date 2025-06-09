@@ -15,8 +15,9 @@ jobs:
         id: "cache"
         with:
           path: |
-            build
-            ~/.cache
+            ./build
+            !./build/*/_deps/*-src
+            ~/.cache/ccache
           key: "${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
           restore-keys: |
             ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-${{ github.ref_name }}-
@@ -40,16 +41,18 @@ jobs:
           name: "cache-${{ matrix.os }}-${{ matrix.build_type }}"
           include-hidden-files: true
           path: |
-            build
-            ~/.cache
+            ./build
+            !./build/*/_deps/*-src
+            ~/.cache/ccache
           
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
         with:
           key: "${{ steps.cache-prime-numbers-restore.outputs.cache-primary-key }}"
           path: |
-            build
-            ~/.cache
+            ./build
+            !./build/*/_deps/*-src
+            ~/.cache/ccache
           
   deploy_wheels_to_pages: # keeping old ones
     needs: "build_wheels"
