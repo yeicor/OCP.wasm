@@ -12,7 +12,7 @@ Run the following code:
 ```py
 import micropip
 await micropip.install([
-    "https://yeicor.github.io/OCP-wasm/cadquery_ocp-7.8.1.2-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "https://yeicor.github.io/OCP-wasm/cibw-wheels-wasm-Release/cadquery_ocp-7.8.1.2-cp313-cp313-pyodide_2025_0_wasm32.whl",
     "build123d", "sqlite3"])
 
 from build123d import *
