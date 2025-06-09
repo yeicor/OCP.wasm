@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["wasm"] # TODO (fail with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
-        build_type: ["Debug", "Release"]
+        build_type: ["Release"] # FIXME: "Debug" builds not working for now due to wasm validation failures
     steps:
       - uses: "actions/checkout@v4"
       
@@ -28,13 +28,11 @@ jobs:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           SKBUILD_BUILD_TOOL_ARGS: "-d;explain" # Useful to debug if caches are not working as expected
-          
-      - run: 'mkdir -p "${{ matrix.build_type }}" && mv wheelhouse/*.whl "${{ matrix.build_type }}"'
 
       - uses: "actions/upload-artifact@v4"
         with:
-          name: "cibw-wheels-${{ matrix.os }}"
-          path: "${{ matrix.build_type }}/*.whl"
+          name: "cibw-wheels-${{ matrix.os }}-${{ matrix.build_type }}"
+          path: "wheelhouse/*.whl"
 
       - if: "always()"  # Always run this step, even if previous ones fail
         uses: "actions/upload-artifact@v4"
