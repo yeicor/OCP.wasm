@@ -38,6 +38,7 @@ jobs:
         uses: "actions/upload-artifact@v4"
         with:
           name: "cache-${{ matrix.os }}-${{ matrix.build_type }}"
+          include-hidden-files: true
           path: |
             build
             ~/.cache
