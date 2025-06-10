@@ -14,9 +14,22 @@ if(CCACHE_PROGRAM AND ${AUTO_CCACHE})
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+
+# Set default debug and release flags
+set(_IS_DEBUG OFF) # Useful for later
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_IS_DEBUG ON)
+endif()
+message(STATUS "Is this a debug build? ${_IS_DEBUG}")
+set(CMAKE_C_FLAGS_DEBUG "-Og -g")
+set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
+set(CMAKE_LD_FLAGS_DEBUG "-Og -g -gsource-map=inline")
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_LD_FLAGS_RELEASE "-O3")
+
 # IPO/LTO requires ~50GiB RAM+SWAP, which is not available on GitHub actions
 option(ENABLE_IPO "Enable Interprocedural Optimization / Link Time Optimization (requires lots of RAM)" OFF)
-set(_IS_DEBUG "$<STREQUAL:$<CONFIG>,Debug>")
 if(NOT _IS_DEBUG AND ENABLE_IPO)
   include(CheckIPOSupported)
   check_ipo_supported(RESULT check_ipo_res)
@@ -31,7 +44,7 @@ endif()
 # XXX: I only want to install the final static build, not intermediate outputs
 function(install)
   # XXX: This may ignore installation of some system files required for some operations? But its mostly docs and static libraries...
-  if(NOT EMSCRIPTEN AND "${ARGV1}" STREQUAL "OCP")
+  if("${ARGV1}" STREQUAL "OCP" AND (_IS_DEBUG OR NOT EMSCRIPTEN))
     message(STATUS "XXX: Calling real install for: ${ARGV1}")
     _install(${ARGV})
   elseif("${ARGV0}" STREQUAL "INSTALL_ME")
@@ -42,6 +55,27 @@ function(install)
     message(STATUS "XXX: Skipping install for: ${ARGV1}")
   endif()
 endfunction()
+
+if(EMSCRIPTEN)
+  set(PYWASMCROSS_ENV_FILE "${CMAKE_SOURCE_DIR}/.pyodide_build/pywasmcross_symlinks/pywasmcross_env.json")
+  file(READ "${PYWASMCROSS_ENV_FILE}" PYWASMCROSS_ENV_CONTENTS)
+  # XXX: https://github.com/llvm/llvm-project/issues/63183
+  string(REPLACE "-fwasm-exceptions" "" PYWASMCROSS_ENV_CONTENTS "${PYWASMCROSS_ENV_CONTENTS}")
+  # This lets the CMake build system override debug and optimization levels
+  string(REPLACE "-O2" "" PYWASMCROSS_ENV_CONTENTS "${PYWASMCROSS_ENV_CONTENTS}")
+  string(REPLACE "-g0" "" PYWASMCROSS_ENV_CONTENTS "${PYWASMCROSS_ENV_CONTENTS}")
+  file(WRITE "${PYWASMCROSS_ENV_FILE}" "${PYWASMCROSS_ENV_CONTENTS}")
+  message(STATUS "Patched pywasmcross_env.json")
+  
+  set(PYWASMCROSS_FILE "${CMAKE_SOURCE_DIR}/.pyodide_build/pywasmcross_symlinks/pywasmcross.py")
+  file(READ "${PYWASMCROSS_FILE}" PYWASMCROSS_CONTENTS)
+  # Force previous changes to take effect by ignoring the environment
+  string(REPLACE "if \"PYWASMCROSS_ARGS\" in os.environ:" "if False:" PYWASMCROSS_CONTENTS "${PYWASMCROSS_CONTENTS}")
+  # Force even harder ignoring wasm exceptions (see above)
+  string(REPLACE "    return new_args" "    new_args = [a for a in new_args if a != '-fwasm-exceptions']\n    # print('Compiling args: ' + str(new_args), file=sys.stderr)\n\n    return new_args" PYWASMCROSS_CONTENTS "${PYWASMCROSS_CONTENTS}")
+  file(WRITE "${PYWASMCROSS_FILE}" "${PYWASMCROSS_CONTENTS}")
+  message(STATUS "Patched pywasmcross.py")
+endif()
 
 # ##### OCCT #####
 set(BUILD_DOC_Overview OFF) 
@@ -126,10 +160,9 @@ FetchContent_Declare(
 # Make main target available
 FetchContent_MakeAvailable(OCP)
 
-
+# The build tries to link the following libraries, so they must be available (they are cached by emscripten)
 if(EMSCRIPTEN)
-  message(STATUS "Enabling emscripten hacks")
-  # The build tries to link the following libraries, so they must be available (they are cached by emscripten)
+  message(STATUS "Prebuilding emscripten core dependencies")
   execute_process(
     COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept --pic
     RESULT_VARIABLE EMBUILD_RESULT
@@ -137,26 +170,25 @@ if(EMSCRIPTEN)
   if(NOT EMBUILD_RESULT EQUAL 0)
       message(FATAL_ERROR "Failed to run embuilder")
   endif()
+endif()
 
-  # XXX: Builds are broken, which means that automatic post-processing of -O2+ fails
-  # Furthermore, pyodide defaults to O2 without a way to overwrite it from cmake, so ask the user to set it
-  if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "-O1")
-      message(FATAL_ERROR "Please set LDFLAGS=\"-O1\" before building with pyodide")
-  endif()
-
-  # Declare custom output generation
+# Final wasm-opt --post-emscripten -O4 pass for release builds
+if(EMSCRIPTEN AND NOT _IS_DEBUG)
+  message(STATUS "Setting up extra optimization pass for release build")
   FetchContent_GetProperties(OCP)
-  set(OPTIMIZED_DIR "${CMAKE_CURRENT_BINARY_DIR}/optimized")
+  set(OPTIMIZED_DIR "${CMAKE_CURRENT_BINARY_DIR}/OCP-wasm-opt")
   file(MAKE_DIRECTORY "${OPTIMIZED_DIR}")
   add_custom_command(
     DEPENDS OCP
     OUTPUT "${OPTIMIZED_DIR}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OPTIMIZED_DIR}"
     COMMAND ${CMAKE_COMMAND} -E env DEBUG=${_IS_DEBUG} PYTHONPATH=$ENV{PYTHONPATH}
-            python3 "${CMAKE_CURRENT_SOURCE_DIR}/repair_and_optimize_wasm.py" "${OCP_BINARY_DIR}" "${OPTIMIZED_DIR}"
+            sh -c "SO_FILE=\"$(find ${OCP_BINARY_DIR} -name '*.so')\" wasm-opt --post-emscripten -O4 \"$SO_FILE\" \"${OPTIMIZED_DIR}/$(basename \"$SO_FILE\")\""
+    VERBATIM
   )
-  add_custom_target(ocp-fixed ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
+  add_custom_target(OCP-wasm-opt ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
   install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION ".")
 endif()
+
 
 

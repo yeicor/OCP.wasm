@@ -22,3 +22,4 @@ foreach(f IN LISTS cmake_files)
     message(STATUS "Patched ${f}")
   endif()
 endforeach()
+
