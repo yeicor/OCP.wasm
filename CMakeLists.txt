@@ -186,7 +186,7 @@ if(EMSCRIPTEN AND NOT _IS_DEBUG)
             sh -c "SO_FILE=\"$(find ${OCP_BINARY_DIR} -name '*.so')\" wasm-opt --post-emscripten -O4 \"$SO_FILE\" \"${OPTIMIZED_DIR}/$(basename \"$SO_FILE\")\""
     VERBATIM
   )
-  add_custom_target(OCP-wasm-opt ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
+  add_custom_target(OCP-wasm-opt-target ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
   install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION ".")
 endif()
 
