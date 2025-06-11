@@ -29,26 +29,27 @@ jobs:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           SKBUILD_BUILD_TOOL_ARGS: "-d;explain" # Useful to debug if caches are not working as expected
+        timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
       - uses: "actions/upload-artifact@v4"
         with:
           name: "cibw-wheels-${{ matrix.os }}-${{ matrix.build_type }}"
           path: "wheelhouse/*.whl"
-
-      - if: "always()"  # Always run this step, even if previous ones fail
-        uses: "actions/upload-artifact@v4"
-        with:
-          name: "cache-${{ matrix.os }}-${{ matrix.build_type }}"
-          include-hidden-files: true
-          path: |
-            ./build
-            !./build/*/_deps/*-src
-            ~/.cache/ccache
           
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
         with:
           key: "${{ steps.cache-prime-numbers-restore.outputs.cache-primary-key }}"
+          path: |
+            ./build
+            !./build/*/_deps/*-src
+            ~/.cache/ccache
+
+      - if: "always()"  # Upload cache as an artifact for debugging
+        uses: "actions/upload-artifact@v4"
+        with:
+          name: "cache-${{ matrix.os }}-${{ matrix.build_type }}"
+          include-hidden-files: true
           path: |
             ./build
             !./build/*/_deps/*-src
