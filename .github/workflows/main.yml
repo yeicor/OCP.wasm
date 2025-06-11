@@ -39,7 +39,7 @@ jobs:
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
         with:
-          key: "${{ steps.cache-prime-numbers-restore.outputs.cache-primary-key }}"
+          key: "${{ steps.cache.outputs.cache-primary-key }}"
           path: |
             ./build
             !./build/*/_deps/*-src
