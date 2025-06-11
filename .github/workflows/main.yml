@@ -28,7 +28,7 @@ jobs:
             ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-
       
       - run: |
-          pacman -Syu --noconfirm python-pip
+          pacman -Syu --noconfirm python-pip git
           python -m venv .venv
           . .venv/bin/activate
           pip install cibuildwheel
