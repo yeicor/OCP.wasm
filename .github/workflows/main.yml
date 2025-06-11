@@ -3,6 +3,7 @@ on: ["push", "pull_request", "workflow_dispatch"]
 jobs:
   build_wheels:
     runs-on: "${{ matrix.os == 'wasm' && 'ubuntu-latest' || matrix.os }}"
+    container: "archlinux/archlinux:base-devel-20250611.0.363423"  # More up to date system software? TODO: Auto-update
     strategy:
       fail-fast: false
       matrix:
