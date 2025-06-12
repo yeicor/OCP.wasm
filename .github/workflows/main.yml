@@ -3,9 +3,6 @@ on: ["push", "pull_request", "workflow_dispatch"]
 jobs:
   build_wheels:
     runs-on: "${{ matrix.os == 'wasm' && 'ubuntu-latest' || matrix.os }}"
-    container:  # More up to date system software? TODO: Auto-update
-      image: "archlinux/archlinux:base-devel-20250611.0.363423"
-      options: "--workdir /workspace"
     strategy:
       fail-fast: false
       matrix:
@@ -21,18 +18,13 @@ jobs:
             ./build
             !./build/*/_deps/*-src
             ~/.cache/ccache
-          key: "${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
+          key: "${{ matrix.os }}-${{ matrix.build_type }}-cibw-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
           restore-keys: |
-            ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-${{ github.ref_name }}-
-            ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-master-
-            ${{ matrix.os }}-${{ matrix.build_type }}-cibuildwheel-
+            ${{ matrix.os }}-${{ matrix.build_type }}-cibw-${{ github.ref_name }}-
+            ${{ matrix.os }}-${{ matrix.build_type }}-cibw-master-
+            ${{ matrix.os }}-${{ matrix.build_type }}-cibw-
       
-      - run: |
-          pacman -Syu --noconfirm python-pip git
-          python -m venv .venv
-          . .venv/bin/activate
-          pip install cibuildwheel
-          cibuildwheel
+      - uses: "pypa/cibuildwheel@v3.0.0b5"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
@@ -62,6 +54,9 @@ jobs:
             ./build
             !./build/*/_deps/*-src
             ~/.cache/ccache
+            /tmp/cibw-run-*/*-pyodide_wasm32/built_wheel/*
+            /tmp/cibw-run-*/*-pyodide_wasm32/repaired_wheel/*
+            wheelhouse/*.whl
           
   deploy_wheels_to_pages: # keeping old ones
     needs: "build_wheels"
