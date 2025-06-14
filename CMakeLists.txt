@@ -21,12 +21,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(_IS_DEBUG ON)
 endif()
 message(STATUS "Is this a debug build? ${_IS_DEBUG}")
-# set(CMAKE_C_FLAGS_DEBUG "-Og -g")
-# set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
-# set(CMAKE_LD_FLAGS_DEBUG "-Og -g -gsource-map=inline")
-# set(CMAKE_C_FLAGS_RELEASE "-O3")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-# set(CMAKE_LD_FLAGS_RELEASE "-O3")
+# XXX: Including linker flag in compile commands because ignored otherwise?
+set(CMAKE_C_FLAGS_DEBUG "-Og -g -gsource-map=inline" CACHE STRING "Flags used by the compiler" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "-Og -g -gsource-map=inline" CACHE STRING "Flags used by the compiler" FORCE)
+set(CMAKE_C_FLAGS_RELEASE "-O3" CACHE STRING "Flags used by the compiler" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "Flags used by the compiler" FORCE)
 
 # IPO/LTO requires ~50GiB RAM+SWAP, which is not available on GitHub actions
 option(ENABLE_IPO "Enable Interprocedural Optimization / Link Time Optimization (requires lots of RAM)" OFF)
@@ -153,6 +152,14 @@ endif()
 
 if(EMSCRIPTEN)
   message(STATUS "Setting up extra repair/optimization pass")
+  # XXX: All builds hit this issue: https://github.com/llvm/llvm-project/issues/63183
+  # As a hacky workaround, replace all invalid instructions (usually very few) with unreachable opcodes
+  # This also requires linking with an optimization level <= 1, otherwise internal linker validation 
+  # during optimization would fail. Note that optimization is still invoked manually after the file is "repaired".
+  string(CONCAT FLAGS "$ENV{LDFLAGS}" "${CMAKE_EXE_LINKER_FLAGS}")
+  if(NOT FLAGS MATCHES "-O[01g]")
+    message(FATAL_ERROR "LDFLAGS must contain -O0, -O1, or -Og. See comment above this error.")
+  endif()
   FetchContent_GetProperties(OCP)
   set(OPTIMIZED_DIR "${CMAKE_CURRENT_BINARY_DIR}/OCP-wasm-opt")
   file(MAKE_DIRECTORY "${OPTIMIZED_DIR}")
@@ -164,7 +171,7 @@ if(EMSCRIPTEN)
             python3 "${CMAKE_CURRENT_SOURCE_DIR}/repair_wasm.py" "${OCP_BINARY_DIR}" "${OPTIMIZED_DIR}"
     VERBATIM
   )
-  add_custom_target(OCP-wasm-opt-target ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
+  add_custom_target(OCP-wasm-opt-target ALL DEPENDS "${OPTIMIZED_DIR}")
   install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION ".")
 endif()
 

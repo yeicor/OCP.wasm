@@ -3,6 +3,9 @@ on: ["push", "pull_request", "workflow_dispatch"]
 jobs:
   build_wheels:
     runs-on: "${{ matrix.os == 'wasm' && 'ubuntu-latest' || matrix.os }}"
+    container:  # More up to date system software? TODO: Auto-update
+      image: "archlinux/archlinux:base-devel-20250614.0.365658"
+      options: "--workdir /workspace"
     strategy:
       fail-fast: false
       matrix:
@@ -24,11 +27,17 @@ jobs:
             ${{ matrix.os }}-${{ matrix.build_type }}-cibw-master-
             ${{ matrix.os }}-${{ matrix.build_type }}-cibw-
       
-      - uses: "pypa/cibuildwheel@v3.0.0b5"
+      - run: |
+          pacman -Syu --noconfirm python-pip git
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install cibuildwheel==3.0.0  # TODO: Auto-update (requirements.txt?)
+          cibuildwheel
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           SKBUILD_BUILD_TOOL_ARGS: "-d;explain" # Useful to debug if caches are not working as expected
+          LDFLAGS: "${{ matrix.build_type == 'Debug' && '-Og' || '-O1' }}" # XXX: See repair_wasm.py invocation in CMakeLists.txt
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
       - uses: "actions/upload-artifact@v4"
