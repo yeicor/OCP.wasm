@@ -21,12 +21,12 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(_IS_DEBUG ON)
 endif()
 message(STATUS "Is this a debug build? ${_IS_DEBUG}")
-set(CMAKE_C_FLAGS_DEBUG "-Og -g")
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
-set(CMAKE_LD_FLAGS_DEBUG "-Og -g -gsource-map=inline")
-set(CMAKE_C_FLAGS_RELEASE "-O3")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_LD_FLAGS_RELEASE "-O3")
+# set(CMAKE_C_FLAGS_DEBUG "-Og -g")
+# set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
+# set(CMAKE_LD_FLAGS_DEBUG "-Og -g -gsource-map=inline")
+# set(CMAKE_C_FLAGS_RELEASE "-O3")
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+# set(CMAKE_LD_FLAGS_RELEASE "-O3")
 
 # IPO/LTO requires ~50GiB RAM+SWAP, which is not available on GitHub actions
 option(ENABLE_IPO "Enable Interprocedural Optimization / Link Time Optimization (requires lots of RAM)" OFF)
@@ -55,27 +55,6 @@ function(install)
     message(STATUS "XXX: Skipping install for: ${ARGV1}")
   endif()
 endfunction()
-
-if(EMSCRIPTEN)
-  set(PYWASMCROSS_ENV_FILE "${CMAKE_SOURCE_DIR}/.pyodide_build/pywasmcross_symlinks/pywasmcross_env.json")
-  file(READ "${PYWASMCROSS_ENV_FILE}" PYWASMCROSS_ENV_CONTENTS)
-  # XXX: https://github.com/llvm/llvm-project/issues/63183
-  string(REPLACE "-fwasm-exceptions" "" PYWASMCROSS_ENV_CONTENTS "${PYWASMCROSS_ENV_CONTENTS}")
-  # This lets the CMake build system override debug and optimization levels
-  string(REPLACE "-O2" "" PYWASMCROSS_ENV_CONTENTS "${PYWASMCROSS_ENV_CONTENTS}")
-  string(REPLACE "-g0" "" PYWASMCROSS_ENV_CONTENTS "${PYWASMCROSS_ENV_CONTENTS}")
-  file(WRITE "${PYWASMCROSS_ENV_FILE}" "${PYWASMCROSS_ENV_CONTENTS}")
-  message(STATUS "Patched pywasmcross_env.json")
-  
-  set(PYWASMCROSS_FILE "${CMAKE_SOURCE_DIR}/.pyodide_build/pywasmcross_symlinks/pywasmcross.py")
-  file(READ "${PYWASMCROSS_FILE}" PYWASMCROSS_CONTENTS)
-  # Force previous changes to take effect by ignoring the environment
-  string(REPLACE "if \"PYWASMCROSS_ARGS\" in os.environ:" "if False:" PYWASMCROSS_CONTENTS "${PYWASMCROSS_CONTENTS}")
-  # Force even harder ignoring wasm exceptions (see above)
-  string(REPLACE "    return new_args" "    new_args = [a for a in new_args if a != '-fwasm-exceptions']\n    # print('Compiling args: ' + str(new_args), file=sys.stderr)\n\n    return new_args" PYWASMCROSS_CONTENTS "${PYWASMCROSS_CONTENTS}")
-  file(WRITE "${PYWASMCROSS_FILE}" "${PYWASMCROSS_CONTENTS}")
-  message(STATUS "Patched pywasmcross.py")
-endif()
 
 # ##### OCCT #####
 set(BUILD_DOC_Overview OFF) 
@@ -172,9 +151,8 @@ if(EMSCRIPTEN)
   endif()
 endif()
 
-# Final wasm-opt --post-emscripten -O4 pass for release builds
-if(EMSCRIPTEN AND NOT _IS_DEBUG)
-  message(STATUS "Setting up extra optimization pass for release build")
+if(EMSCRIPTEN)
+  message(STATUS "Setting up extra repair/optimization pass")
   FetchContent_GetProperties(OCP)
   set(OPTIMIZED_DIR "${CMAKE_CURRENT_BINARY_DIR}/OCP-wasm-opt")
   file(MAKE_DIRECTORY "${OPTIMIZED_DIR}")
@@ -183,7 +161,7 @@ if(EMSCRIPTEN AND NOT _IS_DEBUG)
     OUTPUT "${OPTIMIZED_DIR}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OPTIMIZED_DIR}"
     COMMAND ${CMAKE_COMMAND} -E env DEBUG=${_IS_DEBUG} PYTHONPATH=$ENV{PYTHONPATH}
-            sh -c "SO_FILE=\"$(find ${OCP_BINARY_DIR} -name '*.so')\" wasm-opt --post-emscripten -O4 \"$SO_FILE\" \"${OPTIMIZED_DIR}/$(basename \"$SO_FILE\")\""
+            python3 "${CMAKE_CURRENT_SOURCE_DIR}/repair_wasm.py" "${OCP_BINARY_DIR}" "${OPTIMIZED_DIR}"
     VERBATIM
   )
   add_custom_target(OCP-wasm-opt-target ALL DEPENDS "${OPTIMIZED_DIR}")  # XXX: target required for custom command to happen?
