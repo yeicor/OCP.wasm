@@ -154,7 +154,7 @@ if(EMSCRIPTEN)
   message(STATUS "Setting up extra repair/optimization pass")
   # XXX: All builds hit this issue: https://github.com/llvm/llvm-project/issues/63183
   # As a hacky workaround, replace all invalid instructions (usually very few) with unreachable opcodes
-  # This also requires linking with an optimization level <= 1, otherwise internal linker validation 
+  # This also requires linking with an optimization level <= 1, otherwise internal linker validation
   # during optimization would fail. Note that optimization is still invoked manually after the file is "repaired".
   string(CONCAT FLAGS "$ENV{LDFLAGS}" "${CMAKE_EXE_LINKER_FLAGS}")
   if(NOT FLAGS MATCHES "-O[01g]")
