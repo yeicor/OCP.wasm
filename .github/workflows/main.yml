@@ -40,7 +40,7 @@ jobs:
           SKBUILD_BUILD_TOOL_ARGS: "-d;explain" # Useful to debug if caches are not working as expected
           CFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g' || '-O3' }}"
           CXXFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g' || '-O3' }}"
-          LDFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g -gsource-map=inline' || '-O1' }}" # XXX: See repair_wasm.py invocation in CMakeLists.txt
+          LDFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g -gsource-map=inline -gseparate-dwarf' || '-O1' }}" # XXX: See repair_wasm.py invocation in CMakeLists.txt
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
       - uses: "actions/upload-artifact@v4"

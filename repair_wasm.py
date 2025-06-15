@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import os.path
 import shutil
 import re
 
@@ -63,6 +64,11 @@ def repair_and_optimize_wasm(input_path, output_path):
         wasm_opt_args + [fixed_path, '-o', output_path],
         check=True
     )
+    
+    possible_map_file = input_path + '.map'
+    if os.path.isfile(possible_map_file):
+        print("Also copying map file with debug information")
+        shutil.copy(possible_map_file, output_path + '.map')
 
     os.remove(fixed_path)
     print(f"Optimized WebAssembly written to: {output_path}")
