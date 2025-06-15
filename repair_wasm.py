@@ -70,7 +70,7 @@ def repair_and_optimize_wasm(input_path, output_path):
     possible_debug_file = input_path[:-3] + '.wasm.debug.wasm'
     if False and os.path.isfile(possible_map_file):
         print("Also copying .debug.wasm file with debug information")
-        shutil.copy(possible_map_file, output_path[:-3 + '.wasm.debug.wasm')
+        shutil.copy(possible_map_file, output_path[:-3] + '.wasm.debug.wasm')
     
     possible_map_file = input_path + '.map'
     if os.path.isfile(possible_map_file):
