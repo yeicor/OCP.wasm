@@ -21,11 +21,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(_IS_DEBUG ON)
 endif()
 message(STATUS "Is this a debug build? ${_IS_DEBUG}")
-# XXX: Including linker flag in compile commands because ignored otherwise?
-set(CMAKE_C_FLAGS_DEBUG "-Og -g -gsource-map=inline" CACHE STRING "Flags used by the compiler" FORCE)
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g -gsource-map=inline" CACHE STRING "Flags used by the compiler" FORCE)
-set(CMAKE_C_FLAGS_RELEASE "-O3" CACHE STRING "Flags used by the compiler" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "Flags used by the compiler" FORCE)
+# XXX: The following is overwritten by pyodide during build, so moved to main.yml as environment vars
+# set(CMAKE_C_FLAGS_DEBUG "-Og -g -gsource-map=inline" CACHE STRING "Flags used by the compiler" FORCE)
+# set(CMAKE_CXX_FLAGS_DEBUG "-Og -g -gsource-map=inline" CACHE STRING "Flags used by the compiler" FORCE)
+# set(CMAKE_C_FLAGS_RELEASE "-O3" CACHE STRING "Flags used by the compiler" FORCE)
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "Flags used by the compiler" FORCE)
 
 # IPO/LTO requires ~50GiB RAM+SWAP, which is not available on GitHub actions
 option(ENABLE_IPO "Enable Interprocedural Optimization / Link Time Optimization (requires lots of RAM)" OFF)

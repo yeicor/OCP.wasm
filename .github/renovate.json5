@@ -14,7 +14,7 @@
   customManagers: [
     {
       customType: "regex",
-      managerFilePatterns: ["CMakeLists.txt"],
+      managerFilePatterns: ["^CMakeLists.txt$"],
       matchStrings: [
         'FetchContent_Declare[ \\t]*\\([^)]*GIT_REPOSITORY[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*?)(.git)?"[^)]*GIT_TAG[ \\t]*"(?<currentValue>[^"]*)"'
       ],
@@ -23,11 +23,20 @@
     },
     {
       customType: "regex",
-      managerFilePatterns: ["CMakeLists.txt"],
+      managerFilePatterns: ["^CMakeLists.txt$"],
       matchStrings: [
         'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*)\\\/releases\\\/download\\\/(?<currentValue>[^\/]+)\\\/(?<depName>[^"]*)"'
       ],
       datasourceTemplate: "github-release-attachments",
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["^\\.github\\/workflows\\/.*\\.ya?ml$"],
+      "matchStrings": [
+        "(container|image):\\s*\"(?<depName>[^:]*):(?<currentValue>[\\w\\.-]+)\""
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     },
   ],
 }

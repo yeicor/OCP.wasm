@@ -29,6 +29,8 @@ def patch_wasm(wasm_bytes, error_offset):
     if start < 0:
         raise RuntimeError(f"Could not find br_table (0x0E) before the error offset at {error_offset}.")
     print(f"Fixing invalid instruction at bytes [{start}, {error_offset}]...")
+    if error_offset + 1 - start > 30:
+        raise RuntimeError(f"Found br_table (0x0E) instruction is probably too long (maybe wasm is invalid for a different reason?).")
     for i in range(start, error_offset + 1):
         wasm_bytes[i] = 0x00  # Replace with 'unreachable'
     return wasm_bytes
@@ -52,13 +54,13 @@ def repair_and_optimize_wasm(input_path, output_path):
         wasm_bytes = patch_wasm(wasm_bytes, offset)
         
     is_debug = os.environ.get("DEBUG", "").lower() in {"1", "on", "true", "yes"}
-    opt_level = "-O1" if is_debug else "-O4"
+    wasm_opt_args = ["-O0", "--debuginfo"] if is_debug else ["-O4"]
 
-    print("Patching complete. Starting optimization (" + opt_level + ")...")
+    print("Patching complete. Starting optimization (" + str(wasm_opt_args) + ")...")
 
     subprocess.run(
-        ['wasm-opt', '--no-validation', '--enable-exception-handling', '--post-emscripten', opt_level,
-         fixed_path, '-o', output_path],
+        ['wasm-opt', '--no-validation', '--enable-exception-handling', '--post-emscripten'] +
+        wasm_opt_args + [fixed_path, '-o', output_path],
         check=True
     )
 
@@ -78,7 +80,7 @@ if __name__ == '__main__':
     # Find the first .so file in the input directory
     input_files = [f for f in os.listdir(input_dir) if f.endswith('.so')]
     if len(input_files) != 1:
-        print(f"No wasm/so file or too many wasm/so files found ({input_files}) in input directory: {input_dir}")
+        print(f"No so file or too many so files found ({input_files}) in input directory: {input_dir}")
         sys.exit(1)
 
     input_filename = input_files[0]
