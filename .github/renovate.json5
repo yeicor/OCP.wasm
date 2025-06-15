@@ -29,14 +29,12 @@
       ],
       datasourceTemplate: "github-release-attachments",
     },
+  ],
+  "packageRules": [
     {
-      "customType": "regex",
-      "managerFilePatterns": ["/^\\.github\\/workflows\\/.*\\.ya?ml$/"],
-      "matchStrings": [
-        "(container|image):\\s*\"(?<depName>[^:]*):(?<currentValue>[\\w\\.-]+)\""
-      ],
-      "datasourceTemplate": "docker",
-      "versioningTemplate": "regex:^(?<compatibility>.*)-v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)?$"
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["archlinux/archlinux"],
+      "versioning": "regex:^(?<compatibility>.*)-v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)?$"
     },
   ],
 }
