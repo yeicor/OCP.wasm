@@ -36,7 +36,7 @@
         "(container|image):\\s*\"(?<depName>[^:]*):(?<currentValue>[\\w\\.-]+)\""
       ],
       "datasourceTemplate": "docker",
-      "versioningTemplate": "docker"
+      "versioningTemplate": "regex:^(?<compatibility>.*)-v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)?$"
     },
   ],
 }
