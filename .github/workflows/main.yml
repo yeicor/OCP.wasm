@@ -9,6 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        package: ["cadquery-ocp", "lib3mf"]
         os: ["wasm"] # TODO (fail with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
         build_type: ["Release", "Debug"]
     steps:
@@ -18,14 +19,14 @@ jobs:
         id: "cache"
         with:
           path: |
-            ./build
-            !./build/*/_deps/*-src
+            ${{ matrix.package }}/build
+            !${{ matrix.package }}/build/*/_deps/*-src
             ~/.cache/ccache
-          key: "${{ matrix.os }}-${{ matrix.build_type }}-cibw-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
+          key: "cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
           restore-keys: |
-            ${{ matrix.os }}-${{ matrix.build_type }}-cibw-${{ github.ref_name }}-
-            ${{ matrix.os }}-${{ matrix.build_type }}-cibw-master-
-            ${{ matrix.os }}-${{ matrix.build_type }}-cibw-
+            cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-
+            cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-master-
+            cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-
         
       - run: | # Install all system deps
           pacman -Syu --noconfirm python-pip git
@@ -33,7 +34,7 @@ jobs:
           . .venv/bin/activate
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
       
-      - run: ". .venv/bin/activate && cibuildwheel"
+      - run: ". .venv/bin/activate && cd ${{ matrix.package }} && cibuildwheel"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
@@ -45,30 +46,30 @@ jobs:
 
       - uses: "actions/upload-artifact@v4"
         with:
-          name: "cibw-wheels-${{ matrix.os }}-${{ matrix.build_type }}"
-          path: "wheelhouse/*.whl"
+          name: "${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}"
+          path: "${{ matrix.package }}/wheelhouse/*.whl"
           
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v4"
         with:
           key: "${{ steps.cache.outputs.cache-primary-key }}"
           path: |
-            ./build
-            !./build/*/_deps/*-src
+            ${{ matrix.package }}/build
+            !${{ matrix.package }}/build/*/_deps/*-src
             ~/.cache/ccache
 
-      - if: "always()"  # Upload cache as an artifact for debugging
+      - if: "always()"  # Upload cache and wheels as an artifact for debugging
         uses: "actions/upload-artifact@v4"
         with:
-          name: "cache-${{ matrix.os }}-${{ matrix.build_type }}"
+          name: "cache-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}"
           include-hidden-files: true
           path: |
-            ./build
-            !./build/*/_deps/*-src
+            ${{ matrix.package }}/build
+            !${{ matrix.package }}/build/*/_deps/*-src
             ~/.cache/ccache
             /tmp/cibw-run-*/*-pyodide_wasm32/built_wheel/*
             /tmp/cibw-run-*/*-pyodide_wasm32/repaired_wheel/*
-            wheelhouse/*.whl
+            ${{ matrix.package }}/wheelhouse/*.whl
           
   deploy_wheels_to_pages: # keeping old ones
     needs: "build_wheels"

@@ -40,7 +40,7 @@ if(NOT _IS_DEBUG AND ENABLE_IPO)
   endif()
 endif()
 
-# XXX: I only want to install the final static build, not intermediate outputs
+# XXX: I only want to install the final build, not intermediate outputs
 function(install)
   # XXX: This may ignore installation of some system files required for some operations? But its mostly docs and static libraries...
   if("${ARGV1}" STREQUAL "OCP" AND (_IS_DEBUG OR NOT EMSCRIPTEN))

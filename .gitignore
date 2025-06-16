@@ -1,6 +1,9 @@
-
+# General
 /.venv*/
-/.pyodide_build/
-/build/
-/dist/
-/wheelhouse/
+/.idea/
+
+# Built packages
+.pyodide_build/
+build/
+dist/
+wheelhouse/
