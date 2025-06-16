@@ -28,13 +28,15 @@ jobs:
             cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-master-
             cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-
         
-      - run: | # Install all system deps
+      - working-directory: "${{ matrix.package }}"
+        run: | # Install all system deps
           pacman -Syu --noconfirm python-pip git
           python -m venv .venv
           . .venv/bin/activate
-          pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
+          pip install $(python -c 'import tomllib; cfg = tomllib.load(open("${{ matrix.package }}/pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
       
-      - run: ". .venv/bin/activate && cd ${{ matrix.package }} && cibuildwheel"
+      - run: ". .venv/bin/activate && cibuildwheel"
+        working-directory: "${{ matrix.package }}"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
