@@ -36,9 +36,8 @@ environment-pass = ["CFLAGS", "CXXFLAGS", "LDFLAGS"] # Uses docker, so need to p
 [tool.cibuildwheel.pyodide]
 before-all = "command -v wasm-opt >/dev/null 2>&1 || { (command -v apt >/dev/null && sudo apt update && sudo apt install -y binaryen) || (command -v dnf >/dev/null && sudo dnf install -y binaryen) || (command -v yum >/dev/null && sudo yum install -y binaryen) || (command -v pacman >/dev/null && sudo pacman -Sy --noconfirm binaryen) || { echo \"Error: Could not detect supported package manager to install wasm-opt (binaryen).\"; exit 1; }; }; wasm-opt --version; command -v ccache >/dev/null 2>&1 || { (command -v apt >/dev/null && sudo apt update && sudo apt install -y ccache) || (command -v dnf >/dev/null && sudo dnf install -y ccache) || (command -v yum >/dev/null && sudo yum install -y ccache) || (command -v pacman >/dev/null && sudo pacman -Sy --noconfirm ccache) || { echo \"Error: Could not detect supported package manager to install ccache.\"; exit 1; }; }; ccache --version; "
 #build-frontend = "build[uv]; args: --exports=whole_archive"
-#skip = "cp3{7,8,9,10,11,12}-*_wasm32"  # Disabled due to emscripten being too old
-environment.CFLAGS="-fPIC -sSIDE_MODULE -D__linux__ -D__STDC_WANT_LIB_EXT1__"
-environment.CXXFLAGS="-fPIC -sSIDE_MODULE"
-environment.LD_FLAGS="-fPIC -sSIDE_MODULE"
+environment.CFLAGS="-fPIC -sSIDE_MODULE -D__linux__ -D__STDC_WANT_LIB_EXT1__ $CFLAGS"
+environment.CXXFLAGS="-fPIC -sSIDE_MODULE $CXXFLAGS"
+environment.LDFLAGS="-fPIC -sSIDE_MODULE $LDFLAGS"
 
 
