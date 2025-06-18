@@ -87,7 +87,7 @@ jobs:
         with:
           path: "__wheels__"
 
-      - run: "python __wheels__/generate_package_index.py --wheels . __wheels__ --output ."  # Overwrites matching versions
+      - run: "python package_index/build.py --wheels . __wheels__ --output ."  # Overwrites matching versions
 
       - run: "rm -rf __wheels__"
 
