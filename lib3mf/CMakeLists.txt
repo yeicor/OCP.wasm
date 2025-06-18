@@ -31,7 +31,7 @@ FetchContent_Declare(
   GIT_TAG "v2.4.1"
   GIT_PROGRESS TRUE
   PATCH_COMMAND "${CMAKE_COMMAND}" "-DREAL_SOURCE_DIR=<SOURCE_DIR>" -P "${CMAKE_CURRENT_LIST_DIR}/patch.cmake"
-  COMMAND /bin/sh -c "if [ ! -z \"$_FORCE_OLD_SOURCES\" ]; then find . -type f -exec touch -t 200001010000.00 {} +; fi" # XXX: Better caching!
+  COMMAND /bin/sh -c "if [ ! -z \"$_FORCE_OLD_SOURCES\" ]; then find <SOURCE_DIR> -type f -exec touch -t 200001010000.00 {} +; fi" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE TRUE
 )
 
