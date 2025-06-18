@@ -9,7 +9,7 @@ file(READ "${FILE}" CONTENTS)
 set(NEW_CONTENTS "${CONTENTS}")
 
 # Patch 1: Insert after "# Shared library"
-string(REPLACE "# Shared library" "# Shared library\nset_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)" NEW_CONTENTS "${NEW_CONTENTS}")
+string(REPLACE "# Shared library\nadd_library" "# Shared library\nset_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)\nadd_library" NEW_CONTENTS "${NEW_CONTENTS}")
 
 # Patch 2: Replace COMMAND line
 string(REPLACE "COMMAND ${CMAKE_COMMAND}"
