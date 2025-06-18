@@ -15,16 +15,22 @@ fi
 # Change into the target directory
 cd "$1" || exit 1
 
-# Get last commit date in YYYYMMDDhhmm.ss format
-last_commit_ts=$(git log -1 --pretty=format:'%ad' --date=format:%Y%m%d%H%M.%S 2>/dev/null)
-
-# Validate format (should be 12 digits + optional .ss)
-if ! echo "$last_commit_ts" | grep -Eq '^[0-9]{12}(\.[0-9]{2})?$'; then
-  echo "Error: invalid timestamp format: $last_commit_ts"
-  exit 1
+# Try to get the last Git commit timestamp
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  last_commit_ts=$(git log -1 --pretty=format:'%ad' --date=format:%Y%m%d%H%M.%S 2>/dev/null)
+else
+  last_commit_ts=""
 fi
 
-# Apply the timestamp to all files
-find . -type f -exec touch -t "$last_commit_ts" {} +
+# Validate timestamp format
+if echo "$last_commit_ts" | grep -Eq '^[0-9]{12}(\.[0-9]{2})?$'; then
+  ts="$last_commit_ts"
+else
+  echo "Warning: using fallback timestamp (this may reuse old caches on updates!):"
+  ts="200001010000.00" # TODO: Use some version file to extract a more appropriate timestamp
+fi
 
-echo "-- All file timestamps set to: $last_commit_ts"
+# Apply timestamp to all files
+find . -type f -exec touch -t "$ts" {} +
+
+echo "-- All file timestamps set to: $ts"
