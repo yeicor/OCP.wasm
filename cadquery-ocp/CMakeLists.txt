@@ -68,7 +68,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake
-  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_old_timestamp.sh" "<SOURCE_DIR>" # XXX: Better caching!
+  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_timestamps_to_last_git_commit.sh" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 
@@ -84,7 +84,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_pybind11.cmake
-  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_old_timestamp.sh" "<SOURCE_DIR>" # XXX: Better caching!
+  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_timestamps_to_last_git_commit.sh" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 
@@ -99,7 +99,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_rapidjson.cmake
-  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_old_timestamp.sh" "<SOURCE_DIR>" # XXX: Better caching!
+  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_timestamps_to_last_git_commit.sh" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 
@@ -136,7 +136,7 @@ FetchContent_Declare(
     -DOpenCASCADE_LIBRARIES=${BUILD_TOOLKITS_C}
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OCP.cmake
-  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_old_timestamp.sh" "<SOURCE_DIR>" # XXX: Better caching!
+  COMMAND /bin/sh "${CMAKE_SOURCE_DIR}/../util/set_timestamps_to_last_git_commit.sh" "<SOURCE_DIR>" # XXX: Better caching!
 )
 
 # Make main target available
