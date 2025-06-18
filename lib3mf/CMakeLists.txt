@@ -31,7 +31,7 @@ FetchContent_Declare(
   GIT_TAG "v2.4.1"
   GIT_PROGRESS TRUE
   PATCH_COMMAND "${CMAKE_COMMAND}" "-DREAL_SOURCE_DIR=<SOURCE_DIR>" -P "${CMAKE_CURRENT_LIST_DIR}/patch.cmake"
-  COMMAND /bin/sh -c "if [ ! -z \"$_FORCE_OLD_SOURCES\" ]; then find <SOURCE_DIR> -type f -exec touch -t 200001010000.00 {} +; fi" # XXX: Better caching!
+  COMMAND /bin/sh -c [=["if [ ! -z $_FORCE_OLD_SOURCES ]; then find <SOURCE_DIR> -type f -exec touch -t 200001010000.00 {} +; fi"]=] # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE TRUE
 )
 
@@ -53,12 +53,10 @@ if(EMSCRIPTEN)
     OUTPUT "${WHEEL_CONTENTS_DIR}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${WHEEL_CONTENTS_DIR}"
     COMMAND /bin/sh -c "rm -r '${WHEEL_CONTENTS_DIR}/lib3mf' || true"
-    COMMAND /bin/sh -c "rm -r '${WHEEL_CONTENTS_DIR}/py_lib3mf' || true"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${WHEEL_CONTENTS_DIR}/lib3mf"
     COMMAND /bin/sh -c "cp '${lib3mf-wheel-original_SOURCE_DIR}/lib3mf/'*.py '${WHEEL_CONTENTS_DIR}/lib3mf/'"
     COMMAND /bin/sh -c "sed -i 's/linux/emscripten/g;s/Linux/Emscripten/g' '${WHEEL_CONTENTS_DIR}/lib3mf/'*.py"
     COMMAND /bin/sh -c "cp '${lib3mf_BINARY_DIR}/lib3mf.so' '${WHEEL_CONTENTS_DIR}/lib3mf/lib3mf.so'"
-    COMMAND /bin/sh -c "cp -r '${WHEEL_CONTENTS_DIR}/lib3mf' '${WHEEL_CONTENTS_DIR}/py_lib3mf'" # XXX: Support old import by duplicating data
     VERBATIM
   )
   add_custom_target(lib3mf-wheel-target ALL DEPENDS "${WHEEL_CONTENTS_DIR}")

@@ -28,6 +28,7 @@
         'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*)\\\/releases\\\/download\\\/(?<currentValue>[^\/]+)\\\/(?<depName>[^"]*)"'
       ],
       datasourceTemplate: "github-release-attachments",
+      // TODO: I think there is no good solution if <depName> changes between releases, maybe autoReplaceStringTemplate with a custom rule for each dependency?
     },
   ],
   "packageRules": [
