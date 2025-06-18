@@ -68,7 +68,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake
-  COMMAND /bin/sh -c [=["if [ ! -z $_FORCE_OLD_SOURCES ]; then echo 'XXX: $_FORCE_OLD_SOURCES enabled!' && find <SOURCE_DIR> -type f -exec touch -t 200001010000.00 {} +; fi"]=] # XXX: Better caching!
+  COMMAND /bin/sh -c [=["if [ ! -z $_FORCE_OLD_SOURCES ]; then echo XXX_FORCE_OLD_SOURCES_enabled && find <SOURCE_DIR> -type f -exec touch -t 200001010000.00 {} +; fi"]=] # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE TRUE
 )
 
