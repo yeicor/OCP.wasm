@@ -14,7 +14,7 @@
   customManagers: [
     {
       customType: "regex",
-      managerFilePatterns: ["/^CMakeLists\\.txt$/"],
+      managerFilePatterns: ["/CMakeLists\\.txt$/"],
       matchStrings: [
         'FetchContent_Declare[ \\t]*\\([^)]*GIT_REPOSITORY[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*?)(.git)?"[^)]*GIT_TAG[ \\t]*"(?<currentValue>[^"]*)"'
       ],
@@ -23,7 +23,7 @@
     },
     {
       customType: "regex",
-      managerFilePatterns: ["/^CMakeLists\\.txt$/"],
+      managerFilePatterns: ["/CMakeLists\\.txt$/"],
       matchStrings: [
         'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*)\\\/releases\\\/download\\\/(?<currentValue>[^\/]+)\\\/(?<depName>[^"]*)"'
       ],
@@ -35,6 +35,16 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["archlinux/archlinux"],
       "versioning": "regex:^(?<compatibility>.*)-v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)?$"
+    },
+    {
+      "matchDatasources": ["github-release-attachments"],
+      "matchPackageNames": ["CadQuery/OCP"],
+      "versioning": "regex:^(?<compatibility>.*)?-(?<major>\\\\d+)(\\\\.(?<minor>\\\\d+))?(\\\\.(?<patch>\\\\d+))?$"
+    },
+    {
+      "matchDatasources": ["github-release-attachments"],
+      "matchPackageNames": ["3MFConsortium/lib3mf"],
+      "versioning": "regex:^lib3mf-(?<major>\\\\d+)(\\\\.(?<minor>\\\\d+))?(\\\\.(?<patch>\\\\d+))?(-(?<compatibility>.*))?.whl$"
     },
   ],
 }
