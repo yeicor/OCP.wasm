@@ -147,7 +147,8 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
             packages[norm_name].add(fname)
 
             dest_path = pkg_dir / fname
-            shutil.copy2(wheel_path, dest_path)
+            if wheel_path != dest_path:
+                shutil.copy2(wheel_path, dest_path)
 
     with (simple_dir / "index.html").open("w") as f_index:
         f_index.write('<html><body>\n')

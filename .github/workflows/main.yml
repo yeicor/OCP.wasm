@@ -49,7 +49,7 @@ jobs:
 
       - uses: "actions/upload-artifact@v4"
         with:
-          name: "${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}"
+          name: "wheel-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}"
           path: "${{ matrix.package }}/wheelhouse/*.whl"
 
       - if: "failure()" # Save cache even on failures
@@ -84,10 +84,13 @@ jobs:
 
       - uses: "actions/download-artifact@v4"
         with:
+          pattern: "wheel-*-Release"
           path: "_wheels"
 
       - run: |
           wget "https://raw.githubusercontent.com/yeicor/OCP.wasm/${{github.ref}}/package_index/build.py" -O _build.py
+          rm _wheels/cache-* *-Debug/*.whl # Ignore debug builds
+          find _wheels/ # For debugging
           python _build.py --wheels . _wheels --output .  # Overwrites matching versions
           rm -rf _wheels/* _build.py
 
