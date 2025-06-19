@@ -88,11 +88,10 @@ jobs:
           path: "_wheels"
 
       - run: |
-          wget "https://raw.githubusercontent.com/yeicor/OCP.wasm/${{github.ref}}/package_index/build.py" -O _build.py
-          rm _wheels/cache-* *-Debug/*.whl # Ignore debug builds
+          wget "https://raw.githubusercontent.com/yeicor/OCP.wasm/${{github.ref}}/util/package_index.py" -O _package_index.py
           find _wheels/ # For debugging
-          python _build.py --wheels . _wheels --output .  # Overwrites matching versions
-          rm -rf _wheels/* _build.py
+          python _package_index.py --wheels . _wheels --output .  # Overwrites matching versions
+          rm -rf _wheels _package_index.py
 
       - uses: "actions/upload-artifact@v4"
         with:
