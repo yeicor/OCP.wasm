@@ -41,8 +41,6 @@ def detect_github_pages_url() -> Optional[str]:
 
 def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> None:
     out_path = Path(output_dir)
-    pkg_dir = out_path / "packages"
-    pkg_dir.mkdir(parents=True, exist_ok=True)
 
     packages: Dict[str, Set[str]] = defaultdict(set)
 
@@ -69,7 +67,9 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
                 log.warning(f"Overriding previous wheel with the same name with {wheel_path}...")
             packages[norm_name].add(wheel_path.name)
 
-            dest_path = pkg_dir / wheel_path.name
+            pkg_path = out_path / norm_name
+            pkg_path.mkdir(parents=True, exist_ok=True)
+            dest_path = pkg_path / wheel_path.name
             if wheel_path != dest_path:
                 shutil.copy2(wheel_path, dest_path)
                 
@@ -77,15 +77,25 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
                 new_wheel_path.unlink()
                 new_wheel_path = None
 
-    with (out_path / "index.html").open("w") as f_index:
-        f_index.write('<!DOCTYPE html><html><head><title>OCP.wasm wheel registry</title></head><body>\n')
+    with (out_path / "index.html").open("w") as f_index_all:
+        f_index_all.write('<!DOCTYPE html><html><head><title>OCP.wasm wheel registry</title></head><body>\n')
 
         for package, filenames in sorted(packages.items()):
             log.info(f"📦 Processing package {package} with {len(filenames)} wheels found.")
-            for fname in sorted(filenames):
-                f_index.write(f'<a href="packages/{fname}">{fname}</a><br/>\n')
+            pkg_path = out_path / package
+            
+            with (pkg_path / "index.html").open("w") as f_index:
+                
+                f_index.write('<!DOCTYPE html><html><head><title>OCP.wasm wheel registry</title></head><body>\n')
+                
+                for fname in sorted(filenames):
+                    link = f'<a href="{base_url}/{package}/{fname}">{fname}</a><br/>\n'
+                    f_index.write(link)
+                    f_index_all.write(link)
+                    
+                f_index.write('</body></html>\n')
 
-        f_index.write('</body></html>\n')
+        f_index_all.write('</body></html>\n')
 
     log.info(f"✅ Static PyPI repo generated with {len(packages)} packages and {sum([len(p) for _, p in packages.items()])} wheels.")
 
