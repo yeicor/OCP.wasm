@@ -88,7 +88,7 @@ jobs:
 
       - run: |
           wget "https://raw.githubusercontent.com/yeicor/OCP.wasm/${{github.ref}}/package_index/build.py" -O _build.py
-          python _build.py --wheels . _wheels --output ."  # Overwrites matching versions
+          python _build.py --wheels . _wheels --output .  # Overwrites matching versions
           rm -rf _wheels/* _build.py
 
       - uses: "actions/upload-artifact@v4"
