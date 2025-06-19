@@ -151,7 +151,7 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
                 shutil.copy2(wheel_path, dest_path)
 
     with (simple_dir / "index.html").open("w") as f_index:
-        f_index.write('<html><body>\n')
+        f_index.write('<!DOCTYPE html><html><head><title>OCP.wasm PyPI-like wheel registry</title></head><body>\n')
 
         for package, filenames in sorted(packages.items()):
             log.info(f"📦 Processing package: {package}")
@@ -159,7 +159,7 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
             pypi_pkg_dir.mkdir(parents=True, exist_ok=True)
 
             for fname in sorted(filenames):
-                f_index.write(f'<a href="../packages/{fname}">{fname}</a>\n')
+                f_index.write(f'<a href="../packages/{fname}">{fname}</a><br/>\n')
 
             log.info("  🌐 Fetching package metadata...")
             real_metadata = fetch_pypi_metadata(package)
