@@ -90,7 +90,7 @@ jobs:
       - run: |
           wget "https://raw.githubusercontent.com/yeicor/OCP.wasm/${{github.ref}}/util/package_index.py" -O _package_index.py
           find _wheels/ # For debugging
-          python _package_index.py --wheels . _wheels --output .  # Overwrites matching versions
+          python _package_index.py --wheels packages _wheels --output .  # Overwrites matching versions (warnings are ok!)
           rm -rf _wheels _package_index.py
 
       - uses: "actions/upload-artifact@v4"

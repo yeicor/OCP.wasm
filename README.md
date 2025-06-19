@@ -12,12 +12,12 @@ Go to [the Pyodide REPL](https://pyodide.org/en/latest/console.html) and run the
 
 ```py
 import micropip
-await micropip.install([
-    "https://yeicor.github.io/OCP-wasm/cadquery-ocp-wasm-Release/cadquery_ocp-7.8.1.2-cp313-cp313-pyodide_2025_0_wasm32.whl",
-    "build123d", "sqlite3"])
-from build123d import Box
+micropip.set_index_urls("https://yeicor.github.io/OCP.wasm#ignored={package_name}")
+micropip.add_mock_package("py_lib3mf", "2.4.1", modules={"py_lib3mf": '''from lib3mf import *'''}) # Only required for build123d<0.10.0
+await micropip.install("build123d")
 
-# Replace the following code with your own build123d script.
+# Replace the following lines with your own build123d script.
+from build123d import Box
 b = Box(1, 2, 3)
 assert b.volume == 6.0, "Box volume should be 6.0"
 ```
