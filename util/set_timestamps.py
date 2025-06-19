@@ -19,7 +19,7 @@ def get_last_commit_timestamp():
             return timestamp
     except subprocess.CalledProcessError:
         pass
-    print(f"Warning: Using fallback timestamp for {path}: {e}")
+    print(f"Warning: Using fallback timestamp for {os.getcwd()}: {e}")
     return "200001010000.00"  # Fallback timestamp
 
 def set_file_timestamps(target_dir, timestamp):
