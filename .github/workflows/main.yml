@@ -31,9 +31,10 @@ jobs:
 
       - id: "wheel_up_to_date"
         run: | # Detect if the version built in the cache is already good enough and skip (waiting on https://github.com/pypa/cibuildwheel/issues/2454)
+          pacman -Syu --noconfirm git
           last_wheel_date=$(stat --format %Y ${{ matrix.package }}/wheelhouse/*.whl | sort -n | tail -n 1)
           echo "Last wheel date: $(date -d @$last_wheel_date)"
-          last_sources_date=$(date -d "$(git log -1 --format=%cd --date=unix -- ${{ matrix.package }} | sort -n | tail -n 1)" +%s)
+          last_sources_date=$(git log -1 --format=%cd --date=unix -- lib3mf)
           echo "Last sources date: $(date -d @$last_sources_date)"
           # TODO: More robust checks like the version of cibuildwheel (which could mean more pyodide versions), etc.
           #       As a workaround, I disabled the inter-branch caching for now
@@ -45,7 +46,7 @@ jobs:
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: | # Install all system deps
-          pacman -Syu --noconfirm python-pip git
+          pacman -Syu --noconfirm python-pip
           python -m venv .venv
           . .venv/bin/activate
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
