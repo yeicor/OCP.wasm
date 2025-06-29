@@ -34,6 +34,7 @@ jobs:
           pacman -Syu --noconfirm git
           last_wheel_date=$(stat --format %Y ${{ matrix.package }}/wheelhouse/*.whl | sort -n | tail -n 1)
           echo "Last wheel date: $(date -d @$last_wheel_date)"
+          pwd && find # For debugging
           last_sources_date=$(git log -1 --format=%cd --date=unix -- lib3mf)
           echo "Last sources date: $(date -d @$last_sources_date)"
           # TODO: More robust checks like the version of cibuildwheel (which could mean more pyodide versions), etc.
