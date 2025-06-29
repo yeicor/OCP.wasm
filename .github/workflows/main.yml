@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [ "cadquery-ocp", "lib3mf" ]
-        os: [ "wasm" ] # TODO (fail with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
+        os: [ "wasm" ] # TODO (builds but fails testing with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
         build_type: [ "Release", "Debug" ]
     steps:
       - uses: "actions/checkout@v4"
@@ -98,10 +98,38 @@ jobs:
           name: "package-index"
           path: "."
 
-  # TODO: Test build123d integration using the wheels and package index generated above
+  test_build123d_integration: # Test build123d integration using the wheels and package index generated above
+    needs: "build_package_index"
+    runs-on: "ubuntu-24.04"
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - uses: "actions/download-artifact@v4"
+        with:
+          name: "package-index"
+          path: "package-index"
+
+      - working-directory: "build123d"
+        run: |          
+          # Set up the Pyodide test environment
+          pip install -r requirements-pyodide.txt
+          pyodide --version
+          pyodide venv .venv-pyodide
+          . .venv-pyodide/bin/activate
+          
+          # Install build123d and run tests
+          pip install --index-url "$(pwd)/../package-index" --extra-index-url "https://yeicor.github.io/OCP.wasm" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
+          python test.py | tee -a test.log
+        
+          # TODO: Check if the tests passed (for now allow failures)
+
+      - uses: "actions/upload-artifact@v4"
+        with:
+          name: "test-build123d-integration-log"
+          path: "build123d/test.log"
 
   deploy_package_index:
-    needs: "build_package_index"
+    needs: "test_build123d_integration"
     if: "github.ref == 'refs/heads/master'"
     runs-on: "ubuntu-24.04"
     steps:
