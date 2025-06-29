@@ -4,7 +4,7 @@ jobs:
   build_wheels:
     runs-on: "${{ matrix.os == 'wasm' && 'ubuntu-latest' || matrix.os }}"
     container:
-      image: "archlinux/archlinux:base-devel-20250614.0.365658"
+      image: "archlinux/archlinux:base-devel-20250629.0.373567"
       options: "--workdir /workspace"
     strategy:
       fail-fast: false
