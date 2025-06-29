@@ -111,15 +111,27 @@ jobs:
           path: "package-index"
 
       - working-directory: "build123d"
-        run: |          
+        run: |
+          set -ex 
+          
+          # Update package index links to point to the local files
+          to_remove="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          package_index_file_url="file://$(realpath $(pwd)/package-index/)"
+          find ../package-index -type f -exec sed -i "s|${to_remove}|${package_index_file_url}|g" {} \;
+          
           # Set up the Pyodide test environment
           pip install -r requirements-pyodide.txt
           pyodide --version
+          # TODO: Use latest released version instead of prerelease by adding |not to .prerelease (once cadquery-ocp supports it!)
+          latest_pyodide_prerelease=$(curl -s "https://api.github.com/repos/pyodide/pyodide/releases" | 
+            jq -r '.[] | select(.prerelease) | .tag_name' | sort -V | tail -n 1)
+          pyodide xbuildenv install $latest_pyodide_prerelease
+          pyodide xbuildenv versions
           pyodide venv .venv-pyodide
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests
-          pip install -vvv --index-url "file://$(realpath $(pwd)/../package-index)" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
+          pip install -vvv --index-url "$package_file_url" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
           python test.py | tee -a test.log
         
           # TODO: Check if the tests passed (for now allow failures)
