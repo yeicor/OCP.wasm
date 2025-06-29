@@ -130,6 +130,10 @@ jobs:
           name: "package-index"
           path: "package-index"
 
+      - uses: "actions/setup-python@v5"
+        with:
+          python-version: '3.x >=3.13' # Latest stable Python version! https://github.com/npm/node-semver#advanced-range-syntax
+
       - working-directory: "build123d"
         run: |
           set -ex 
@@ -142,12 +146,8 @@ jobs:
           # Set up the Pyodide test environment
           pip install -r requirements-pyodide.txt
           pyodide --version
-          # TODO: Use latest released version instead of prerelease by adding |not to .prerelease (once cadquery-ocp supports it!)
-          latest_pyodide_prerelease=$(curl -s "https://api.github.com/repos/pyodide/pyodide/releases" | 
-            jq -r '.[] | select(.prerelease) | .tag_name' | sort -V | tail -n 1)
-          pyodide xbuildenv install $latest_pyodide_prerelease
-          pyodide xbuildenv versions
           pyodide venv .venv-pyodide
+          pyodide xbuildenv versions
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests
