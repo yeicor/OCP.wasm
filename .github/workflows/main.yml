@@ -34,8 +34,9 @@ jobs:
         run: | # Detect if the version built in the cache is already good enough and skip (waiting on https://github.com/pypa/cibuildwheel/issues/2454)
           last_wheel_date=$(stat --format %Y ${{ matrix.package }}/wheelhouse/*.whl | sort -n | tail -n 1)
           echo "Last wheel date: $(date -d @$last_wheel_date)"
-          last_sources_date=$(git log -1 --format=%cd --date=unix -- lib3mf)
+          last_sources_date=$(git log -1 --format=%cd --date=unix -- ${{ matrix.package }})
           echo "Last sources date: $(date -d @$last_sources_date)"
+          git log -1 -- ${{ matrix.package }} # Show the last commit message modifying sources for debugging
           # TODO: More robust checks like the version of cibuildwheel (which could mean more pyodide versions), etc.
           #       As a workaround, I disabled the inter-branch caching for now
           if [ "$last_wheel_date" -gt "$last_sources_date" ]; then
