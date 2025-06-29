@@ -119,7 +119,7 @@ jobs:
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests
-          pip install --index-url "$(pwd)/../package-index" --extra-index-url "https://yeicor.github.io/OCP.wasm" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
+          pip install -vvv --index-url "file://$(realpath $(pwd)/../package-index)" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
           python test.py | tee -a test.log
         
           # TODO: Check if the tests passed (for now allow failures)
