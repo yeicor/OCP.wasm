@@ -22,13 +22,28 @@ jobs:
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             ~/.cache/ccache
-          key: "cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', '*.cmake', 'pyproject.toml', '*.py') }}"
+            ${{ matrix.package }}/wheelhouse/*.whl
+          key: "cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
           restore-keys: |
             cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-
-            cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-master-
-            cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-
+          # cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-master-
+          # cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-
+
+      - id: "wheel_up_to_date"
+        run: | # Detect if the version built in the cache is already good enough and skip (waiting on https://github.com/pypa/cibuildwheel/issues/2454)
+          last_wheel_date=$(stat --format %Y ${{ matrix.package }}/wheelhouse/*.whl | sort -n | tail -n 1)
+          echo "Last wheel date: $(date -d @$last_wheel_date)"
+          last_sources_date=$(date -d "$(git log -1 --format=%cd --date=unix -- ${{ matrix.package }} | sort -n | tail -n 1)" +%s)
+          echo "Last sources date: $(date -d @$last_sources_date)"
+          # TODO: More robust checks like the version of cibuildwheel (which could mean more pyodide versions), etc.
+          #       As a workaround, I disabled the inter-branch caching for now
+          if [ "$last_wheel_date" -gt "$last_sources_date" ]; then
+            echo "Skipping build, cached artifact should be up to date! (${last_wheel_date} > ${last_sources_date})"
+            echo "skip_build=true" >>"$GITHUB_OUTPUT"
+          fi
 
       - working-directory: "${{ matrix.package }}"
+        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: | # Install all system deps
           pacman -Syu --noconfirm python-pip git
           python -m venv .venv
@@ -38,6 +53,7 @@ jobs:
 
       - run: ". .venv/bin/activate && cibuildwheel"
         working-directory: "${{ matrix.package }}"
+        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         env:
           CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
@@ -61,6 +77,7 @@ jobs:
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             ~/.cache/ccache
+            ${{ matrix.package }}/wheelhouse/*.whl
 
       - if: "always()"  # Upload cache and wheels as an artifact for debugging
         uses: "actions/upload-artifact@v4"
@@ -133,7 +150,7 @@ jobs:
           # Install build123d and run tests
           pip install -vvv --index-url "$package_file_url" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
           python test.py | tee -a test.log
-        
+          
           # TODO: Check if the tests passed (for now allow failures)
 
       - uses: "actions/upload-artifact@v4"
@@ -162,4 +179,4 @@ jobs:
           git commit -m "Update package index" || echo "No changes to commit"
           git push origin gh-pages
 
-  # TODO: deploy_wheels_to_pypi: (doesn't support webassembly)
+  # TODO: deploy_wheels_to_pypi: (doesn't support WebAssembly)
