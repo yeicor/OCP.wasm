@@ -34,6 +34,7 @@ jobs:
           python -m venv .venv
           . .venv/bin/activate
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
+          pip install -r requirements-ci.txt
 
       - run: ". .venv/bin/activate && cibuildwheel"
         working-directory: "${{ matrix.package }}"
