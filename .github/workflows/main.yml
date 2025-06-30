@@ -152,7 +152,7 @@ jobs:
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests
-          pip install -vvv --index-url "$package_file_url" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
+          pip install -vvv --index-url "$package_index_file_url" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
           python test.py | tee -a test.log
           
           # TODO: Check if the tests passed (for now allow failures)
