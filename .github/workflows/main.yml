@@ -141,7 +141,7 @@ jobs:
           
           # Update package index links to point to the local files
           to_remove="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          package_index_file_url="file://$(realpath $(pwd)/package-index/)"
+          package_index_file_url="file://$(realpath $(pwd)/../package-index/)"
           find ../package-index -type f -exec sed -i "s|${to_remove}|${package_index_file_url}|g" {} \;
           
           # Set up the Pyodide test environment
