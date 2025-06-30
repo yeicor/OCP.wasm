@@ -141,8 +141,8 @@ jobs:
           
           # Update package index links to point to the local files
           to_remove="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          package_index_file_url="file://$(realpath $(pwd)/../package-index/)"
-          find ../package-index -type f -exec sed -i "s|${to_remove}|${package_index_file_url}|g" {} \;
+          package_index_folder="$(realpath $(pwd)/../package-index)/"
+          find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|file://${package_index_folder}|g" {} \;
           
           # Set up the Pyodide test environment
           pip install -r requirements-pyodide.txt
@@ -152,7 +152,7 @@ jobs:
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests
-          pip install -vvv --index-url "$package_index_file_url" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
+          pip install -vvv --index-url "file://$package_index_folder" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
           python test.py | tee -a test.log
           
           # TODO: Check if the tests passed (for now allow failures)
