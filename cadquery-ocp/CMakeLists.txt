@@ -55,23 +55,6 @@ function(install)
   endif()
 endfunction()
 
-# ##### OCCT #####
-set(BUILD_DOC_Overview OFF) 
-set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # TODO: For some reason this toolkit from the Visualization module is required from other modules
-FetchContent_Declare(
-  OpenCASCADE
-  GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
-  GIT_TAG "V7_8_1"
-  GIT_PROGRESS TRUE
-  PATCH_COMMAND
-    ${CMAKE_COMMAND}
-    -DREAL_SOURCE_DIR=<SOURCE_DIR>
-    -DREAL_BINARY_DIR=<BINARY_DIR>
-    -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake
-  COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
-  OVERRIDE_FIND_PACKAGE
-)
-
 # ##### Pybind11 #####
 set(PYBIND11_USE_CROSSCOMPILING ON) # Will enable this if it is actually used (e.g. emscripten)
 FetchContent_Declare(
@@ -83,8 +66,8 @@ FetchContent_Declare(
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
-    -P ${CMAKE_CURRENT_LIST_DIR}/patch_pybind11.cmake
-  COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+    -P ${CMAKE_CURRENT_LIST_DIR}/patch_pybind11.cmake &&
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 
@@ -98,13 +81,32 @@ FetchContent_Declare(
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
-    -P ${CMAKE_CURRENT_LIST_DIR}/patch_rapidjson.cmake
-  COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+    -P ${CMAKE_CURRENT_LIST_DIR}/patch_rapidjson.cmake &&
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 
 # Make dependencies available
-FetchContent_MakeAvailable(OpenCASCADE pybind11 rapidjson)
+FetchContent_MakeAvailable(pybind11 rapidjson)
+
+# ##### OCCT #####
+set(BUILD_DOC_Overview OFF) 
+set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # For some reason this toolkit from the Visualization module is required from other modules...
+FetchContent_Declare(
+  OpenCASCADE
+  GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
+  GIT_TAG "V7_8_1"
+  GIT_PROGRESS TRUE
+  PATCH_COMMAND
+    ${CMAKE_COMMAND}
+    -DREAL_SOURCE_DIR=<SOURCE_DIR>
+    -DREAL_BINARY_DIR=<BINARY_DIR>
+    -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(OpenCASCADE)
 
 # Retrieve required OpenCASCADE information
 FetchContent_GetProperties(OpenCASCADE)
@@ -135,8 +137,8 @@ FetchContent_Declare(
     -DOpenCASCADE_BINARY_DIR=${opencascade_BINARY_DIR}
     -DOpenCASCADE_LIBRARIES=${BUILD_TOOLKITS_C}
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
-    -P ${CMAKE_CURRENT_LIST_DIR}/patch_OCP.cmake
-  COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+    -P ${CMAKE_CURRENT_LIST_DIR}/patch_OCP.cmake &&
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
 )
 
 # Make main target available
