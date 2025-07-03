@@ -13,7 +13,7 @@ def get_last_commit_timestamp():
     if os.path.isdir('.git'):
         try:
             subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            result = subprocess.run(["git", "log", "-1", "--pretty=format:%ad", "--date=format:%Y%m%d%H%M.%S"],
+            result = subprocess.run(["git", "log", "-1", "--pretty=format:%ad", "--date=format-local:%Y%m%d%H%M.%S"],
                                     check=True, capture_output=True, text=True)
             timestamp = result.stdout.strip()
             if re.fullmatch(r"\d{12}(\.\d{2})?", timestamp):
