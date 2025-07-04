@@ -13,7 +13,7 @@ jobs:
         os: [ "wasm" ] # TODO (builds but fails testing with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
         build_type: [ "Release", "Debug" ]
     steps:
-      - run: pacman -Syu --noconfirm git && git config --global --add safe.directory '*'
+      - run: "pacman -Syu --noconfirm git && git config --global --add safe.directory '*'"
       - uses: "actions/checkout@v4"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
