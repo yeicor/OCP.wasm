@@ -1,4 +1,3 @@
 git+https://github.com/gumyr/build123d.git@dev
 pytest-benchmark==5.1.0
 sqlite3
-ssl
