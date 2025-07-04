@@ -75,7 +75,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   rapidjson
   GIT_REPOSITORY "https://github.com/Tencent/rapidjson.git"
-  GIT_TAG "v1.1.0"
+  GIT_TAG "24b5e7a8b27f42fa16b96fc70aade9106cf7102f"  # They do not make new releases for some reason...
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
