@@ -13,11 +13,14 @@ string(REPLACE "# Shared library\nadd_library" "# Shared library\nset_property(G
 
 # Patch 2: Replace COMMAND line
 string(REPLACE "COMMAND ${CMAKE_COMMAND}"
-              "COMMAND /usr/bin/env \"CFLAGS=$ENV{CFLAGS} -D__STDC_WANT_LIB_EXT1__\" \"CXXFLAGS=$ENV{CXXFLAGS}\" \"LDFLAGS=$ENV{LDFLAGS}\" emcmake ${CMAKE_COMMAND}"
+              "COMMAND /usr/bin/env \"CFLAGS=$CMAKE_C_FLAGS\" emcmake ${CMAKE_COMMAND}"
               NEW_CONTENTS "${NEW_CONTENTS}")
 
 # Patch 3: Remove OUTPUT_QUIET
 string(REPLACE "OUTPUT_QUIET" "" NEW_CONTENTS "${NEW_CONTENTS}")
+
+# Patch 4: Do NOT strip binaries
+string(REPLACE "LINK_FLAGS -s" "LINK_FLAGS" NEW_CONTENTS "${NEW_CONTENTS}")
 
 if(NOT "${CONTENTS}" STREQUAL "${NEW_CONTENTS}")
     file(WRITE "${FILE}" "${NEW_CONTENTS}")

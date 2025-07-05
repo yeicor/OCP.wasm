@@ -12,6 +12,26 @@ jobs:
         package: [ "cadquery-ocp", "lib3mf" ]
         os: [ "wasm" ] # TODO (builds but fails testing with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
         build_type: [ "Release", "Debug" ]
+        include:
+          - build_type: "Debug"
+            cflags: "-Og -g"
+            cxxflags: "-Og -g"
+            ldflags: "-Og -g -gsource-map=inline"
+          - build_type: "Release"
+            cflags: "-O3"
+            cxxflags: "-O3"
+            ldflags: "-O3"
+
+          - package: "cadquery-ocp"
+            build_type: "Release"
+            ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
+          - package: "cadquery-ocp"
+            build_type: "Debug"
+            ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
+
+          - platform: "auto"
+          - os: "wasm"
+            platform: "pyodide"
     steps:
       - run: "pacman -Syu --noconfirm git && git config --global --add safe.directory '*'"
       - uses: "actions/checkout@v4"
@@ -59,12 +79,12 @@ jobs:
         working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         env:
-          CIBW_PLATFORM: "${{ matrix.os == 'wasm' && 'pyodide' || 'auto' }}"
+          CIBW_PLATFORM: "${{ matrix.platform }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
-          SKBUILD_BUILD_TOOL_ARGS: "-d;explain" # Useful to debug if caches are not working as expected
-          CFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g' || '-O3' }}"
-          CXXFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g' || '-O3' }}"
-          LDFLAGS: "${{ matrix.build_type == 'Debug' && '-Og -g -gsource-map=inline -gseparate-dwarf' || '-O1' }}" # XXX: See repair_wasm.py invocation in CMakeLists.txt
+          SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
+          CFLAGS: "${{ matrix.cflags }}"
+          CXXFLAGS: "${{ matrix.cxxflags }}"
+          LDFLAGS: "${{ matrix.ldflags }}"
           _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 

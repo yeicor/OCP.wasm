@@ -24,6 +24,27 @@ if sys.platform == 'emscripten':
         return loop.run_until_complete(response.bytes())
 
 
+    # XXX: Patch urllib.request.urlretrieve to use pyodide's pyfetch as it is too low level for pyodide (and it is not critical for build123d but required for test_importers.ImportSTEP)
+    import urllib.request
+
+    old_urlretrieve = urllib.request.urlretrieve
+
+
+    def new_urlretrieve(url, filename=None, reporthook=None, data=None):
+        # Try to avoid breaking other uses of urlretrieve (which are probably unsupported anyway)
+        if url.startswith("https://") and filename is not None and not reporthook and not data:
+            print("XXX: Using patched urllib.request.urlretrieve to use pyodide's pyfetch for URL:", url)
+            bs = common_fetch(url)  # Download the file to cache it
+            with open(filename, "wb") as f:
+                f.write(bs)
+            return filename, {}  # Return the filename and a dummy response object
+        else:
+            return old_urlretrieve(url, filename, reporthook, data)
+
+
+    urllib.request.urlretrieve = new_urlretrieve
+
+
     # XXX: Download and install any font so that the tests can run
     async def install_font_to_system(font_url, font_name):
         from pyodide.http import pyfetch
@@ -52,27 +73,6 @@ if sys.platform == 'emscripten':
     asyncio.get_event_loop().run_until_complete(install_font_to_system(
         "https://raw.githubusercontent.com/google/fonts/refs/heads/main/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf",
         "Roboto.ttf"))  # Fake to avoid warnings
-
-    # XXX: Workaround for lib3mf crash due to WASM_BIGINT emscripten bug? FIXME: Try force-disabling WASM_BIGINT instead?
-    import lib3mf
-
-    old_init = lib3mf.Base.__init__
-
-
-    def new_init(self, handle, wrapper):
-        wrapper.checkError = lambda self, error: print("Ignoring buggy checkError call")  # type: ignore[method-assign]
-        # Also write stubs for all methods with 4 arguments to avoid errors
-        for method_name in dir(wrapper.lib):
-            if method_name.startswith("lib3mf_") and '_get' in method_name:
-                method = getattr(wrapper.lib, method_name)
-                if callable(method):
-                    print("Ignoring buggy method: ", method_name)
-                    setattr(wrapper.lib, method_name,
-                            lambda *args: print("Ignoring buggy call to", method_name))  # type: ignore[method-assign]
-        return old_init(self, handle, wrapper)
-
-
-    lib3mf.Base.__init__ = new_init
 else:
 
     def common_fetch(url: str) -> bytes:
@@ -85,7 +85,7 @@ else:
 # FIXME: assert mgr.AddFontAlias(TCollection_AsciiString("Arial"), TCollection_AsciiString("Roboto"))
 
 
-def download_and_test(sdist_url="https://github.com/gumyr/build123d/archive/refs/heads/dev.zip", test_subdir="tests"):
+def download_and_test(sdist_url: str, test_subdir="tests"):
     # Download the .zip file
     sdist_data = common_fetch(sdist_url)
 

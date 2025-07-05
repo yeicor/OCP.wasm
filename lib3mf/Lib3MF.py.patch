@@ -1,0 +1,1077 @@
+--- a/Lib3MF.py	2025-07-05 17:29:06.187882041 +0200
++++ b/Lib3MF.py	2025-07-05 18:20:51.616435693 +0200
+@@ -1571,7 +1571,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_getnamespace")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p)
+ 			self.lib.lib3mf_metadata_getnamespace = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_setnamespace")), methodAddress)
+@@ -1583,7 +1583,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_getname")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p)
+ 			self.lib.lib3mf_metadata_getname = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_setname")), methodAddress)
+@@ -1613,7 +1613,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_gettype")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p)
+ 			self.lib.lib3mf_metadata_gettype = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_settype")), methodAddress)
+@@ -1625,7 +1625,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_getvalue")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p)
+ 			self.lib.lib3mf_metadata_getvalue = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_setvalue")), methodAddress)
+@@ -1637,7 +1637,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadatagroup_getmetadatacount")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32))
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint64))
+ 			self.lib.lib3mf_metadatagroup_getmetadatacount = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadatagroup_getmetadata")), methodAddress)
+@@ -1763,7 +1763,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_getname")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
+ 			self.lib.lib3mf_object_getname = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_setname")), methodAddress)
+@@ -1775,7 +1775,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_getpartnumber")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p)
+ 			self.lib.lib3mf_object_getpartnumber = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_setpartnumber")), methodAddress)
+@@ -1835,7 +1835,7 @@
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_getuuid")), methodAddress)
+ 			if err != 0:
+ 				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p)
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p)
+ 			self.lib.lib3mf_object_getuuid = methodType(int(methodAddress.value))
+ 			
+ 			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_setuuid")), methodAddress)
+@@ -5084,13 +5084,13 @@
+ 			self.lib.lib3mf_levelsetiterator_getcurrentlevelset.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+ 			
+ 			self.lib.lib3mf_metadata_getnamespace.restype = ctypes.c_int32
+-			self.lib.lib3mf_metadata_getnamespace.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_metadata_getnamespace.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadata_setnamespace.restype = ctypes.c_int32
+ 			self.lib.lib3mf_metadata_setnamespace.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadata_getname.restype = ctypes.c_int32
+-			self.lib.lib3mf_metadata_getname.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_metadata_getname.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadata_setname.restype = ctypes.c_int32
+ 			self.lib.lib3mf_metadata_setname.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+@@ -5105,19 +5105,19 @@
+ 			self.lib.lib3mf_metadata_setmustpreserve.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+ 			
+ 			self.lib.lib3mf_metadata_gettype.restype = ctypes.c_int32
+-			self.lib.lib3mf_metadata_gettype.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_metadata_gettype.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadata_settype.restype = ctypes.c_int32
+ 			self.lib.lib3mf_metadata_settype.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadata_getvalue.restype = ctypes.c_int32
+-			self.lib.lib3mf_metadata_getvalue.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_metadata_getvalue.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadata_setvalue.restype = ctypes.c_int32
+ 			self.lib.lib3mf_metadata_setvalue.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_metadatagroup_getmetadatacount.restype = ctypes.c_int32
+-			self.lib.lib3mf_metadatagroup_getmetadatacount.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
++			self.lib.lib3mf_metadatagroup_getmetadatacount.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint64)]
+ 			
+ 			self.lib.lib3mf_metadatagroup_getmetadata.restype = ctypes.c_int32
+ 			self.lib.lib3mf_metadatagroup_getmetadata.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_void_p)]
+@@ -5180,13 +5180,13 @@
+ 			self.lib.lib3mf_object_settype.argtypes = [ctypes.c_void_p, ObjectType]
+ 			
+ 			self.lib.lib3mf_object_getname.restype = ctypes.c_int32
+-			self.lib.lib3mf_object_getname.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_object_getname.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_object_setname.restype = ctypes.c_int32
+ 			self.lib.lib3mf_object_setname.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_object_getpartnumber.restype = ctypes.c_int32
+-			self.lib.lib3mf_object_getpartnumber.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_object_getpartnumber.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_object_setpartnumber.restype = ctypes.c_int32
+ 			self.lib.lib3mf_object_setpartnumber.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+@@ -5216,7 +5216,7 @@
+ 			self.lib.lib3mf_object_getoutbox.argtypes = [ctypes.c_void_p, ctypes.POINTER(Box)]
+ 			
+ 			self.lib.lib3mf_object_getuuid.restype = ctypes.c_int32
+-			self.lib.lib3mf_object_getuuid.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p]
++			self.lib.lib3mf_object_getuuid.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p]
+ 			
+ 			self.lib.lib3mf_object_setuuid.restype = ctypes.c_int32
+ 			self.lib.lib3mf_object_setuuid.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+@@ -6759,11 +6759,11 @@
+ 	
+ 	def GetPrereleaseInformation(self):
+ 		pHasPrereleaseInfo = ctypes.c_bool()
+-		nPrereleaseInfoBufferSize = ctypes.c_uint64(0)
+-		nPrereleaseInfoNeededChars = ctypes.c_uint64(0)
++		nPrereleaseInfoBufferSize = ctypes.c_uint32(0)
++		nPrereleaseInfoNeededChars = ctypes.c_uint32(0)
+ 		pPrereleaseInfoBuffer = ctypes.c_char_p(None)
+ 		self.checkError(None, self.lib.lib3mf_getprereleaseinformation(pHasPrereleaseInfo, nPrereleaseInfoBufferSize, nPrereleaseInfoNeededChars, pPrereleaseInfoBuffer))
+-		nPrereleaseInfoBufferSize = ctypes.c_uint64(nPrereleaseInfoNeededChars.value)
++		nPrereleaseInfoBufferSize = ctypes.c_uint32(nPrereleaseInfoNeededChars.value)
+ 		pPrereleaseInfoBuffer = (ctypes.c_char * (nPrereleaseInfoNeededChars.value))()
+ 		self.checkError(None, self.lib.lib3mf_getprereleaseinformation(pHasPrereleaseInfo, nPrereleaseInfoBufferSize, nPrereleaseInfoNeededChars, pPrereleaseInfoBuffer))
+ 		
+@@ -6771,11 +6771,11 @@
+ 	
+ 	def GetBuildInformation(self):
+ 		pHasBuildInfo = ctypes.c_bool()
+-		nBuildInformationBufferSize = ctypes.c_uint64(0)
+-		nBuildInformationNeededChars = ctypes.c_uint64(0)
++		nBuildInformationBufferSize = ctypes.c_uint32(0)
++		nBuildInformationNeededChars = ctypes.c_uint32(0)
+ 		pBuildInformationBuffer = ctypes.c_char_p(None)
+ 		self.checkError(None, self.lib.lib3mf_getbuildinformation(pHasBuildInfo, nBuildInformationBufferSize, nBuildInformationNeededChars, pBuildInformationBuffer))
+-		nBuildInformationBufferSize = ctypes.c_uint64(nBuildInformationNeededChars.value)
++		nBuildInformationBufferSize = ctypes.c_uint32(nBuildInformationNeededChars.value)
+ 		pBuildInformationBuffer = (ctypes.c_char * (nBuildInformationNeededChars.value))()
+ 		self.checkError(None, self.lib.lib3mf_getbuildinformation(pHasBuildInfo, nBuildInformationBufferSize, nBuildInformationNeededChars, pBuildInformationBuffer))
+ 		
+@@ -6830,12 +6830,12 @@
+ 			InstanceHandle = InstanceObject._handle
+ 		else:
+ 			raise ELib3MFException(ErrorCodes.INVALIDPARAM, 'Invalid return/output value')
+-		nLastErrorStringBufferSize = ctypes.c_uint64(0)
+-		nLastErrorStringNeededChars = ctypes.c_uint64(0)
++		nLastErrorStringBufferSize = ctypes.c_uint32(0)
++		nLastErrorStringNeededChars = ctypes.c_uint32(0)
+ 		pLastErrorStringBuffer = ctypes.c_char_p(None)
+ 		pHasLastError = ctypes.c_bool()
+ 		self.checkError(None, self.lib.lib3mf_getlasterror(InstanceHandle, nLastErrorStringBufferSize, nLastErrorStringNeededChars, pLastErrorStringBuffer, pHasLastError))
+-		nLastErrorStringBufferSize = ctypes.c_uint64(nLastErrorStringNeededChars.value)
++		nLastErrorStringBufferSize = ctypes.c_uint32(nLastErrorStringNeededChars.value)
+ 		pLastErrorStringBuffer = (ctypes.c_char * (nLastErrorStringNeededChars.value))()
+ 		self.checkError(None, self.lib.lib3mf_getlasterror(InstanceHandle, nLastErrorStringBufferSize, nLastErrorStringNeededChars, pLastErrorStringBuffer, pHasLastError))
+ 		
+@@ -6848,11 +6848,11 @@
+ 		return pSymbolLookupMethod.value
+ 	
+ 	def RetrieveProgressMessage(self, TheProgressIdentifier):
+-		nProgressMessageBufferSize = ctypes.c_uint64(0)
+-		nProgressMessageNeededChars = ctypes.c_uint64(0)
++		nProgressMessageBufferSize = ctypes.c_uint32(0)
++		nProgressMessageNeededChars = ctypes.c_uint32(0)
+ 		pProgressMessageBuffer = ctypes.c_char_p(None)
+ 		self.checkError(None, self.lib.lib3mf_retrieveprogressmessage(TheProgressIdentifier, nProgressMessageBufferSize, nProgressMessageNeededChars, pProgressMessageBuffer))
+-		nProgressMessageBufferSize = ctypes.c_uint64(nProgressMessageNeededChars.value)
++		nProgressMessageBufferSize = ctypes.c_uint32(nProgressMessageNeededChars.value)
+ 		pProgressMessageBuffer = (ctypes.c_char * (nProgressMessageNeededChars.value))()
+ 		self.checkError(None, self.lib.lib3mf_retrieveprogressmessage(TheProgressIdentifier, nProgressMessageBufferSize, nProgressMessageNeededChars, pProgressMessageBuffer))
+ 		
+@@ -7211,7 +7211,7 @@
+ 		
+ 	
+ 	def GetStreamSize(self):
+-		pStreamSize = ctypes.c_uint64()
++		pStreamSize = ctypes.c_uint32()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_writer_getstreamsize(self._handle, pStreamSize))
+ 		
+ 		return pStreamSize.value
+@@ -7262,18 +7262,18 @@
+ 	def GetWarning(self, Index):
+ 		nIndex = ctypes.c_uint32(Index)
+ 		pErrorCode = ctypes.c_uint32()
+-		nWarningBufferSize = ctypes.c_uint64(0)
+-		nWarningNeededChars = ctypes.c_uint64(0)
++		nWarningBufferSize = ctypes.c_uint32(0)
++		nWarningNeededChars = ctypes.c_uint32(0)
+ 		pWarningBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_writer_getwarning(self._handle, nIndex, pErrorCode, nWarningBufferSize, nWarningNeededChars, pWarningBuffer))
+-		nWarningBufferSize = ctypes.c_uint64(nWarningNeededChars.value)
++		nWarningBufferSize = ctypes.c_uint32(nWarningNeededChars.value)
+ 		pWarningBuffer = (ctypes.c_char * (nWarningNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_writer_getwarning(self._handle, nIndex, pErrorCode, nWarningBufferSize, nWarningNeededChars, pWarningBuffer))
+ 		
+ 		return pErrorCode.value, pWarningBuffer.value.decode()
+ 	
+ 	def GetWarningCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_writer_getwarningcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -7308,7 +7308,7 @@
+ 		
+ 	
+ 	def ReadFromCallback(self, TheReadCallbackFunc, StreamSize, TheSeekCallbackFunc, UserData):
+-		nStreamSize = ctypes.c_uint64(StreamSize)
++		nStreamSize = ctypes.c_uint32(StreamSize)
+ 		pUserData = ctypes.c_void_p(UserData)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_reader_readfromcallback(self._handle, TheReadCallbackFunc, nStreamSize, TheSeekCallbackFunc, pUserData))
+ 		
+@@ -7342,18 +7342,18 @@
+ 	def GetWarning(self, Index):
+ 		nIndex = ctypes.c_uint32(Index)
+ 		pErrorCode = ctypes.c_uint32()
+-		nWarningBufferSize = ctypes.c_uint64(0)
+-		nWarningNeededChars = ctypes.c_uint64(0)
++		nWarningBufferSize = ctypes.c_uint32(0)
++		nWarningNeededChars = ctypes.c_uint32(0)
+ 		pWarningBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_reader_getwarning(self._handle, nIndex, pErrorCode, nWarningBufferSize, nWarningNeededChars, pWarningBuffer))
+-		nWarningBufferSize = ctypes.c_uint64(nWarningNeededChars.value)
++		nWarningBufferSize = ctypes.c_uint32(nWarningNeededChars.value)
+ 		pWarningBuffer = (ctypes.c_char * (nWarningNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_reader_getwarning(self._handle, nIndex, pErrorCode, nWarningBufferSize, nWarningNeededChars, pWarningBuffer))
+ 		
+ 		return pErrorCode.value, pWarningBuffer.value.decode()
+ 	
+ 	def GetWarningCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_reader_getwarningcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -7377,11 +7377,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetPath(self):
+-		nPathBufferSize = ctypes.c_uint64(0)
+-		nPathNeededChars = ctypes.c_uint64(0)
++		nPathBufferSize = ctypes.c_uint32(0)
++		nPathNeededChars = ctypes.c_uint32(0)
+ 		pPathBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_packagepart_getpath(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+-		nPathBufferSize = ctypes.c_uint64(nPathNeededChars.value)
++		nPathBufferSize = ctypes.c_uint32(nPathNeededChars.value)
+ 		pPathBuffer = (ctypes.c_char * (nPathNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_packagepart_getpath(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+ 		
+@@ -7710,11 +7710,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetNameSpace(self):
+-		nNameSpaceBufferSize = ctypes.c_uint64(0)
+-		nNameSpaceNeededChars = ctypes.c_uint64(0)
++		nNameSpaceBufferSize = ctypes.c_uint32(0)
++		nNameSpaceNeededChars = ctypes.c_uint32(0)
+ 		pNameSpaceBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getnamespace(self._handle, nNameSpaceBufferSize, nNameSpaceNeededChars, pNameSpaceBuffer))
+-		nNameSpaceBufferSize = ctypes.c_uint64(nNameSpaceNeededChars.value)
++		nNameSpaceBufferSize = ctypes.c_uint32(nNameSpaceNeededChars.value)
+ 		pNameSpaceBuffer = (ctypes.c_char * (nNameSpaceNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getnamespace(self._handle, nNameSpaceBufferSize, nNameSpaceNeededChars, pNameSpaceBuffer))
+ 		
+@@ -7726,11 +7726,11 @@
+ 		
+ 	
+ 	def GetName(self):
+-		nNameBufferSize = ctypes.c_uint64(0)
+-		nNameNeededChars = ctypes.c_uint64(0)
++		nNameBufferSize = ctypes.c_uint32(0)
++		nNameNeededChars = ctypes.c_uint32(0)
+ 		pNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+-		nNameBufferSize = ctypes.c_uint64(nNameNeededChars.value)
++		nNameBufferSize = ctypes.c_uint32(nNameNeededChars.value)
+ 		pNameBuffer = (ctypes.c_char * (nNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+ 		
+@@ -7742,11 +7742,11 @@
+ 		
+ 	
+ 	def GetKey(self):
+-		nKeyBufferSize = ctypes.c_uint64(0)
+-		nKeyNeededChars = ctypes.c_uint64(0)
++		nKeyBufferSize = ctypes.c_uint32(0)
++		nKeyNeededChars = ctypes.c_uint32(0)
+ 		pKeyBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getkey(self._handle, nKeyBufferSize, nKeyNeededChars, pKeyBuffer))
+-		nKeyBufferSize = ctypes.c_uint64(nKeyNeededChars.value)
++		nKeyBufferSize = ctypes.c_uint32(nKeyNeededChars.value)
+ 		pKeyBuffer = (ctypes.c_char * (nKeyNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getkey(self._handle, nKeyBufferSize, nKeyNeededChars, pKeyBuffer))
+ 		
+@@ -7764,11 +7764,11 @@
+ 		
+ 	
+ 	def GetType(self):
+-		nTypeBufferSize = ctypes.c_uint64(0)
+-		nTypeNeededChars = ctypes.c_uint64(0)
++		nTypeBufferSize = ctypes.c_uint32(0)
++		nTypeNeededChars = ctypes.c_uint32(0)
+ 		pTypeBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_gettype(self._handle, nTypeBufferSize, nTypeNeededChars, pTypeBuffer))
+-		nTypeBufferSize = ctypes.c_uint64(nTypeNeededChars.value)
++		nTypeBufferSize = ctypes.c_uint32(nTypeNeededChars.value)
+ 		pTypeBuffer = (ctypes.c_char * (nTypeNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_gettype(self._handle, nTypeBufferSize, nTypeNeededChars, pTypeBuffer))
+ 		
+@@ -7780,11 +7780,11 @@
+ 		
+ 	
+ 	def GetValue(self):
+-		nValueBufferSize = ctypes.c_uint64(0)
+-		nValueNeededChars = ctypes.c_uint64(0)
++		nValueBufferSize = ctypes.c_uint32(0)
++		nValueNeededChars = ctypes.c_uint32(0)
+ 		pValueBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getvalue(self._handle, nValueBufferSize, nValueNeededChars, pValueBuffer))
+-		nValueBufferSize = ctypes.c_uint64(nValueNeededChars.value)
++		nValueBufferSize = ctypes.c_uint32(nValueNeededChars.value)
+ 		pValueBuffer = (ctypes.c_char * (nValueNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadata_getvalue(self._handle, nValueBufferSize, nValueNeededChars, pValueBuffer))
+ 		
+@@ -7803,7 +7803,7 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetMetaDataCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_metadatagroup_getmetadatacount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -7873,11 +7873,11 @@
+ 		
+ 	
+ 	def GetName(self):
+-		nNameBufferSize = ctypes.c_uint64(0)
+-		nNameNeededChars = ctypes.c_uint64(0)
++		nNameBufferSize = ctypes.c_uint32(0)
++		nNameNeededChars = ctypes.c_uint32(0)
+ 		pNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_triangleset_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+-		nNameBufferSize = ctypes.c_uint64(nNameNeededChars.value)
++		nNameBufferSize = ctypes.c_uint32(nNameNeededChars.value)
+ 		pNameBuffer = (ctypes.c_char * (nNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_triangleset_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+ 		
+@@ -7889,11 +7889,11 @@
+ 		
+ 	
+ 	def GetIdentifier(self):
+-		nIdentifierBufferSize = ctypes.c_uint64(0)
+-		nIdentifierNeededChars = ctypes.c_uint64(0)
++		nIdentifierBufferSize = ctypes.c_uint32(0)
++		nIdentifierNeededChars = ctypes.c_uint32(0)
+ 		pIdentifierBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_triangleset_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+-		nIdentifierBufferSize = ctypes.c_uint64(nIdentifierNeededChars.value)
++		nIdentifierBufferSize = ctypes.c_uint32(nIdentifierNeededChars.value)
+ 		pIdentifierBuffer = (ctypes.c_char * (nIdentifierNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_triangleset_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+ 		
+@@ -7979,11 +7979,11 @@
+ 		
+ 	
+ 	def GetName(self):
+-		nNameBufferSize = ctypes.c_uint64(0)
+-		nNameNeededChars = ctypes.c_uint64(0)
++		nNameBufferSize = ctypes.c_uint32(0)
++		nNameNeededChars = ctypes.c_uint32(0)
+ 		pNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_object_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+-		nNameBufferSize = ctypes.c_uint64(nNameNeededChars.value)
++		nNameBufferSize = ctypes.c_uint32(nNameNeededChars.value)
+ 		pNameBuffer = (ctypes.c_char * (nNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_object_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+ 		
+@@ -7995,11 +7995,11 @@
+ 		
+ 	
+ 	def GetPartNumber(self):
+-		nPartNumberBufferSize = ctypes.c_uint64(0)
+-		nPartNumberNeededChars = ctypes.c_uint64(0)
++		nPartNumberBufferSize = ctypes.c_uint32(0)
++		nPartNumberNeededChars = ctypes.c_uint32(0)
+ 		pPartNumberBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_object_getpartnumber(self._handle, nPartNumberBufferSize, nPartNumberNeededChars, pPartNumberBuffer))
+-		nPartNumberBufferSize = ctypes.c_uint64(nPartNumberNeededChars.value)
++		nPartNumberBufferSize = ctypes.c_uint32(nPartNumberNeededChars.value)
+ 		pPartNumberBuffer = (ctypes.c_char * (nPartNumberNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_object_getpartnumber(self._handle, nPartNumberBufferSize, nPartNumberNeededChars, pPartNumberBuffer))
+ 		
+@@ -8065,11 +8065,11 @@
+ 	
+ 	def GetUUID(self):
+ 		pHasUUID = ctypes.c_bool()
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_object_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_object_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -8328,7 +8328,7 @@
+ 		return TheTriangleSetObject
+ 	
+ 	def GetTriangleSetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_meshobject_gettrianglesetcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -8381,11 +8381,11 @@
+ 		
+ 	
+ 	def GetChannelName(self):
+-		nChannelNameBufferSize = ctypes.c_uint64(0)
+-		nChannelNameNeededChars = ctypes.c_uint64(0)
++		nChannelNameBufferSize = ctypes.c_uint32(0)
++		nChannelNameNeededChars = ctypes.c_uint32(0)
+ 		pChannelNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_levelset_getchannelname(self._handle, nChannelNameBufferSize, nChannelNameNeededChars, pChannelNameBuffer))
+-		nChannelNameBufferSize = ctypes.c_uint64(nChannelNameNeededChars.value)
++		nChannelNameBufferSize = ctypes.c_uint32(nChannelNameNeededChars.value)
+ 		pChannelNameBuffer = (ctypes.c_char * (nChannelNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_levelset_getchannelname(self._handle, nChannelNameBufferSize, nChannelNameNeededChars, pChannelNameBuffer))
+ 		
+@@ -8522,7 +8522,7 @@
+ 		
+ 	
+ 	def GetBeamCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamlattice_getbeamcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -8563,7 +8563,7 @@
+ 		return [pBeamInfoBuffer[i] for i in range(nBeamInfoNeededCount.value)]
+ 	
+ 	def GetBallCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamlattice_getballcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -8604,7 +8604,7 @@
+ 		return [pBallInfoBuffer[i] for i in range(nBallInfoNeededCount.value)]
+ 	
+ 	def GetBeamSetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamlattice_getbeamsetcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -8659,11 +8659,11 @@
+ 		
+ 	
+ 	def GetChannelName(self):
+-		nChannelNameBufferSize = ctypes.c_uint64(0)
+-		nChannelNameNeededChars = ctypes.c_uint64(0)
++		nChannelNameBufferSize = ctypes.c_uint32(0)
++		nChannelNameNeededChars = ctypes.c_uint32(0)
+ 		pChannelNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_functionreference_getchannelname(self._handle, nChannelNameBufferSize, nChannelNameNeededChars, pChannelNameBuffer))
+-		nChannelNameBufferSize = ctypes.c_uint64(nChannelNameNeededChars.value)
++		nChannelNameBufferSize = ctypes.c_uint32(nChannelNameNeededChars.value)
+ 		pChannelNameBuffer = (ctypes.c_char * (nChannelNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_functionreference_getchannelname(self._handle, nChannelNameBufferSize, nChannelNameNeededChars, pChannelNameBuffer))
+ 		
+@@ -8737,7 +8737,7 @@
+ 		
+ 	
+ 	def GetMaterialMappingCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_volumedatacomposite_getmaterialmappingcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -8776,11 +8776,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		FunctionReference.__init__(self, handle, wrapper)
+ 	def GetName(self):
+-		nPropertyNameBufferSize = ctypes.c_uint64(0)
+-		nPropertyNameNeededChars = ctypes.c_uint64(0)
++		nPropertyNameBufferSize = ctypes.c_uint32(0)
++		nPropertyNameNeededChars = ctypes.c_uint32(0)
+ 		pPropertyNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_volumedataproperty_getname(self._handle, nPropertyNameBufferSize, nPropertyNameNeededChars, pPropertyNameBuffer))
+-		nPropertyNameBufferSize = ctypes.c_uint64(nPropertyNameNeededChars.value)
++		nPropertyNameBufferSize = ctypes.c_uint32(nPropertyNameNeededChars.value)
+ 		pPropertyNameBuffer = (ctypes.c_char * (nPropertyNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_volumedataproperty_getname(self._handle, nPropertyNameBufferSize, nPropertyNameNeededChars, pPropertyNameBuffer))
+ 		
+@@ -8858,7 +8858,7 @@
+ 		
+ 	
+ 	def GetPropertyCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_volumedata_getpropertycount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -8920,11 +8920,11 @@
+ 	
+ 	def GetUUID(self):
+ 		pHasUUID = ctypes.c_bool()
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_component_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_component_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -8985,7 +8985,7 @@
+ 		return ComponentInstanceObject
+ 	
+ 	def GetComponentCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_componentsobject_getcomponentcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9003,11 +9003,11 @@
+ 		
+ 	
+ 	def GetName(self):
+-		nNameBufferSize = ctypes.c_uint64(0)
+-		nNameNeededChars = ctypes.c_uint64(0)
++		nNameBufferSize = ctypes.c_uint32(0)
++		nNameNeededChars = ctypes.c_uint32(0)
+ 		pNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamset_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+-		nNameBufferSize = ctypes.c_uint64(nNameNeededChars.value)
++		nNameBufferSize = ctypes.c_uint32(nNameNeededChars.value)
+ 		pNameBuffer = (ctypes.c_char * (nNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamset_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+ 		
+@@ -9019,18 +9019,18 @@
+ 		
+ 	
+ 	def GetIdentifier(self):
+-		nIdentifierBufferSize = ctypes.c_uint64(0)
+-		nIdentifierNeededChars = ctypes.c_uint64(0)
++		nIdentifierBufferSize = ctypes.c_uint32(0)
++		nIdentifierNeededChars = ctypes.c_uint32(0)
+ 		pIdentifierBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamset_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+-		nIdentifierBufferSize = ctypes.c_uint64(nIdentifierNeededChars.value)
++		nIdentifierBufferSize = ctypes.c_uint32(nIdentifierNeededChars.value)
+ 		pIdentifierBuffer = (ctypes.c_char * (nIdentifierNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamset_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+ 		
+ 		return pIdentifierBuffer.value.decode()
+ 	
+ 	def GetReferenceCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamset_getreferencecount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9053,7 +9053,7 @@
+ 		return [pReferencesBuffer[i] for i in range(nReferencesNeededCount.value)]
+ 	
+ 	def GetBallReferenceCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_beamset_getballreferencecount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9083,7 +9083,7 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_basematerialgroup_getcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9113,11 +9113,11 @@
+ 	
+ 	def GetName(self, PropertyID):
+ 		nPropertyID = ctypes.c_uint32(PropertyID)
+-		nNameBufferSize = ctypes.c_uint64(0)
+-		nNameNeededChars = ctypes.c_uint64(0)
++		nNameBufferSize = ctypes.c_uint32(0)
++		nNameNeededChars = ctypes.c_uint32(0)
+ 		pNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_basematerialgroup_getname(self._handle, nPropertyID, nNameBufferSize, nNameNeededChars, pNameBuffer))
+-		nNameBufferSize = ctypes.c_uint64(nNameNeededChars.value)
++		nNameBufferSize = ctypes.c_uint32(nNameNeededChars.value)
+ 		pNameBuffer = (ctypes.c_char * (nNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_basematerialgroup_getname(self._handle, nPropertyID, nNameBufferSize, nNameNeededChars, pNameBuffer))
+ 		
+@@ -9149,7 +9149,7 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_colorgroup_getcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9196,7 +9196,7 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_texture2dgroup_getcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9248,7 +9248,7 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_compositematerials_getcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9307,7 +9307,7 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_multipropertygroup_getcount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9356,7 +9356,7 @@
+ 		
+ 	
+ 	def GetLayerCount(self):
+-		pCount = ctypes.c_uint32()
++		pCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_multipropertygroup_getlayercount(self._handle, pCount))
+ 		
+ 		return pCount.value
+@@ -9387,11 +9387,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetName(self):
+-		nNameBufferSize = ctypes.c_uint64(0)
+-		nNameNeededChars = ctypes.c_uint64(0)
++		nNameBufferSize = ctypes.c_uint32(0)
++		nNameNeededChars = ctypes.c_uint32(0)
+ 		pNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_image3d_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+-		nNameBufferSize = ctypes.c_uint64(nNameNeededChars.value)
++		nNameBufferSize = ctypes.c_uint32(nNameNeededChars.value)
+ 		pNameBuffer = (ctypes.c_char * (nNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_image3d_getname(self._handle, nNameBufferSize, nNameNeededChars, pNameBuffer))
+ 		
+@@ -9416,29 +9416,29 @@
+ 	def __init__(self, handle, wrapper):
+ 		Image3D.__init__(self, handle, wrapper)
+ 	def GetRowCount(self):
+-		pRowCount = ctypes.c_uint32()
++		pRowCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_imagestack_getrowcount(self._handle, pRowCount))
+ 		
+ 		return pRowCount.value
+ 	
+ 	def SetRowCount(self, RowCount):
+-		nRowCount = ctypes.c_uint32(RowCount)
++		nRowCount = ctypes.c_uint64(RowCount)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_imagestack_setrowcount(self._handle, nRowCount))
+ 		
+ 	
+ 	def GetColumnCount(self):
+-		pColumnCount = ctypes.c_uint32()
++		pColumnCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_imagestack_getcolumncount(self._handle, pColumnCount))
+ 		
+ 		return pColumnCount.value
+ 	
+ 	def SetColumnCount(self, ColumnCount):
+-		nColumnCount = ctypes.c_uint32(ColumnCount)
++		nColumnCount = ctypes.c_uint64(ColumnCount)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_imagestack_setcolumncount(self._handle, nColumnCount))
+ 		
+ 	
+ 	def GetSheetCount(self):
+-		pSheetCount = ctypes.c_uint32()
++		pSheetCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_imagestack_getsheetcount(self._handle, pSheetCount))
+ 		
+ 		return pSheetCount.value
+@@ -9511,11 +9511,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetPath(self):
+-		nPathBufferSize = ctypes.c_uint64(0)
+-		nPathNeededChars = ctypes.c_uint64(0)
++		nPathBufferSize = ctypes.c_uint32(0)
++		nPathNeededChars = ctypes.c_uint32(0)
+ 		pPathBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_attachment_getpath(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+-		nPathBufferSize = ctypes.c_uint64(nPathNeededChars.value)
++		nPathBufferSize = ctypes.c_uint32(nPathNeededChars.value)
+ 		pPathBuffer = (ctypes.c_char * (nPathNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_attachment_getpath(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+ 		
+@@ -9537,11 +9537,11 @@
+ 		return PackagePartObject
+ 	
+ 	def GetRelationShipType(self):
+-		nPathBufferSize = ctypes.c_uint64(0)
+-		nPathNeededChars = ctypes.c_uint64(0)
++		nPathBufferSize = ctypes.c_uint32(0)
++		nPathNeededChars = ctypes.c_uint32(0)
+ 		pPathBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_attachment_getrelationshiptype(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+-		nPathBufferSize = ctypes.c_uint64(nPathNeededChars.value)
++		nPathBufferSize = ctypes.c_uint32(nPathNeededChars.value)
+ 		pPathBuffer = (ctypes.c_char * (nPathNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_attachment_getrelationshiptype(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+ 		
+@@ -9563,13 +9563,13 @@
+ 		
+ 	
+ 	def ReadFromCallback(self, TheReadCallbackFunc, StreamSize, TheSeekCallbackFunc, UserData):
+-		nStreamSize = ctypes.c_uint64(StreamSize)
++		nStreamSize = ctypes.c_uint32(StreamSize)
+ 		pUserData = ctypes.c_void_p(UserData)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_attachment_readfromcallback(self._handle, TheReadCallbackFunc, nStreamSize, TheSeekCallbackFunc, pUserData))
+ 		
+ 	
+ 	def GetStreamSize(self):
+-		pStreamSize = ctypes.c_uint64()
++		pStreamSize = ctypes.c_uint32()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_attachment_getstreamsize(self._handle, pStreamSize))
+ 		
+ 		return pStreamSize.value
+@@ -9656,11 +9656,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetIdentifier(self):
+-		nIdentifierBufferSize = ctypes.c_uint64(0)
+-		nIdentifierNeededChars = ctypes.c_uint64(0)
++		nIdentifierBufferSize = ctypes.c_uint32(0)
++		nIdentifierNeededChars = ctypes.c_uint32(0)
+ 		pIdentifierBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitport_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+-		nIdentifierBufferSize = ctypes.c_uint64(nIdentifierNeededChars.value)
++		nIdentifierBufferSize = ctypes.c_uint32(nIdentifierNeededChars.value)
+ 		pIdentifierBuffer = (ctypes.c_char * (nIdentifierNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitport_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+ 		
+@@ -9672,11 +9672,11 @@
+ 		
+ 	
+ 	def GetDisplayName(self):
+-		nDisplayNameBufferSize = ctypes.c_uint64(0)
+-		nDisplayNameNeededChars = ctypes.c_uint64(0)
++		nDisplayNameBufferSize = ctypes.c_uint32(0)
++		nDisplayNameNeededChars = ctypes.c_uint32(0)
+ 		pDisplayNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitport_getdisplayname(self._handle, nDisplayNameBufferSize, nDisplayNameNeededChars, pDisplayNameBuffer))
+-		nDisplayNameBufferSize = ctypes.c_uint64(nDisplayNameNeededChars.value)
++		nDisplayNameBufferSize = ctypes.c_uint32(nDisplayNameNeededChars.value)
+ 		pDisplayNameBuffer = (ctypes.c_char * (nDisplayNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitport_getdisplayname(self._handle, nDisplayNameBufferSize, nDisplayNameNeededChars, pDisplayNameBuffer))
+ 		
+@@ -9698,11 +9698,11 @@
+ 		return ImplicitPortType(pImplicitPortType.value)
+ 	
+ 	def GetReference(self):
+-		nReferenceBufferSize = ctypes.c_uint64(0)
+-		nReferenceNeededChars = ctypes.c_uint64(0)
++		nReferenceBufferSize = ctypes.c_uint32(0)
++		nReferenceNeededChars = ctypes.c_uint32(0)
+ 		pReferenceBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitport_getreference(self._handle, nReferenceBufferSize, nReferenceNeededChars, pReferenceBuffer))
+-		nReferenceBufferSize = ctypes.c_uint64(nReferenceNeededChars.value)
++		nReferenceBufferSize = ctypes.c_uint32(nReferenceNeededChars.value)
+ 		pReferenceBuffer = (ctypes.c_char * (nReferenceNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitport_getreference(self._handle, nReferenceBufferSize, nReferenceNeededChars, pReferenceBuffer))
+ 		
+@@ -9763,11 +9763,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetIdentifier(self):
+-		nIdentifierBufferSize = ctypes.c_uint64(0)
+-		nIdentifierNeededChars = ctypes.c_uint64(0)
++		nIdentifierBufferSize = ctypes.c_uint32(0)
++		nIdentifierNeededChars = ctypes.c_uint32(0)
+ 		pIdentifierBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitnode_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+-		nIdentifierBufferSize = ctypes.c_uint64(nIdentifierNeededChars.value)
++		nIdentifierBufferSize = ctypes.c_uint32(nIdentifierNeededChars.value)
+ 		pIdentifierBuffer = (ctypes.c_char * (nIdentifierNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitnode_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+ 		
+@@ -9779,11 +9779,11 @@
+ 		
+ 	
+ 	def GetDisplayName(self):
+-		nDisplayNameBufferSize = ctypes.c_uint64(0)
+-		nDisplayNameNeededChars = ctypes.c_uint64(0)
++		nDisplayNameBufferSize = ctypes.c_uint32(0)
++		nDisplayNameNeededChars = ctypes.c_uint32(0)
+ 		pDisplayNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitnode_getdisplayname(self._handle, nDisplayNameBufferSize, nDisplayNameNeededChars, pDisplayNameBuffer))
+-		nDisplayNameBufferSize = ctypes.c_uint64(nDisplayNameNeededChars.value)
++		nDisplayNameBufferSize = ctypes.c_uint32(nDisplayNameNeededChars.value)
+ 		pDisplayNameBuffer = (ctypes.c_char * (nDisplayNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitnode_getdisplayname(self._handle, nDisplayNameBufferSize, nDisplayNameNeededChars, pDisplayNameBuffer))
+ 		
+@@ -9795,11 +9795,11 @@
+ 		
+ 	
+ 	def GetTag(self):
+-		nTagBufferSize = ctypes.c_uint64(0)
+-		nTagNeededChars = ctypes.c_uint64(0)
++		nTagBufferSize = ctypes.c_uint32(0)
++		nTagNeededChars = ctypes.c_uint32(0)
+ 		pTagBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitnode_gettag(self._handle, nTagBufferSize, nTagNeededChars, pTagBuffer))
+-		nTagBufferSize = ctypes.c_uint64(nTagNeededChars.value)
++		nTagBufferSize = ctypes.c_uint32(nTagNeededChars.value)
+ 		pTagBuffer = (ctypes.c_char * (nTagNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitnode_gettag(self._handle, nTagBufferSize, nTagNeededChars, pTagBuffer))
+ 		
+@@ -10874,11 +10874,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Resource.__init__(self, handle, wrapper)
+ 	def GetDisplayName(self):
+-		nDisplayNameBufferSize = ctypes.c_uint64(0)
+-		nDisplayNameNeededChars = ctypes.c_uint64(0)
++		nDisplayNameBufferSize = ctypes.c_uint32(0)
++		nDisplayNameNeededChars = ctypes.c_uint32(0)
+ 		pDisplayNameBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_function_getdisplayname(self._handle, nDisplayNameBufferSize, nDisplayNameNeededChars, pDisplayNameBuffer))
+-		nDisplayNameBufferSize = ctypes.c_uint64(nDisplayNameNeededChars.value)
++		nDisplayNameBufferSize = ctypes.c_uint32(nDisplayNameNeededChars.value)
+ 		pDisplayNameBuffer = (ctypes.c_char * (nDisplayNameNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_function_getdisplayname(self._handle, nDisplayNameBufferSize, nDisplayNameNeededChars, pDisplayNameBuffer))
+ 		
+@@ -10981,11 +10981,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Function.__init__(self, handle, wrapper)
+ 	def GetIdentifier(self):
+-		nIdentifierBufferSize = ctypes.c_uint64(0)
+-		nIdentifierNeededChars = ctypes.c_uint64(0)
++		nIdentifierBufferSize = ctypes.c_uint32(0)
++		nIdentifierNeededChars = ctypes.c_uint32(0)
+ 		pIdentifierBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitfunction_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+-		nIdentifierBufferSize = ctypes.c_uint64(nIdentifierNeededChars.value)
++		nIdentifierBufferSize = ctypes.c_uint32(nIdentifierNeededChars.value)
+ 		pIdentifierBuffer = (ctypes.c_char * (nIdentifierNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_implicitfunction_getidentifier(self._handle, nIdentifierBufferSize, nIdentifierNeededChars, pIdentifierBuffer))
+ 		
+@@ -11782,11 +11782,11 @@
+ 	
+ 	def GetUUID(self):
+ 		pHasUUID = ctypes.c_bool()
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_builditem_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_builditem_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -11820,11 +11820,11 @@
+ 		
+ 	
+ 	def GetPartNumber(self):
+-		nPartNumberBufferSize = ctypes.c_uint64(0)
+-		nPartNumberNeededChars = ctypes.c_uint64(0)
++		nPartNumberBufferSize = ctypes.c_uint32(0)
++		nPartNumberNeededChars = ctypes.c_uint32(0)
+ 		pPartNumberBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_builditem_getpartnumber(self._handle, nPartNumberBufferSize, nPartNumberNeededChars, pPartNumberBuffer))
+-		nPartNumberBufferSize = ctypes.c_uint64(nPartNumberNeededChars.value)
++		nPartNumberBufferSize = ctypes.c_uint32(nPartNumberNeededChars.value)
+ 		pPartNumberBuffer = (ctypes.c_char * (nPartNumberNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_builditem_getpartnumber(self._handle, nPartNumberBufferSize, nPartNumberNeededChars, pPartNumberBuffer))
+ 		
+@@ -12049,11 +12049,11 @@
+ 		
+ 	
+ 	def GetOwnPath(self):
+-		nPathBufferSize = ctypes.c_uint64(0)
+-		nPathNeededChars = ctypes.c_uint64(0)
++		nPathBufferSize = ctypes.c_uint32(0)
++		nPathNeededChars = ctypes.c_uint32(0)
+ 		pPathBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_slicestack_getownpath(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+-		nPathBufferSize = ctypes.c_uint64(nPathNeededChars.value)
++		nPathBufferSize = ctypes.c_uint32(nPathNeededChars.value)
+ 		pPathBuffer = (ctypes.c_char * (nPathNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_slicestack_getownpath(self._handle, nPathBufferSize, nPathNeededChars, pPathBuffer))
+ 		
+@@ -12067,33 +12067,33 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetConsumerID(self):
+-		nConsumerIDBufferSize = ctypes.c_uint64(0)
+-		nConsumerIDNeededChars = ctypes.c_uint64(0)
++		nConsumerIDBufferSize = ctypes.c_uint32(0)
++		nConsumerIDNeededChars = ctypes.c_uint32(0)
+ 		pConsumerIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_consumer_getconsumerid(self._handle, nConsumerIDBufferSize, nConsumerIDNeededChars, pConsumerIDBuffer))
+-		nConsumerIDBufferSize = ctypes.c_uint64(nConsumerIDNeededChars.value)
++		nConsumerIDBufferSize = ctypes.c_uint32(nConsumerIDNeededChars.value)
+ 		pConsumerIDBuffer = (ctypes.c_char * (nConsumerIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_consumer_getconsumerid(self._handle, nConsumerIDBufferSize, nConsumerIDNeededChars, pConsumerIDBuffer))
+ 		
+ 		return pConsumerIDBuffer.value.decode()
+ 	
+ 	def GetKeyID(self):
+-		nKeyIDBufferSize = ctypes.c_uint64(0)
+-		nKeyIDNeededChars = ctypes.c_uint64(0)
++		nKeyIDBufferSize = ctypes.c_uint32(0)
++		nKeyIDNeededChars = ctypes.c_uint32(0)
+ 		pKeyIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_consumer_getkeyid(self._handle, nKeyIDBufferSize, nKeyIDNeededChars, pKeyIDBuffer))
+-		nKeyIDBufferSize = ctypes.c_uint64(nKeyIDNeededChars.value)
++		nKeyIDBufferSize = ctypes.c_uint32(nKeyIDNeededChars.value)
+ 		pKeyIDBuffer = (ctypes.c_char * (nKeyIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_consumer_getkeyid(self._handle, nKeyIDBufferSize, nKeyIDNeededChars, pKeyIDBuffer))
+ 		
+ 		return pKeyIDBuffer.value.decode()
+ 	
+ 	def GetKeyValue(self):
+-		nKeyValueBufferSize = ctypes.c_uint64(0)
+-		nKeyValueNeededChars = ctypes.c_uint64(0)
++		nKeyValueBufferSize = ctypes.c_uint32(0)
++		nKeyValueNeededChars = ctypes.c_uint32(0)
+ 		pKeyValueBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_consumer_getkeyvalue(self._handle, nKeyValueBufferSize, nKeyValueNeededChars, pKeyValueBuffer))
+-		nKeyValueBufferSize = ctypes.c_uint64(nKeyValueNeededChars.value)
++		nKeyValueBufferSize = ctypes.c_uint32(nKeyValueNeededChars.value)
+ 		pKeyValueBuffer = (ctypes.c_char * (nKeyValueNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_consumer_getkeyvalue(self._handle, nKeyValueBufferSize, nKeyValueNeededChars, pKeyValueBuffer))
+ 		
+@@ -12204,11 +12204,11 @@
+ 		return pDescriptor.value
+ 	
+ 	def GetKeyUUID(self):
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_contentencryptionparams_getkeyuuid(self._handle, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_contentencryptionparams_getkeyuuid(self._handle, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -12262,11 +12262,11 @@
+ 	def __init__(self, handle, wrapper):
+ 		Base.__init__(self, handle, wrapper)
+ 	def GetKeyUUID(self):
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_resourcedatagroup_getkeyuuid(self._handle, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_resourcedatagroup_getkeyuuid(self._handle, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -12484,11 +12484,11 @@
+ 	
+ 	def GetUUID(self):
+ 		pHasUUID = ctypes.c_bool()
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_keystore_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_keystore_getuuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -12538,11 +12538,11 @@
+ 		return ModelUnit(pUnit.value)
+ 	
+ 	def GetLanguage(self):
+-		nLanguageBufferSize = ctypes.c_uint64(0)
+-		nLanguageNeededChars = ctypes.c_uint64(0)
++		nLanguageBufferSize = ctypes.c_uint32(0)
++		nLanguageNeededChars = ctypes.c_uint32(0)
+ 		pLanguageBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_model_getlanguage(self._handle, nLanguageBufferSize, nLanguageNeededChars, pLanguageBuffer))
+-		nLanguageBufferSize = ctypes.c_uint64(nLanguageNeededChars.value)
++		nLanguageBufferSize = ctypes.c_uint32(nLanguageNeededChars.value)
+ 		pLanguageBuffer = (ctypes.c_char * (nLanguageNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_model_getlanguage(self._handle, nLanguageBufferSize, nLanguageNeededChars, pLanguageBuffer))
+ 		
+@@ -12705,11 +12705,11 @@
+ 	
+ 	def GetBuildUUID(self):
+ 		pHasUUID = ctypes.c_bool()
+-		nUUIDBufferSize = ctypes.c_uint64(0)
+-		nUUIDNeededChars = ctypes.c_uint64(0)
++		nUUIDBufferSize = ctypes.c_uint32(0)
++		nUUIDNeededChars = ctypes.c_uint32(0)
+ 		pUUIDBuffer = ctypes.c_char_p(None)
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_model_getbuilduuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+-		nUUIDBufferSize = ctypes.c_uint64(nUUIDNeededChars.value)
++		nUUIDBufferSize = ctypes.c_uint32(nUUIDNeededChars.value)
+ 		pUUIDBuffer = (ctypes.c_char * (nUUIDNeededChars.value))()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_model_getbuilduuid(self._handle, pHasUUID, nUUIDBufferSize, nUUIDNeededChars, pUUIDBuffer))
+ 		
+@@ -12982,9 +12982,9 @@
+ 		return MultiPropertyGroupInstanceObject
+ 	
+ 	def AddImageStack(self, ColumnCount, RowCount, SheetCount):
+-		nColumnCount = ctypes.c_uint32(ColumnCount)
+-		nRowCount = ctypes.c_uint32(RowCount)
+-		nSheetCount = ctypes.c_uint32(SheetCount)
++		nColumnCount = ctypes.c_uint64(ColumnCount)
++		nRowCount = ctypes.c_uint64(RowCount)
++		nSheetCount = ctypes.c_uint64(SheetCount)
+ 		InstanceHandle = ctypes.c_void_p()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_model_addimagestack(self._handle, nColumnCount, nRowCount, nSheetCount, InstanceHandle))
+ 		if InstanceHandle:
+@@ -13083,7 +13083,7 @@
+ 		return AttachmentInstanceObject
+ 	
+ 	def GetAttachmentCount(self):
+-		pAttachmentCount = ctypes.c_uint32()
++		pAttachmentCount = ctypes.c_uint64()
+ 		self._wrapper.checkError(self, self._wrapper.lib.lib3mf_model_getattachmentcount(self._handle, pAttachmentCount))
+ 		
+ 		return pAttachmentCount.value
