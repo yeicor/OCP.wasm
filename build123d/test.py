@@ -71,8 +71,7 @@ if sys.platform == 'emscripten':
 
 
     asyncio.get_event_loop().run_until_complete(install_font_to_system(
-        "https://raw.githubusercontent.com/google/fonts/refs/heads/main/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf",
-        "Roboto.ttf"))  # Fake to avoid warnings
+        "https://raw.githubusercontent.com/kavin808/arial.ttf/refs/heads/master/arial.ttf", "arial.ttf"))
 else:
 
     def common_fetch(url: str) -> bytes:
