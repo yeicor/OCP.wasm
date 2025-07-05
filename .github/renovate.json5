@@ -28,14 +28,32 @@
         'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]+)\\\/releases\\\/download\\\/(?<currentValue>[^\/]+)\\\/(?<depName>[^"]*)"'
       ],
       datasourceTemplate: "github-release-attachments",
-      // TODO: I think there is no good solution if <depName> changes between releases, maybe autoReplaceStringTemplate with a custom rule for each dependency?
+      // Note: I think there is no good solution if <depName> changes between releases, maybe autoReplaceStringTemplate with a custom rule for each dependency?
+    },
+    {
+      customType: "regex",
+      managerFilePatterns: ["/CMakeLists\\.txt$/"],
+      matchStrings: [
+        'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/download\\.savannah\\.gnu\\.org\\\/releases\\\/(?<packageName>[^"]+)\\\/freetype-(?<currentValue>[^\/]+)\\.tar\\.gz"'
+      ],
+      datasourceTemplate: "custom.freetype",
     }
   ],
+  "customDatasources": {
+    "freetype": {
+      "defaultRegistryUrlTemplate": "https://download.savannah.gnu.org/releases/freetype/",
+      "format": "html"
+    }
+  },
   "packageRules": [
     {
       "matchDatasources": ["docker"],
       "matchPackageNames": ["archlinux/archlinux"],
       "versioning": "regex:^(?<compatibility>.*)-v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)?$"
+    },
+    {
+      "matchDatasources": ["custom.freetype"],
+      "extractVersion": "/freetype-(?<version>.+)\\.tar\\.gz$"
     }
   ],
 }

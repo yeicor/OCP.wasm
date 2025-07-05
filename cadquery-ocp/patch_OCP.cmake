@@ -1,6 +1,18 @@
 if(NOT DEFINED REAL_SOURCE_DIR)
   message(FATAL_ERROR "REAL_SOURCE_DIR must be defined")
 endif()
+if(NOT DEFINED OpenCASCADE_LIBRARIES)
+  message(FATAL_ERROR "OpenCASCADE_LIBRARIES must be defined")
+endif()
+if(NOT DEFINED OpenCASCADE_BINARY_DIR)
+  message(FATAL_ERROR "OpenCASCADE_BINARY_DIR must be defined")
+endif()
+if(NOT DEFINED rapidjson_SOURCE_DIR)
+  message(FATAL_ERROR "OpenCASCADE_BINARY_DIR must be defined")
+endif()
+if(NOT DEFINED freetype_BINARY_DIR)
+  message(FATAL_ERROR "freetype_BINARY_DIR must be defined")
+endif()
 
 # ----- Remove vtk-related files (case-insensitive) -----
 file(GLOB_RECURSE all_sources
@@ -55,7 +67,7 @@ string(REGEX REPLACE "\n([ \t]*find_package[ \t]*\\([^)]*(VTK|Python)[^)]*\\))" 
 string(REGEX REPLACE "([ \t]+)(VTK::[^ )]*)" "\\1#[[\\2]]" content "${content}")
 string(REGEX REPLACE "([ \t]+)(INTERPROCEDURAL_OPTIMIZATION[ \t]+FALSE)" "\\1#[[\\2]]" content "${content}")
 string(REGEX REPLACE "(target_include_directories\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)+\\)" "\\1 \"${OpenCASCADE_BINARY_DIR}/include/opencascade\" \"${rapidjson_SOURCE_DIR}/include\")" content "${content}")
-string(REGEX REPLACE "(\ntarget_link_libraries\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)\\)" "\\1 ${OpenCASCADE_LIBRARIES})" content "${content}")
+string(REGEX REPLACE "(\ntarget_link_libraries\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)\\)" "\\1 ${OpenCASCADE_LIBRARIES} ${freetype_BINARY_DIR}/libfreetype.a)" content "${content}")
 string(REGEX REPLACE "SET\\(PYTHON_SP_DIR \\\"site-packages\\\"" "SET(PYTHON_SP_DIR \".\"" content "${content}")
 if(NOT content STREQUAL content_old)
   file(WRITE "${OCP_CMAKE}" "${content}")

@@ -86,8 +86,16 @@ FetchContent_Declare(
   OVERRIDE_FIND_PACKAGE
 )
 
+# ##### FreeType #####
+FetchContent_Declare(
+  freetype
+  URL "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz"
+  PATCH_COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+  OVERRIDE_FIND_PACKAGE
+)
+
 # Make dependencies available
-FetchContent_MakeAvailable(pybind11 rapidjson)
+FetchContent_MakeAvailable(pybind11 rapidjson freetype)
 
 # ##### OCCT #####
 set(BUILD_DOC_Overview OFF) 
@@ -102,6 +110,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
+    -Dfreetype_SOURCE_DIR=${freetype_SOURCE_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
@@ -137,6 +146,7 @@ FetchContent_Declare(
     -DOpenCASCADE_BINARY_DIR=${opencascade_BINARY_DIR}
     -DOpenCASCADE_LIBRARIES=${BUILD_TOOLKITS_C}
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
+    -Dfreetype_BINARY_DIR=${freetype_BINARY_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OCP.cmake &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
 )
