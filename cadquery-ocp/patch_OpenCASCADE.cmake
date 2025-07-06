@@ -7,8 +7,8 @@ endif()
 if(NOT DEFINED rapidjson_SOURCE_DIR)
   message(FATAL_ERROR "rapidjson_SOURCE_DIR must be defined")
 endif()
-if(NOT DEFINED freetype_SOURCE_DIR)
-  message(FATAL_ERROR "freetype_SOURCE_DIR must be defined")
+if(NOT DEFINED freetype_INCLUDE_DIR)
+  message(FATAL_ERROR "freetype_INCLUDE_DIR must be defined")
 endif()
 
 file(GLOB_RECURSE cmake_files
@@ -25,8 +25,8 @@ foreach(f IN LISTS cmake_files)
   string(REPLACE "\$CMAKE_BINARY_DIR" "${REAL_BINARY_DIR}" content "${content}")
   string(REGEX REPLACE "(# define CSF variable)\n(OCCT_INCLUDE_CMAKE_FILE)" "\\1\n\
   set(3RDPARTY_RAPIDJSON_INCLUDE_DIR \"${rapidjson_SOURCE_DIR}/include\")\n\
-  set(3RDPARTY_FREETYPE_INCLUDE_DIR_ft2build \"${freetype_SOURCE_DIR}/include\")\n\
-  set(3RDPARTY_FREETYPE_INCLUDE_DIR_freetype2 \"${freetype_SOURCE_DIR}/include\")\n\
+  set(3RDPARTY_FREETYPE_INCLUDE_DIR_ft2build \"${freetype_INCLUDE_DIR}\")\n\
+  set(3RDPARTY_FREETYPE_INCLUDE_DIR_freetype2 \"${freetype_INCLUDE_DIR}\")\n\
   \\2" content "${content}")
   if(NOT content STREQUAL content_old)
     file(WRITE "${f}" "${content}")
