@@ -102,6 +102,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
+    -Dfreetype_SOURCE_DIR=${freetype_SOURCE_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
