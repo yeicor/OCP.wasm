@@ -40,6 +40,18 @@ if(NOT _IS_DEBUG AND ENABLE_IPO)
   endif()
 endif()
 
+# XXX: The build tries to link the following libraries, so they must be available (they are cached by emscripten)
+if(EMSCRIPTEN)
+  message(STATUS "Prebuilding emscripten core dependencies")
+  execute_process(
+    COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept freetype freetype-legacysjlj --pic
+    RESULT_VARIABLE EMBUILD_RESULT
+  )
+  if(NOT EMBUILD_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to run embuilder")
+  endif()
+endif()
+
 # XXX: I only want to install the final build, not intermediate outputs
 function(install)
   # XXX: This may ignore installation of some system files required for some operations? But its mostly docs and static libraries...
@@ -145,18 +157,6 @@ FetchContent_Declare(
 
 # Make main target available
 FetchContent_MakeAvailable(OCP)
-
-# The build tries to link the following libraries, so they must be available (they are cached by emscripten)
-if(EMSCRIPTEN)
-  message(STATUS "Prebuilding emscripten core dependencies")
-  execute_process(
-    COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept freetype freetype-legacysjlj --pic
-    RESULT_VARIABLE EMBUILD_RESULT
-  )
-  if(NOT EMBUILD_RESULT EQUAL 0)
-      message(FATAL_ERROR "Failed to run embuilder")
-  endif()
-endif()
 
 if(EMSCRIPTEN)
   message(STATUS "Setting up extra repair/optimization pass")
