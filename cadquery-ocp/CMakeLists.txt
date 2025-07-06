@@ -86,16 +86,8 @@ FetchContent_Declare(
   OVERRIDE_FIND_PACKAGE
 )
 
-# ##### FreeType #####
-FetchContent_Declare(
-  freetype
-  URL "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz"
-  PATCH_COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
-  OVERRIDE_FIND_PACKAGE
-)
-
 # Make dependencies available
-FetchContent_MakeAvailable(pybind11 rapidjson freetype)
+FetchContent_MakeAvailable(pybind11 rapidjson)
 
 # ##### OCCT #####
 set(BUILD_DOC_Overview OFF) 
@@ -110,7 +102,6 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
-    -Dfreetype_SOURCE_DIR=${freetype_SOURCE_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
@@ -158,7 +149,7 @@ FetchContent_MakeAvailable(OCP)
 if(EMSCRIPTEN)
   message(STATUS "Prebuilding emscripten core dependencies")
   execute_process(
-    COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept --pic
+    COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept freetype freetype-legacysjlj --pic
     RESULT_VARIABLE EMBUILD_RESULT
   )
   if(NOT EMBUILD_RESULT EQUAL 0)

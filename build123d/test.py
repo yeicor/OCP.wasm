@@ -1,5 +1,4 @@
 # This script downloads a Python package from PyPI, extracts it, and runs its unittests.
-
 import io
 import os
 import sys
@@ -9,11 +8,7 @@ import zipfile
 from unittest import TextTestRunner
 
 if sys.platform == 'emscripten':
-    import micropip, asyncio
-
-    # Install build123d and its dependencies at runtime, unlike other platforms
-    micropip.add_mock_package("py-lib3mf", "2.4.1", modules={
-        "py_lib3mf": '''import micropip; import asyncio; asyncio.run(micropip.install("lib3mf")); from lib3mf import *'''})  # Only required for build123d<0.10.0
+    import bootstrap_in_pyodide  # noqa: F401
 
 
     def common_fetch(url: str) -> bytes:
@@ -70,7 +65,9 @@ if sys.platform == 'emscripten':
         return font_path
 
 
-    asyncio.get_event_loop().run_until_complete(install_font_to_system(
+    import asyncio
+
+    asyncio.run(install_font_to_system(
         "https://raw.githubusercontent.com/kavin808/arial.ttf/refs/heads/master/arial.ttf", "arial.ttf"))
 else:
 

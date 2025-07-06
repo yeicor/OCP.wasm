@@ -21,11 +21,11 @@ CMAKE_POLICY_VERSION_MINIMUM="3.5"
 # OCCT
 BUILD_LIBRARY_TYPE="Static"
 BUILD_MODULE_Draw="OFF"
+BUILD_DOC_Overview="OFF"
 BUILD_MODULE_DETools="OFF"
 USE_RAPIDJSON="ON" # Enables GLTF export
 USE_FREETYPE="ON" # Enables text support
-USE_OPENGL="OFF"
-USE_XLIB="OFF"
+USE_TK="OFF"
 
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
