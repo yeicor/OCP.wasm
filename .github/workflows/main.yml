@@ -28,7 +28,7 @@ jobs:
             build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
     steps:
-      - run: "pacman -Syu --noconfirm git && git config --global --add safe.directory '*'"
+      - run: "pacman -Syu --noconfirm git jq && git config --global --add safe.directory '*'"
       - uses: "actions/checkout@v4"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
