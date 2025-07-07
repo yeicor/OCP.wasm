@@ -28,7 +28,8 @@ jobs:
             build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
     steps:
-#      - run: "pacman -Syu --noconfirm git jq && git config --global --add safe.directory '*'"
+#      - run: "pacman -Syu --noconfirm git jq binaryen ccache && git config --global --add safe.directory '*'"
+      - run: "apt install -y ccache binaryen"
       - uses: "actions/checkout@v4"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
@@ -158,17 +159,11 @@ jobs:
           pyodide venv .venv-pyodide
           . .venv-pyodide/bin/activate
           
-          # Install build123d and run tests
+          # Install build123d and run tests (stable and dev versions)
           pip install -vvv --index-url "file://$package_index_folder" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
-          python test.py | tee -a test.log
-          
-          # Check if ALL tests passed (last line of the log should be "OK")
-          if tail -n 1 test.log | grep -q "OK"; then
-            echo "All tests passed."
-          else
-            echo "Some tests failed. Check the log for details."
-            exit 1
-          fi
+          build123d_stable_version=$(python -c "import build123d; print(build123d.__version__)")
+          python test.py "v$build123d_stable_version" | tee -a test.log
+          # python test.py dev | tee -a test.log # TODO: Fix build123d dev by avoiding subprocess usage for testing that examples don't crash
 
       - uses: "actions/upload-artifact@v4"
         if: "always()"

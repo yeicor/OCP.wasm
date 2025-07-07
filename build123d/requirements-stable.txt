@@ -1,4 +1,1 @@
-git+https://github.com/gumyr/build123d.git@v0.9.1
-pytest-benchmark==5.1.0
-lib3mf==2.4.1
-sqlite3
+build123d==v0.9.1

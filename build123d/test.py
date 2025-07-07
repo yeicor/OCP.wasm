@@ -1,126 +1,99 @@
-# This script downloads a Python package from PyPI, extracts it, and runs its unittests.
-import io
-import os
-import sys
-import tempfile
-import unittest
-import zipfile
-from unittest import TextTestRunner
-
-if sys.platform == 'emscripten':
-    import bootstrap_in_pyodide  # noqa: F401
-
-
-    def common_fetch(url: str) -> bytes:
-        from pyodide.http import pyfetch
-        # noinspection PyUnresolvedReferences
-        loop = asyncio.get_event_loop()
-        response = loop.run_until_complete(pyfetch(url))
-        return loop.run_until_complete(response.bytes())
-
-
-    # XXX: Patch urllib.request.urlretrieve to use pyodide's pyfetch as it is too low level for pyodide (and it is not critical for build123d but required for test_importers.ImportSTEP)
-    import urllib.request
-
-    old_urlretrieve = urllib.request.urlretrieve
-
-
-    def new_urlretrieve(url, filename=None, reporthook=None, data=None):
-        # Try to avoid breaking other uses of urlretrieve (which are probably unsupported anyway)
-        if url.startswith("https://") and filename is not None and not reporthook and not data:
-            print("XXX: Using patched urllib.request.urlretrieve to use pyodide's pyfetch for URL:", url)
-            bs = common_fetch(url)  # Download the file to cache it
-            with open(filename, "wb") as f:
-                f.write(bs)
-            return filename, {}  # Return the filename and a dummy response object
-        else:
-            return old_urlretrieve(url, filename, reporthook, data)
-
-
-    urllib.request.urlretrieve = new_urlretrieve
-
-
-    # XXX: Download and install any font so that the tests can run
-    async def install_font_to_system(font_url, font_name):
-        from pyodide.http import pyfetch
-        from OCP.Font import Font_FontMgr, Font_SystemFont, Font_FA_Regular
-        from OCP.TCollection import TCollection_AsciiString
-        # Choose a "system-like" font directory
-        font_path = os.path.join("/tmp", font_name)
-        os.makedirs(os.path.dirname(font_path), exist_ok=True)
-
-        # Download the font using pyfetch
-        response = await pyfetch(font_url)
-        font_data = await response.bytes()
-
-        # Save it to the system-like folder
-        with open(font_path, "wb") as f:
-            f.write(font_data)
-
-        mgr = Font_FontMgr.GetInstance_s()
-        font_t = Font_SystemFont(TCollection_AsciiString(font_path))
-        font_t.SetFontPath(Font_FA_Regular, TCollection_AsciiString(font_path))
-        assert mgr.RegisterFont(font_t, False)
-        print(f"✅ Font installed at: {font_path}")
-        return font_path
-
-
-    import asyncio
-
-    asyncio.run(install_font_to_system(
-        "https://raw.githubusercontent.com/kavin808/arial.ttf/refs/heads/master/arial.ttf", "arial.ttf"))
-else:
-
-    def common_fetch(url: str) -> bytes:
-        import urllib.request
-        with urllib.request.urlopen(url) as response:
-            return response.read()
-
-
-# TODO: Add alias in FontMgr from Arial to first font if no Arial font found (to avoid warnings)
-# FIXME: assert mgr.AddFontAlias(TCollection_AsciiString("Arial"), TCollection_AsciiString("Roboto"))
-
-
-def download_and_test(sdist_url: str, test_subdir="tests"):
-    # Download the .zip file
-    sdist_data = common_fetch(sdist_url)
+def download_and_patch_build123d(tag_or_branch: str):
+    # Clone the sources from the specified branch
+    sources_url = f"https://github.com/gumyr/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
+    version = '0.0.0+dev' if args.branch == "dev" else args.branch.strip("v")
+    print(f"Running tests for build123d {version} from: {sources_url}")
+    sources_bytes = common_fetch(sources_url)
 
     # Extract it to a temporary directory
-    tmpdir = tempfile.TemporaryDirectory()
-    with zipfile.ZipFile(file=io.BytesIO(sdist_data), mode="r") as zipf:
-        zipf.extractall(path=tmpdir.name)
+    _tmpdir = tempfile.TemporaryDirectory()
+    # noinspection PyTypeChecker
+    with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
+        zipf.extractall(path=_tmpdir.name)
 
-    # Locate the extracted directory
-    extracted_dir = os.path.join(tmpdir.name,
-                                 os.listdir(tmpdir.name)[0])  # Assuming the zip contains a single top-level directory
-    sys.path.insert(0, extracted_dir)
+    # Locate the extracted directory (assuming the zip contains a single top-level directory)
+    _extracted_dir = os.path.join(_tmpdir.name, os.listdir(_tmpdir.name)[0])
+    _sources_folder = os.path.join(_extracted_dir, "src")
+    sys.path.insert(0, _sources_folder)
 
-    # Run unittests in the "tests" folder
-    tests_path = os.path.join(extracted_dir, test_subdir)
-    if not os.path.isdir(tests_path):
-        raise FileNotFoundError("No 'tests/' directory found in the sdist")
+    # setuptools_scm does not work because this is not a git repository, so we remove all mentions from pyproject.toml
+    pyproject_path = os.path.join(_extracted_dir, "pyproject.toml")
+    assert os.path.isfile(pyproject_path), "pyproject.toml not found in the extracted sources"
+    with open(pyproject_path, "r") as f:
+        pyproject_content = f.read()
+        pyproject_content = re.sub(r'dynamic = \["version"]', 'version = "' + version + '"', pyproject_content)
+        pyproject_content = re.sub(r'"setuptools_scm.*?",', "", pyproject_content)
+        pyproject_content = re.sub(r'\[tool\.setuptools.*]\n([^\[].*?\n)*', "", pyproject_content)
+        print("Patched pyproject.toml to remove setuptools_scm references:\n", pyproject_content)
+    with open(pyproject_path, "w") as f:
+        f.write(pyproject_content)
 
-    # 🔧 Set the working directory so relative paths work
-    old_cwd = os.getcwd()
-    os.chdir(extracted_dir)
+    # Patch the __init__.py to set the __version__ to the branch name
+    init_path = os.path.join(_sources_folder, "build123d", "__init__.py")
+    assert os.path.isfile(init_path), "src/build123d/__init__.py not found in the extracted sources"
+    with open(init_path, "r") as f:
+        init_content = f.read()
+        init_content = re.sub(r"from \.version import version as __version__", f"__version__ = '{version}'",
+                              init_content)
+        print("Patched build123d/__init__.py to set __version__ to:", version)
+    with open(init_path, "w") as f:
+        f.write(init_content)
 
-    try:
-        # Discover all tests
-        loader = unittest.TestLoader()
-        suite = unittest.TestSuite(loader.discover("tests"))
-        result = TextTestRunner().run(suite)
-        return result
-    finally:
-        # Restore the original working directory
-        os.chdir(old_cwd)
+    # Find all dependencies from pyproject.toml and install them
+    import tomllib
+    with open(pyproject_path, "rb") as f:
+        pyproject_data = tomllib.load(f)
+        _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
+        _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("development", [])
+        _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
+        if sys.platform == "emscripten": _dependencies += ["sqlite3"]  # sqlite3 is not included by default in Pyodide
+    for dep in _dependencies:
+        dep = dep.strip()
+        if dep:
+            print(f"Installing dependency: {dep}")
+            install_package(dep)
+
+    # Sanity check: import build123d results in a matching version to these patched sources
+    import build123d
+    assert build123d.__version__ == version, "Version mismatch: expected " + version + ", got " + build123d.__version__
+
+    return _extracted_dir, _tmpdir
 
 
 if __name__ == "__main__":
-    import build123d
+    import argparse, zipfile, tempfile, io, unittest, os, re
+    from crossplatformtricks import *
 
-    sources_url = "https://github.com/gumyr/build123d/archive/refs/heads/dev.zip"
-    if "dev" not in build123d.__version__:
-        sources_url = f"https://github.com/gumyr/build123d/archive/refs/tags/v{build123d.__version__}.zip"
+    # Basic CLI argument parsing
+    parser = argparse.ArgumentParser(description="Download and test build123d package.")
+    parser.add_argument("branch", nargs='?', default="dev", help="The branch of build123d to test (default: dev).")
+    args = parser.parse_args()
 
-    print("Running tests for build123d from:", sources_url)
-    download_and_test(sources_url)
+    old_cwd = os.getcwd()
+    tmpdir = None
+    try:
+        extracted_dir, tmpdir = download_and_patch_build123d(args.branch)
+
+        # Set the working directory so relative paths work
+        tests_path = os.path.join(extracted_dir, "tests")
+        if not os.path.isdir(tests_path):
+            raise FileNotFoundError("No 'tests/' directory found in the sdist")
+        os.chdir(extracted_dir)
+
+        # Discover all tests
+        loader = unittest.TestLoader()
+        suite = unittest.TestSuite(loader.discover("tests"))
+
+        # Run all tests while printing basic progress
+        result = unittest.TextTestRunner().run(suite)
+
+        # Fail on any test failure
+        if result.wasSuccessful():
+            print("All tests passed successfully!")
+        else:
+            print("Some tests failed. Check the output above for details.")
+            sys.exit(1)
+    finally:
+        # Restore the original working directory and clean up the temporary directory
+        os.chdir(old_cwd)
+        if tmpdir is not None: tmpdir.cleanup()
