@@ -3,13 +3,18 @@
 set -ex
 
 GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/stderr}"
+package="$1"
+if [ -z "package" ]; then
+  echo "Package not provided"
+  exit 1
+fi
 
-last_wheel_date=$(stat --format %Y ${{ matrix.package }}/wheelhouse/*.whl | sort -n | tail -n 1)
+last_wheel_date="$(stat --format %Y "$package/wheelhouse/"*.whl | sort -n | tail -n 1)"
 echo "Last wheel date: $(date -d @$last_wheel_date)"
 
-last_sources_date=$(git log -1 --format=%cd --date=unix -- ${{ matrix.package }})
+last_sources_date="$(git log -1 --format=%cd --date=unix -- "$package")"
 echo "Last sources date: $(date -d @$last_sources_date)"
-git log -1 -- ${{ matrix.package }} # Show the last commit message modifying sources for debugging
+git log -1 -- $package # Show the last commit message modifying sources for debugging
 
 # TODO: More robust checks like the version of xbuildenv (which could mean more pyodide versions), etc.
 #       As a workaround, I disabled the inter-branch caching for now
