@@ -48,7 +48,7 @@ jobs:
           # build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-
 
       - id: "wheel_up_to_date"
-        run: ".github/scripts/wheel_up_to_date.sh"
+        run: ".github/scripts/wheel_up_to_date.sh ${{ matrix.package }}"
 
       - id: "xbuildenv_data"
         run: ".github/scripts/xbuildenv_data.sh"

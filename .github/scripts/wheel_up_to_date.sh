@@ -4,7 +4,7 @@ set -ex
 
 GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/stderr}"
 package="$1"
-if [ -z "package" ]; then
+if [ -z "$package" ]; then
   echo "Package not provided"
   exit 1
 fi
