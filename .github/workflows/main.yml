@@ -3,9 +3,9 @@ on: [ "push", "pull_request", "workflow_dispatch" ]
 jobs:
   build_wheels:
     runs-on: "ubuntu-24.04"
-    container:
-      image: "archlinux/archlinux:base-devel-20250614.0.365658"
-      options: "--workdir /workspace"
+#    container:
+#      image: "archlinux/archlinux:base-devel-20250614.0.365658"
+#      options: "--workdir /workspace"
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +28,7 @@ jobs:
             build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
     steps:
-      - run: "pacman -Syu --noconfirm git jq && git config --global --add safe.directory '*'"
+#      - run: "pacman -Syu --noconfirm git jq && git config --global --add safe.directory '*'"
       - uses: "actions/checkout@v4"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
