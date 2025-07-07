@@ -40,8 +40,8 @@ if(NOT _IS_DEBUG AND ENABLE_IPO)
   endif()
 endif()
 
-# XXX: The build tries to link the following libraries, so they must be available (they are cached by emscripten)
 if(EMSCRIPTEN)
+  # XXX: The build tries to link the following libraries, so they must be available (they are cached by emscripten)
   message(STATUS "Prebuilding emscripten core dependencies")
   execute_process(
     COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept freetype freetype-legacysjlj --pic
@@ -49,6 +49,29 @@ if(EMSCRIPTEN)
   )
   if(NOT EMBUILD_RESULT EQUAL 0)
       message(FATAL_ERROR "Failed to run embuilder")
+  endif()
+
+  execute_process( # Find sysroot automatically
+    COMMAND bash -c "emcc --cflags | grep -o -- '--sysroot=[^ ]*' | cut -d= -f2"
+    OUTPUT_VARIABLE EMSCRIPTEN_SYSROOT
+    OUTPUT_STRIP_TRAILING_WHITESPACE # Remove trailing newline
+    RESULT_VARIABLE EMSCRIPTEN_SYSROOT_RESULT
+  )
+  if(NOT EMSCRIPTEN_SYSROOT_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to retrieve emscripten sysroot")
+  endif()
+  message(STATUS "EMSCRIPTEN_SYSROOT=${EMSCRIPTEN_SYSROOT}")
+  # XXX: Make a local link to the sysroot, since pyodide will just drop it if it falls under /src
+  if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -E create_symlink "${EMSCRIPTEN_SYSROOT}" "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot"
+      RESULT_VARIABLE SYMLINK_RESULT
+    )
+    if(NOT SYMLINK_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to create symlink to emscripten sysroot")
+    endif()
+    set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
+    message(STATUS "Created symlink to emscripten sysroot at ${EMSCRIPTEN_SYSROOT}")
   endif()
 endif()
 
@@ -114,7 +137,7 @@ FetchContent_Declare(
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
     -DREAL_BINARY_DIR=<BINARY_DIR>
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
-    -Dfreetype_INCLUDE_DIR=$ENV{HOME}/.cache/emscripten/sysroot/include/freetype2 # TODO: Find sysroot automatically!
+    -Dfreetype_INCLUDE_DIR=${EMSCRIPTEN_SYSROOT}/include/freetype2
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
@@ -150,7 +173,6 @@ FetchContent_Declare(
     -DOpenCASCADE_BINARY_DIR=${opencascade_BINARY_DIR}
     -DOpenCASCADE_LIBRARIES=${BUILD_TOOLKITS_C}
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
-    -Dfreetype_BINARY_DIR=${freetype_BINARY_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OCP.cmake &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
 )

@@ -10,7 +10,6 @@ jobs:
       fail-fast: false
       matrix:
         package: [ "cadquery-ocp", "lib3mf" ]
-        os: [ "wasm" ] # TODO (builds but fails testing with missing symbols on native): ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14
         build_type: [ "Release", "Debug" ]
         include:
           - build_type: "Debug"
@@ -28,10 +27,6 @@ jobs:
           - package: "cadquery-ocp"
             build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
-
-          - platform: "auto"
-          - os: "wasm"
-            platform: "pyodide"
     steps:
       - run: "pacman -Syu --noconfirm git && git config --global --add safe.directory '*'"
       - uses: "actions/checkout@v4"
@@ -44,42 +39,33 @@ jobs:
           path: |
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
-            ~/.cache/ccache
+            ~/.cache
             ${{ matrix.package }}/wheelhouse/*.whl
-          key: "cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
+          key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ github.ref_name }}-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
           restore-keys: |
-            cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ github.ref_name }}-
-          # cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-master-
-          # cibw-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}-
+            build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ github.ref_name }}-
+          # build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-master-
+          # build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-
 
       - id: "wheel_up_to_date"
-        run: | # Detect if the version built in the cache is already good enough and skip (waiting on https://github.com/pypa/cibuildwheel/issues/2454)
-          last_wheel_date=$(stat --format %Y ${{ matrix.package }}/wheelhouse/*.whl | sort -n | tail -n 1)
-          echo "Last wheel date: $(date -d @$last_wheel_date)"
-          last_sources_date=$(git log -1 --format=%cd --date=unix -- ${{ matrix.package }})
-          echo "Last sources date: $(date -d @$last_sources_date)"
-          git log -1 -- ${{ matrix.package }} # Show the last commit message modifying sources for debugging
-          # TODO: More robust checks like the version of cibuildwheel (which could mean more pyodide versions), etc.
-          #       As a workaround, I disabled the inter-branch caching for now
-          if [ "$last_wheel_date" -gt "$last_sources_date" ]; then
-            echo "Skipping build, cached artifact should be up to date! (${last_wheel_date} > ${last_sources_date})"
-            echo "skip_build=true" >>"$GITHUB_OUTPUT"
-          fi
+        run: ".github/scripts/wheel_up_to_date.sh"
+
+      - id: "xbuildenv_data"
+        run: ".github/scripts/xbuildenv_data.sh"
+      - uses: "actions/setup-python@v5"
+        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
+        with:
+          python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
+          cache: 'pip' # caching pip dependencies
 
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
-        run: | # Install all system deps
-          pacman -Syu --noconfirm python-pip
-          python -m venv .venv
-          . .venv/bin/activate
+        run: | # Install dependencies and build the package
+          pip install -r requirements.txt
+          pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
-          pip install -r ../requirements-ci.txt
-
-      - run: ". .venv/bin/activate && cibuildwheel"
-        working-directory: "${{ matrix.package }}"
-        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
+          pyodide build --exports=whole_archive
         env:
-          CIBW_PLATFORM: "${{ matrix.platform }}"
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
           CFLAGS: "${{ matrix.cflags }}"
@@ -90,7 +76,7 @@ jobs:
 
       - uses: "actions/upload-artifact@v4"
         with:
-          name: "wheel-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}"
+          name: "wheel-${{ matrix.package }}-${{ matrix.build_type }}"
           path: "${{ matrix.package }}/wheelhouse/*.whl"
 
       - if: "failure()" # Save cache even on failures
@@ -100,20 +86,18 @@ jobs:
           path: |
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
-            ~/.cache/ccache
+            ~/.cache
             ${{ matrix.package }}/wheelhouse/*.whl
 
       - if: "always()"  # Upload cache and wheels as an artifact for debugging
         uses: "actions/upload-artifact@v4"
         with:
-          name: "cache-${{ matrix.package }}-${{ matrix.os }}-${{ matrix.build_type }}"
+          name: "cache-${{ matrix.package }}-${{ matrix.build_type }}"
           include-hidden-files: true
           path: |
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
-            ~/.cache/ccache
-            /tmp/cibw-run-*/*-pyodide_wasm32/built_wheel/*
-            /tmp/cibw-run-*/*-pyodide_wasm32/repaired_wheel/*
+            ~/.cache
             ${{ matrix.package }}/wheelhouse/*.whl
 
   build_package_index:
@@ -151,9 +135,12 @@ jobs:
           name: "package-index"
           path: "package-index"
 
+      - id: "xbuildenv_data"
+        run: ".github/scripts/xbuildenv_data.sh"
       - uses: "actions/setup-python@v5"
         with:
-          python-version: '3.x >=3.13' # Latest stable Python version! https://github.com/npm/node-semver#advanced-range-syntax
+          python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
+          cache: 'pip' # caching pip dependencies
 
       - working-directory: "build123d"
         run: |
@@ -165,19 +152,25 @@ jobs:
           find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|file://${package_index_folder}|g" {} \;
           
           # Set up the Pyodide test environment
-          pip install -r requirements-pyodide.txt
-          pyodide --version
+          pip install -r ../requirements.txt
+          pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
           pyodide venv .venv-pyodide
-          pyodide xbuildenv versions
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests
           pip install -vvv --index-url "file://$package_index_folder" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
           python test.py | tee -a test.log
           
-          # TODO: Check if the tests passed (for now allow failures)
+          # Check if ALL tests passed (last line of the log should be "OK")
+          if tail -n 1 test.log | grep -q "OK"; then
+            echo "All tests passed."
+          else
+            echo "Some tests failed. Check the log for details."
+            exit 1
+          fi
 
       - uses: "actions/upload-artifact@v4"
+        if: "always()"
         with:
           name: "test-build123d-integration-log"
           path: "build123d/test.log"
