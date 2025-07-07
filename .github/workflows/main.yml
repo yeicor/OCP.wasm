@@ -2,7 +2,7 @@ on: [ "push", "pull_request", "workflow_dispatch" ]
 
 jobs:
   build_wheels:
-    runs-on: "${{ matrix.os == 'wasm' && 'ubuntu-latest' || matrix.os }}"
+    runs-on: "ubuntu-24.04"
     container:
       image: "archlinux/archlinux:base-devel-20250614.0.365658"
       options: "--workdir /workspace"
