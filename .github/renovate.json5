@@ -30,12 +30,5 @@
       datasourceTemplate: "github-release-attachments",
       // Note: I think there is no good solution if <depName> changes between releases, maybe autoReplaceStringTemplate with a custom rule for each dependency?
     }
-  ],
-  "packageRules": [
-    {
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["archlinux/archlinux"],
-      "versioning": "regex:^(?<compatibility>.*)-v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)?$"
-    }
-  ],
+  ]
 }

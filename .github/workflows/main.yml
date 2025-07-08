@@ -3,9 +3,6 @@ on: [ "push", "pull_request", "workflow_dispatch" ]
 jobs:
   build_wheels:
     runs-on: "ubuntu-24.04"
-#    container:
-#      image: "archlinux/archlinux:base-devel-20250614.0.365658"
-#      options: "--workdir /workspace"
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +25,6 @@ jobs:
             build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
     steps:
-#      - run: "pacman -Syu --noconfirm git jq binaryen ccache && git config --global --add safe.directory '*'"
       - run: "sudo apt install -y ccache binaryen"
       - uses: "actions/checkout@v4"
         with:
@@ -160,8 +156,7 @@ jobs:
           . .venv-pyodide/bin/activate
           
           # Install build123d and run tests (stable and dev versions)
-          pip install -vvv --index-url "file://$package_index_folder" --extra-index-url "https://pypi.org/simple" -r requirements-stable.txt
-          build123d_stable_version=$(python -c "import build123d; print(build123d.__version__)")
+          build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
           python test.py "v$build123d_stable_version" | tee -a test.log
           # python test.py dev | tee -a test.log # TODO: Fix build123d dev by avoiding subprocess usage for testing that examples don't crash
 
