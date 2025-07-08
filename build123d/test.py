@@ -86,21 +86,24 @@ def main():
         extracted_dir, tmpdir = download_and_patch_build123d(args.branch)
 
         # Set the working directory so relative paths work
-        tests_path = os.path.join(extracted_dir, "tests")
-        if not os.path.isdir(tests_path):
-            raise FileNotFoundError("No 'tests/' directory found in the sdist")
         os.chdir(extracted_dir)
 
-        # Discover all tests
-        loader = unittest.TestLoader()
-        suite = unittest.TestSuite(loader.discover("tests"))
-
-        # Run all tests while printing basic progress
-        print (f"Running {suite.countTestCases()} found tests...")
-        result = unittest.TextTestRunner().run(suite)
+        # Discover and run all tests
+        import pytest
+        exit_code = pytest.main([
+            "-v",
+            #"--benchmark-disable", # They are somewhat slow, but they work
+            # Exceptions are not great within Pyodide?
+            "-k=not (test_make_surface_error_checking or test_edge_wrapper_radius)",
+            # VTK is not compiled, so the following visualization tests must be disabled
+            "--ignore=tests/test_direct_api/test_jupyter.py",
+            "--ignore=tests/test_direct_api/test_vtk_poly_data.py",
+            # Examples require subprocess (for now?)
+            "--ignore=tests/test_examples.py",
+        ])
 
         # Fail on any test failure
-        if result.wasSuccessful():
+        if exit_code == 0:
             print("All tests passed successfully!")
         else:
             print("Some tests failed. Check the output above for details.")

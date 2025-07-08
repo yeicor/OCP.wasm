@@ -7,7 +7,7 @@ No installs. No setup. 100% private browser-native code-first CAD.
 
 ## Quick Start
 
-Go to [the Pyodide REPL](https://pyodide.org/en/stable/console.html) and
+Go to [the Pyodide REPL](https://pyodide.org/en/stable/examples/console_webworker.html) and
 run [this code](build123d/bootstrap_in_pyodide.py).
 Then, run your build123d script as usual.
 
