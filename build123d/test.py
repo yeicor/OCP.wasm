@@ -1,5 +1,5 @@
 def download_and_patch_build123d(tag_or_branch: str):
-    from crossplatformtricks import install_package, common_fetch
+    from crossplatformtricks import install_package, common_fetch, install_font_to_ocp
     import zipfile, io, tempfile, os, sys, re
 
     # Clone the sources from the specified branch
@@ -55,6 +55,9 @@ def download_and_patch_build123d(tag_or_branch: str):
         if dep:
             print(f"Installing dependency: {dep}")
             install_package(dep)
+
+    # Make sure there is at least one font installed, so that the tests can run
+    install_font_to_ocp("https://raw.githubusercontent.com/kavin808/arial.ttf/refs/heads/master/arial.ttf")
 
     # Sanity check: import build123d results in a matching version to these patched sources
     import build123d
