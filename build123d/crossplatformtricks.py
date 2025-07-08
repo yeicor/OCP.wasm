@@ -1,7 +1,7 @@
 import sys
 
 if sys.platform == 'emscripten':
-    print("Bootstrapping Pyodide...")
+    print("Bootstrapping build123d...")
     import bootstrap_in_pyodide  # noqa: F401
 
 
