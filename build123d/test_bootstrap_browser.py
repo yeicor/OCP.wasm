@@ -1,5 +1,8 @@
 # Utility to bootstrap this testing environment onto the Pyodide REPL. You just need to paste the following line:
+#
 # import micropip; from pyodide.http import pyfetch; exec(await (await pyfetch("https://raw.githubusercontent.com/yeicor/OCP.wasm/master/build123d/test_bootstrap_browser.py")).text())
+#
+# You can also run `import os; os.environ["BUILD123D_BRANCH"] = "dev"` before the above line to test a specific version of build123d.
 
 import asyncio
 import io

@@ -69,9 +69,17 @@ def download_and_patch_build123d(tag_or_branch: str):
 def main():
     import argparse, sys, unittest, os
 
+    # Grab default stable version from requirements-stable.txt
+    default_branch = os.environ.get("BUILD123D_BRANCH", "stable")
+    if default_branch == "stable":
+        with open(os.path.join(os.path.dirname(__file__), "requirements-stable.txt"), "r") as f:
+            default_branch = f.readline().strip()
+            if default_branch.startswith("build123d=="):
+                default_branch = "v" + default_branch.split("==")[1]
+
     # Basic CLI argument parsing
     parser = argparse.ArgumentParser(description="Download and test build123d package.")
-    parser.add_argument("branch", nargs='?', default="dev", help="The branch of build123d to test (default: dev).")
+    parser.add_argument("branch", nargs='?', default=default_branch, help="The branch of build123d to test (default: dev).")
     args = parser.parse_args()
 
     old_cwd = os.getcwd()
