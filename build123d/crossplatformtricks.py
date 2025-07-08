@@ -1,6 +1,7 @@
 import sys
 
 if sys.platform == 'emscripten':
+    print("Bootstrapping Pyodide...")
     import bootstrap_in_pyodide  # noqa: F401
 
 
@@ -22,7 +23,7 @@ if sys.platform == 'emscripten':
     def _new_urlretrieve(url, filename=None, reporthook=None, data=None):
         # Try to avoid breaking other uses of urlretrieve (which are probably unsupported anyway)
         if url.startswith("https://") and filename is not None and not reporthook and not data:
-            print("XXX: Using patched urllib.request.urlretrieve to use pyodide's pyfetch for URL:", url)
+            #print("XXX: Using patched urllib.request.urlretrieve to use pyodide's pyfetch for URL:", url)
             bs = common_fetch(url)  # Download the file to cache it
             with open(filename, "wb") as f:
                 f.write(bs)
@@ -72,16 +73,6 @@ if sys.platform == 'emscripten':
         import micropip, asyncio
         # noinspection PyUnresolvedReferences
         loop = asyncio.get_event_loop()
-
-        # Ensure properly bootstrapped micropip is available (ignoring the installation of build123d itself)
-        _old_install = micropip.install
-        fut = loop.create_future()
-        fut.set_result(None)
-        micropip.install = lambda *args, **kwargs: fut
-        import bootstrap_in_pyodide  # noqa: F401
-        # Restore the original micropip.install and disable the imported bootstrap_in_pyodide
-        micropip.install = _old_install
-        sys.modules.pop("bootstrap_in_pyodide", None)
 
         # Install the package using micropip
         loop.run_until_complete(micropip.install(package_name))

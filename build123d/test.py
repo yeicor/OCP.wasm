@@ -95,6 +95,7 @@ def main():
         suite = unittest.TestSuite(loader.discover("tests"))
 
         # Run all tests while printing basic progress
+        print (f"Running {suite.countTestCases()} found tests...")
         result = unittest.TextTestRunner().run(suite)
 
         # Fail on any test failure
