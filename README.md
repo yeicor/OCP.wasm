@@ -13,7 +13,10 @@ Then, run your build123d script as usual.
 
 For extra tricks required for passing 100% of the build123d tests, see [this code](build123d/crossplatformtricks.py).
 
-Performance and support may vary across browsers.
+Check out the [Pyodide docs](https://pyodide.org/en/stable/) to integrate OCP.wasm into your own
+ applications.
+
+*Performance and support may vary across browsers.*
 
 ## Projects using OCP.wasm
 

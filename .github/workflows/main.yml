@@ -8,22 +8,26 @@ jobs:
       matrix:
         package: [ "cadquery-ocp", "lib3mf" ]
         build_type: [ "Release", "Debug" ]
-        include:
-          - build_type: "Debug"
-            cflags: "-Og -g"
-            cxxflags: "-Og -g"
-            ldflags: "-Og -g -gsource-map=inline"
+        include: # Extends and overrides the matrix for specific configurations
           - build_type: "Release"
             cflags: "-O3"
             cxxflags: "-O3"
             ldflags: "-O3"
+          - build_type: "Release"
+            cflags: "-Og -g"
+            cxxflags: "-Og -g"
+            ldflags: "-Og -g -gsource-map=inline"
+
+          - pyodide_args: ""
+          - package: "cadquery-ocp"
+            pyodide_args: "--exports=whole_archive"  # Avoids missing symbols due to custom emscripten exports
 
           - package: "cadquery-ocp"
             build_type: "Release"
             ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
           - package: "cadquery-ocp"
             build_type: "Debug"
-            ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf"
+            ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf" # Smaller debug files, default is too big for CI
     steps:
       - run: "sudo apt install -y ccache binaryen"
       - uses: "actions/checkout@v4"
@@ -59,7 +63,7 @@ jobs:
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
           ( git clone https://github.com/emscripten-core/emsdk || git -C emsdk pull )  # Clone or update the emsdk repository
           cd emsdk && PYODIDE_EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) && ./emsdk install ${PYODIDE_EMSCRIPTEN_VERSION} && ./emsdk activate ${PYODIDE_EMSCRIPTEN_VERSION} && source emsdk_env.sh && cd ..
-          pyodide build --exports=whole_archive
+          pyodide build ${{ matrix.pyodide_args }}
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected

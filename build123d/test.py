@@ -1,7 +1,10 @@
 def download_and_patch_build123d(tag_or_branch: str):
+    from crossplatformtricks import install_package, common_fetch
+    import zipfile, io, tempfile, os, sys, re
+
     # Clone the sources from the specified branch
     sources_url = f"https://github.com/gumyr/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
-    version = '0.0.0+dev' if args.branch == "dev" else args.branch.strip("v")
+    version = '0.0.0+dev' if tag_or_branch == "dev" else tag_or_branch.strip("v")
     print(f"Running tests for build123d {version} from: {sources_url}")
     sources_bytes = common_fetch(sources_url)
 
@@ -60,9 +63,8 @@ def download_and_patch_build123d(tag_or_branch: str):
     return _extracted_dir, _tmpdir
 
 
-if __name__ == "__main__":
-    import argparse, zipfile, tempfile, io, unittest, os, re
-    from crossplatformtricks import *
+def main():
+    import argparse, sys, unittest, os
 
     # Basic CLI argument parsing
     parser = argparse.ArgumentParser(description="Download and test build123d package.")
@@ -97,3 +99,7 @@ if __name__ == "__main__":
         # Restore the original working directory and clean up the temporary directory
         os.chdir(old_cwd)
         if tmpdir is not None: tmpdir.cleanup()
+
+
+if __name__ == "__main__":
+    main()

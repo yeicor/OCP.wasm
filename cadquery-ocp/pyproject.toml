@@ -1,6 +1,7 @@
 [build-system]
 requires = ["scikit-build-core==0.11.4"]
 build-backend = "scikit_build_core.build"
+# Warning: `pyodide build` requires `--exports=whole_archive` to avoid missing symbols from emscripten exports
 
 [project]
 name = "cadquery-ocp"
@@ -31,20 +32,3 @@ USE_TK="OFF"
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt"
 regex = 'URL *"https://github.com/CadQuery/OCP/releases/download/(?P<value>[^/]+)'
-
-
-[tool.cibuildwheel]
-enable = ["cpython-prerelease", "pyodide-prerelease"]
-test-command = "python -c \"import OCP; help(OCP);\"" # TODO: Real tests...
-environment.CIBW_PROJECT_REQUIRES_PYTHON = ">=3.8" # build-system.requires-python is better, but unsupported by pyodide...
-
-[tool.cibuildwheel.linux]
-environment-pass = ["CFLAGS", "CXXFLAGS", "LDFLAGS"] # Uses docker, so need to pass host variables manually
-
-[tool.cibuildwheel.pyodide]
-# Wasm-opt is required to build this project, so we install it if not present
-before-all = "command -v wasm-opt >/dev/null 2>&1 || { (command -v apt >/dev/null && sudo apt update && sudo apt install -y binaryen) || (command -v dnf >/dev/null && sudo dnf install -y binaryen) || (command -v yum >/dev/null && sudo yum install -y binaryen) || (command -v pacman >/dev/null && sudo pacman -Sy --noconfirm binaryen) || { echo \"Error: Could not detect supported package manager to install wasm-opt (binaryen).\"; exit 1; }; }; wasm-opt --version"
-build-frontend = "build[uv]; args: --exports=whole_archive"
-skip = "cp3{7,8,9,10,11,12}-*_wasm32"  # Disabled due to emscripten being too old
-
-

@@ -1,9 +1,6 @@
 import sys
 
 if sys.platform == 'emscripten':
-    import bootstrap_in_pyodide  # noqa: F401
-
-
     def common_fetch(url: str) -> bytes:
         from pyodide.http import pyfetch
         import asyncio
