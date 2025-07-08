@@ -181,7 +181,17 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(OCP)
 
 if(EMSCRIPTEN)
-  message(STATUS "Setting up extra repair/optimization pass")
+  # Get wasm opt version early to make sure it is available before the long build
+  execute_process(
+    COMMAND wasm-opt --version
+    OUTPUT_VARIABLE WASM_OPT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE WASM_OPT_RESULT
+  )
+  if (NOT WASM_OPT_RESULT EQUAL 0)
+    message(FATAL_ERROR "wasm-opt is not available but it is required for the build.")
+  endif()
+  message(STATUS "Setting up extra repair/optimization pass using ${WASM_OPT_VERSION}")
   # XXX: All builds hit this issue: https://github.com/llvm/llvm-project/issues/63183
   # As a hacky workaround, replace all invalid instructions (usually very few) with unreachable opcodes
   # This also requires linking with an optimization level <= 1, otherwise internal linker validation
