@@ -38,9 +38,8 @@ jobs:
             !${{ matrix.package }}/build/*/_deps/*-src
             ${{ matrix.package }}/emsdk
             ~/.cache
-          key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ github.ref_name }}-${{ hashFiles('**/*.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
+          key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ hashFiles('**/*.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
           restore-keys: |
-            build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ github.ref_name }}-
             build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-
             build_wheels-${{ matrix.package }}-
 
