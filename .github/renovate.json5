@@ -18,6 +18,7 @@
       matchStrings: [
         'FetchContent_Declare[ \\t]*\\([^)]*GIT_REPOSITORY[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*?)(.git)?"[^)]*GIT_TAG[ \\t]*"(?<currentValue>[^"]*)"'
       ],
+      packageNameTemplate: "{{#if (equals currentValue.length 40)}}https://github.com/{{packageName}}.git{{else}}{{packageName}}{{/if}}",
       datasourceTemplate: "{{#if (equals currentValue.length 40)}}git-refs{{else}}github-tags{{/if}}",
       versioningTemplate: "{{#if (equals currentValue.length 40)}}git{{else}}loose{{/if}}",
     },
