@@ -160,7 +160,7 @@ jobs:
           # Install build123d and run tests (stable and dev versions)
           build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
           python test.py "v$build123d_stable_version" | tee -a test.log
-          # python test.py dev | tee -a test.log # TODO: Fix build123d dev by avoiding subprocess usage for testing that examples don't crash
+          python test.py dev | tee -a test.log
 
       - uses: "actions/upload-artifact@v4"
         if: "always()"

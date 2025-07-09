@@ -3,7 +3,7 @@ def download_and_patch_build123d(tag_or_branch: str):
     import zipfile, io, tempfile, os, sys, re
 
     # Clone the sources from the specified branch
-    sources_url = f"https://github.com/gumyr/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
+    sources_url = f"https://github.com/yeicor/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
     if sys.platform == "emscripten": sources_url = "https://corsproxy.io/?url=" + sources_url
     version = '0.0.0+dev' if tag_or_branch == "dev" else tag_or_branch.strip("v")
     print(f"Running tests for build123d {version} from: {sources_url}")
@@ -99,7 +99,7 @@ def main():
             "--ignore=tests/test_direct_api/test_jupyter.py",
             "--ignore=tests/test_direct_api/test_vtk_poly_data.py",
             # Examples require subprocess (for now?)
-            "--ignore=tests/test_examples.py",
+            #"--ignore=tests/test_examples.py",
         ])
 
         # Fail on any test failure
