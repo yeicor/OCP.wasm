@@ -21,4 +21,6 @@ Check out the [Pyodide docs](https://pyodide.org/en/stable/) to integrate OCP.wa
 ## Projects using OCP.wasm
 
 - [build123dWebAssmGenDemo](https://github.com/Radther/build123dWebAssmGenDemo): A web-based 3D model generator that
-  creates parametric models using Python and WebAssembly ([demo](https://radther.github.io/build123dWebAssmGenDemo/)).
+  creates parametric models using Python and WebAssembly ([🌐 demo](https://radther.github.io/build123dWebAssmGenDemo/)).
+- [build123d-sandbox](https://github.com/jojain/build123d-sandbox/): A minimal webapp to expose the Python CAD library
+  build123d in the browser using a compiled wasm OCP backend ([🌐 demo](https://jojain.github.io/build123d-sandbox/)).
