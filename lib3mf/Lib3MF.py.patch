@@ -1,5 +1,14 @@
 --- a/Lib3MF.py	2025-07-05 17:29:06.187882041 +0200
 +++ b/Lib3MF.py	2025-07-05 18:20:51.616435693 +0200
+@@ -1199,7 +1199,7 @@
+			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_getlasterror")), methodAddress)
+			if err != 0:
+				raise ELib3MFException(ErrorCodes.COULDNOTLOADLIBRARY, str(err))
+-			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p, ctypes.POINTER(ctypes.c_bool))
++			methodType = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p, ctypes.POINTER(ctypes.c_bool))
+			self.lib.lib3mf_getlasterror = methodType(int(methodAddress.value))
+ 			
+			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_getsymbollookupmethod")), methodAddress)
 @@ -1571,7 +1571,7 @@
  			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_metadata_getnamespace")), methodAddress)
  			if err != 0:
@@ -72,6 +81,15 @@
  			self.lib.lib3mf_object_getuuid = methodType(int(methodAddress.value))
  			
  			err = symbolLookupMethod(ctypes.c_char_p(str.encode("lib3mf_object_setuuid")), methodAddress)
+@@ -4898,7 +4898,7 @@
+			self.lib.lib3mf_setjournal.argtypes = [ctypes.c_char_p]
+			
+			self.lib.lib3mf_getlasterror.restype = ctypes.c_int32
+-			self.lib.lib3mf_getlasterror.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64), ctypes.c_char_p, ctypes.POINTER(ctypes.c_bool)]
++			self.lib.lib3mf_getlasterror.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p, ctypes.POINTER(ctypes.c_bool)]
+			
+			self.lib.lib3mf_getsymbollookupmethod.restype = ctypes.c_int32
+			self.lib.lib3mf_getsymbollookupmethod.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 @@ -5084,13 +5084,13 @@
  			self.lib.lib3mf_levelsetiterator_getcurrentlevelset.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
  			

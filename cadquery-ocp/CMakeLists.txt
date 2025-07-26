@@ -51,6 +51,7 @@ if(EMSCRIPTEN)
       message(FATAL_ERROR "Failed to run embuilder")
   endif()
 
+  # XXX: Make a local link to the sysroot, since pyodide will just drop it if it falls under /src
   execute_process( # Find sysroot automatically
     COMMAND bash -c "emcc --cflags | grep -o -- '--sysroot=[^ ]*' | cut -d= -f2"
     OUTPUT_VARIABLE EMSCRIPTEN_SYSROOT
@@ -61,7 +62,6 @@ if(EMSCRIPTEN)
     message(FATAL_ERROR "Failed to retrieve emscripten sysroot")
   endif()
   message(STATUS "EMSCRIPTEN_SYSROOT=${EMSCRIPTEN_SYSROOT}")
-  # XXX: Make a local link to the sysroot, since pyodide will just drop it if it falls under /src
   if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
     execute_process(
       COMMAND ${CMAKE_COMMAND} -E create_symlink "${EMSCRIPTEN_SYSROOT}" "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot"
@@ -73,6 +73,11 @@ if(EMSCRIPTEN)
     set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
     message(STATUS "Created symlink to emscripten sysroot at ${EMSCRIPTEN_SYSROOT}")
   endif()
+
+  # XXX: Bad function pointer casts are undefined behavior that mostly works on desktop and hard-crashes on emscripten
+  #      The following compile option will automatically create wrappers at compile time to fix this at the cost of performance
+  # add_link_options("-sEMULATE_FUNCTION_POINTER_CASTS=1") # https://emscripten.org/docs/porting/guidelines/function_pointer_issues.html
+  # This fix had to be disabled due to the repair_wasm.py bug explained below, meaning that a few rare methods crash Pyodide
 endif()
 
 # XXX: I only want to install the final build, not intermediate outputs
