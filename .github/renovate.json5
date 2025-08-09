@@ -35,7 +35,7 @@
       customType: "regex",
       managerFilePatterns: ["/requirements\\.txt$/"],
       matchStrings: [
-        'pyodide-xbuildenv==(?<currentValue>[^ ]+)\\\/(?<depName>[^"]*)"'
+        'pyodide-xbuildenv==(?<currentValue>[^ ]+)'
       ],
       packageNameTemplate: "pyodide/pyodide",
       datasourceTemplate: "github-releases",
