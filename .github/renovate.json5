@@ -30,6 +30,15 @@
       ],
       datasourceTemplate: "github-release-attachments",
       // Note: I think there is no good solution if <depName> changes between releases, maybe autoReplaceStringTemplate with a custom rule for each dependency?
+    },
+    {
+      customType: "regex",
+      managerFilePatterns: ["/requirements\\.txt$/"],
+      matchStrings: [
+        'pyodide-xbuildenv==(?<currentValue>[^ ]+)\\\/(?<depName>[^"]*)"'
+      ],
+      packageNameTemplate: "pyodide/pyodide",
+      datasourceTemplate: "github-releases",
     }
   ]
 }
