@@ -1,3 +1,3 @@
-pyodide-build==0.30.5
+pyodide-build==0.30.6
 # TODO: Auto-update latest stable from https://raw.githubusercontent.com/pyodide/pyodide/refs/heads/main/pyodide-cross-build-environments.json
 # pyodide-xbuildenv==0.28.1 # See main.yml
