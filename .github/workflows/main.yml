@@ -49,7 +49,7 @@ jobs:
 
       - id: "xbuildenv_data"
         run: ".github/scripts/xbuildenv_data.sh"
-      - uses: "actions/setup-python@v5"
+      - uses: "actions/setup-python@v6"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         with:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
@@ -137,7 +137,7 @@ jobs:
 
       - id: "xbuildenv_data"
         run: ".github/scripts/xbuildenv_data.sh"
-      - uses: "actions/setup-python@v5"
+      - uses: "actions/setup-python@v6"
         with:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
           cache: 'pip' # caching pip dependencies
