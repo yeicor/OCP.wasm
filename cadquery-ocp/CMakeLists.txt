@@ -135,7 +135,7 @@ set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # For some reason this toolkit from the Vis
 FetchContent_Declare(
   OpenCASCADE
   GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
-  GIT_TAG "V7_8_1"
+  GIT_TAG "V7_9_3"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
