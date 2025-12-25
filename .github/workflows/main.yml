@@ -30,7 +30,7 @@ jobs:
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf" # Smaller debug files, default is too big for CI
     steps:
       - run: "sudo apt install -y ccache binaryen"
-      - uses: "actions/checkout@v5"
+      - uses: "actions/checkout@v6"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
 
@@ -104,7 +104,7 @@ jobs:
     needs: "build_wheels"
     runs-on: "ubuntu-24.04"
     steps:
-      - uses: "actions/checkout@v5"
+      - uses: "actions/checkout@v6"
         with:
           ref: "gh-pages"
 
@@ -128,7 +128,7 @@ jobs:
     needs: "build_package_index"
     runs-on: "ubuntu-24.04"
     steps:
-      - uses: "actions/checkout@v5"
+      - uses: "actions/checkout@v6"
 
       - uses: "actions/download-artifact@v7"
         with:
@@ -173,7 +173,7 @@ jobs:
     if: "github.ref == 'refs/heads/master'"
     runs-on: "ubuntu-24.04"
     steps:
-      - uses: "actions/checkout@v5"
+      - uses: "actions/checkout@v6"
         with:
           ref: "gh-pages"
 
