@@ -91,9 +91,9 @@ if __name__ == '__main__':
     os.makedirs(output_dir, exist_ok=True)
 
     # Find the first .so file in the input directory
-    input_files = [f for f in os.listdir(input_dir) if f.endswith('.so')]
+    input_files = [f for f in os.listdir(input_dir) if (f.endswith('.so') or f.endswith('.wasm') or f == 'OCP') and not '.debug.' in f]
     if len(input_files) != 1:
-        print(f"No so file or too many so files found ({input_files}) in input directory: {input_dir}")
+        print(f"No so file or too many so/wasm files found ({input_files}) in input directory: {input_dir} (all files: {os.listdir(input_dir)})")
         sys.exit(1)
 
     input_filename = input_files[0]
