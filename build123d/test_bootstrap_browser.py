@@ -17,7 +17,7 @@ from pyodide.http import pyfetch
 # First, download a snapshot of the repository.
 print("Downloading the latest OCP.wasm sources...")
 loop = asyncio.get_event_loop()
-response = loop.run_until_complete(pyfetch("https://corsproxy.io/?url=https://github.com/yeicor/OCP.wasm/archive/refs/heads/master.zip"))
+response = loop.run_until_complete(pyfetch("https://api.codetabs.com/v1/proxy?quest=https://github.com/yeicor/OCP.wasm/archive/refs/heads/master.zip"))
 sources_zip = loop.run_until_complete(response.bytes())
 
 # Then, extract it to a temporary directory.
