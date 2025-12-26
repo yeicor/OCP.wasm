@@ -1,8 +1,6 @@
 # Utility to bootstrap this testing environment onto the Pyodide REPL. You just need to paste the following line:
 #
-# import micropip; from pyodide.http import pyfetch; exec(await (await pyfetch("https://raw.githubusercontent.com/yeicor/OCP.wasm/master/build123d/test_bootstrap_browser.py")).text())
-#
-# You can also run `import os; os.environ["BUILD123D_BRANCH"] = "dev"` before the above line to test a specific version of build123d.
+# import os; os.environ["OCP_WASM_BRANCH"] = "master"; os.environ["BUILD123D_BRANCH"] = "dev"; import micropip; from pyodide.http import pyfetch; exec(await (await pyfetch("https://raw.githubusercontent.com/yeicor/OCP.wasm/"+os.environ["OCP_WASM_BRANCH"]+"/build123d/test_bootstrap_browser.py")).text())
 
 import asyncio
 import io
@@ -17,7 +15,8 @@ from pyodide.http import pyfetch
 # First, download a snapshot of the repository.
 print("Downloading the latest OCP.wasm sources...")
 loop = asyncio.get_event_loop()
-response = loop.run_until_complete(pyfetch("https://api.codetabs.com/v1/proxy?quest=https://github.com/yeicor/OCP.wasm/archive/refs/heads/master.zip"))
+default_branch = os.environ.get("OCP_WASM_BRANCH", "master")
+response = loop.run_until_complete(pyfetch("https://api.codetabs.com/v1/proxy?quest=https://github.com/yeicor/OCP.wasm/archive/refs/heads/" + OCP_WASM_BRANCH + ".zip"))
 sources_zip = loop.run_until_complete(response.bytes())
 
 # Then, extract it to a temporary directory.
