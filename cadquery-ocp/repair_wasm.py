@@ -80,6 +80,13 @@ def repair_and_optimize_wasm(input_path, output_path):
     os.remove(fixed_path)
     print(f"Optimized WebAssembly written to: {output_path}")
 
+def ext_suffix():
+    import sysconfig
+    suffix = sysconfig.get_config_var("EXT_SUFFIX")
+    if not suffix:
+        raise RuntimeError("Could not determine Python extension suffix")
+    return suffix
+
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         print("Usage: python repair_and_optimize_wasm.py <input_dir> <output_dir>")
@@ -91,12 +98,14 @@ if __name__ == '__main__':
     os.makedirs(output_dir, exist_ok=True)
 
     # Find the first .so file in the input directory
-    input_files = [f for f in os.listdir(input_dir) if (f.endswith('.so') or f.endswith('.wasm') or f == 'OCP') and not '.debug.' in f]
+    input_files = [f for f in os.listdir(input_dir) if f.endswith(ext_suffix())]
     if len(input_files) != 1:
         print(f"No so file or too many so/wasm files found ({input_files}) in input directory: {input_dir} (all files: {os.listdir(input_dir)})")
         sys.exit(1)
 
     input_filename = input_files[0]
+    if not input_filename.endswith(ext_suffix()):
+        input_filename += ext_suffix()
     input_path = os.path.join(input_dir, input_filename)
     output_path = os.path.join(output_dir, input_filename)
 
