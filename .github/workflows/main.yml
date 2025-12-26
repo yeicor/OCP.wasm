@@ -173,20 +173,39 @@ jobs:
     if: "github.ref == 'refs/heads/master'"
     runs-on: "ubuntu-24.04"
     steps:
-      - uses: "actions/checkout@v6"
+      - uses: actions/checkout@v6
         with:
-          ref: "gh-pages"
+          fetch-depth: 0   # required to delete/replace branch
 
-      - uses: "actions/download-artifact@v7"
+      - uses: actions/download-artifact@v7
         with:
           name: "package-index"
           path: "."
 
       - run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create orphan branch with no history
+          git checkout --orphan gh-pages-clean
+
+          # Remove everything from index and working tree
+          git rm -rf . || true
+
+          # Re-add only the new artifact files
           git add -v .
-          git commit -m "Update package index" || echo "No changes to commit"
-          git push origin gh-pages
+
+          # Commit single snapshot
+          git commit -m "Deploy package index (single-snapshot)"
+
+          # Replace gh-pages branch completely
+          git branch -D gh-pages || true
+          git branch -m gh-pages
+
+          # Force-push rewritten history
+          git push --force origin gh-pages
+
 
   # TODO: deploy_wheels_to_pypi: (doesn't support WebAssembly)
