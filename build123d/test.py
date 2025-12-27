@@ -4,7 +4,7 @@ def download_and_patch_build123d(tag_or_branch: str):
 
     # Clone the sources from the specified branch
     sources_url = f"https://github.com/gumyr/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
-    if sys.platform == "emscripten": sources_url = "https://corsproxy.io/?url=" + sources_url
+    if sys.platform == "emscripten": sources_url = "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + sources_url
     version = '0.0.0+dev' if tag_or_branch == "dev" else tag_or_branch.strip("v")
     print(f"Running tests for build123d {version} from: {sources_url}")
     sources_bytes = common_fetch(sources_url)
