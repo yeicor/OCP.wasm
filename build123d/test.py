@@ -52,7 +52,7 @@ def download_and_patch_build123d(tag_or_branch: str):
         _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
         if sys.platform == "emscripten": 
             _dependencies += ["sqlite3"]  # sqlite3 is not included by default in Pyodide
-            _dependencies -= ["mypy"]  # mypy is not compatible with Pyodide
+            _dependencies.remove("mypy")  # mypy is not compatible with Pyodide
     for dep in _dependencies:
         dep = dep.strip()
         if dep:
