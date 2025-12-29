@@ -77,11 +77,8 @@ if sys.platform == 'emscripten':
 
 
     def install_package(package_name: str):
-        # noinspection PyUnresolvedReferences
-        loop = asyncio.get_event_loop()
-
         # Install the package using micropip
-        loop.run_until_complete(micropip.install(package_name))
+        asyncio.run(micropip.install(package_name))
 
 
 else:
