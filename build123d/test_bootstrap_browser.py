@@ -14,10 +14,13 @@ from pyodide.http import pyfetch
 
 # First, download a snapshot of the repository.
 print("Downloading the latest OCP.wasm sources...")
-loop = asyncio.get_event_loop()
-OCP_WASM_BRANCH = os.environ.get("OCP_WASM_BRANCH", "master")
-response = loop.run_until_complete(pyfetch("https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=https://github.com/yeicor/OCP.wasm/archive/refs/heads/" + OCP_WASM_BRANCH + ".zip"))
-sources_zip = loop.run_until_complete(response.bytes())
+loop = asyncio.new_event_loop()
+try:
+    OCP_WASM_BRANCH = os.environ.get("OCP_WASM_BRANCH", "master")
+    response = loop.run_until_complete(pyfetch("https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=https://github.com/yeicor/OCP.wasm/archive/refs/heads/" + OCP_WASM_BRANCH + ".zip"))
+    sources_zip = loop.run_until_complete(response.bytes())
+finally:
+    loop.close()
 
 # Then, extract it to a temporary directory.
 print("Extracting the sources to a temporary directory...")

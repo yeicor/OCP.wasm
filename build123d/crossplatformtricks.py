@@ -10,9 +10,12 @@ if sys.platform == 'emscripten':
         from pyodide.http import pyfetch
         import asyncio
         # noinspection PyUnresolvedReferences
-        loop = asyncio.get_event_loop()
-        response = loop.run_until_complete(pyfetch(url))
-        return loop.run_until_complete(response.bytes())
+        loop = asyncio.new_event_loop()
+        try:
+            response = loop.run_until_complete(pyfetch(url))
+            return loop.run_until_complete(response.bytes())
+        finally:
+            loop.close()
 
 
     # XXX: Patch urllib.request.urlretrieve to use pyodide's pyfetch as it is too low level for pyodide (and it is not critical for build123d but required for test_importers.ImportSTEP)
@@ -77,8 +80,13 @@ if sys.platform == 'emscripten':
 
 
     def install_package(package_name: str):
-        # Install the package using micropip
-        asyncio.run(micropip.install(package_name))
+        # noinspection PyUnresolvedReferences
+        loop = asyncio.new_event_loop()
+        try:
+            # Install the package using micropip
+            loop.run_until_complete(micropip.install(package_name))
+        finally:
+            loop.close()
 
 
 else:
