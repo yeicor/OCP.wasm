@@ -15,8 +15,8 @@ if sys.platform == 'emscripten':
             # Try to avoid breaking other uses of urlretrieve (which are probably unsupported anyway)
             if url.startswith("https://") and filename is not None and not reporthook and not data:
                 # print("XXX: Using patched urllib.request.urlretrieve to use pyodide's pyfetch for URL:", url)
-                from 
-                bs = common_fetch(url)  # Download the file to cache it
+                from pyodide.ffi import run_sync
+                bs = run_sync(common_fetch(url))  # Download the file to cache it
                 with open(filename, "wb") as f:
                     f.write(bs)
                 return filename, {}  # Return the filename and a dummy response object
