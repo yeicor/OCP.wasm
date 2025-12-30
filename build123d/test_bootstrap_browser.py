@@ -11,16 +11,13 @@ import zipfile
 
 # noinspection PyUnresolvedReferences
 from pyodide.http import pyfetch
+from pyodide.ffi import run_sync
 
 # First, download a snapshot of the repository.
 print("Downloading the latest OCP.wasm sources...")
-loop = asyncio.new_event_loop()
-try:
-    OCP_WASM_BRANCH = os.environ.get("OCP_WASM_BRANCH", "master")
-    response = loop.run_until_complete(pyfetch("https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=https://github.com/yeicor/OCP.wasm/archive/refs/heads/" + OCP_WASM_BRANCH + ".zip"))
-    sources_zip = loop.run_until_complete(response.bytes())
-finally:
-    loop.close()
+OCP_WASM_BRANCH = os.environ.get("OCP_WASM_BRANCH", "master")
+response = run_sync(pyfetch("https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=https://github.com/yeicor/OCP.wasm/archive/refs/heads/" + OCP_WASM_BRANCH + ".zip"))
+sources_zip = run_sync(response.bytes())
 
 # Then, extract it to a temporary directory.
 print("Extracting the sources to a temporary directory...")

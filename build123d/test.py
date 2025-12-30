@@ -120,8 +120,8 @@ async def main():
 
 if __name__ == "__main__":
     try: # Pyodide specific runner (experimental: https://pyodide.org/en/stable/usage/api/python-api/ffi.html#pyodide.ffi.run_sync)
-        from pyodide.ffi import run_sync 
-        run_sync(main)()
+        from pyodide.ffi import run_sync
+        run_sync(main())
     except SyntaxError: # fallback for standard Python interpreters
         import asyncio
         asyncio.run(main())
