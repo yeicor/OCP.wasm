@@ -79,7 +79,7 @@ if sys.platform == 'emscripten':
 
 
     async def install_package(package_name: str):
-        # Install the package using micropip
+        import micropip
         await micropip.install(package_name)
 
 
