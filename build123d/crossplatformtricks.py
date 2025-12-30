@@ -96,11 +96,9 @@ else:
         
 
     async def common_fetch(url: str) -> bytes:
-        import aiohttp
-        import asyncio
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                return await response.read()
+        import urllib.request
+        with urllib.request.urlopen(url) as response:
+            return response.read()
 
 
     async def install_package(package_name: str):
