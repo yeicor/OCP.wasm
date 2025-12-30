@@ -109,6 +109,7 @@ async def main():
         # Fail on any test failure
         if exit_code == 0:
             print("All tests passed successfully!")
+            return True
         else:
             print("Some tests failed. Check the output above for details.")
             sys.exit(1)
@@ -121,7 +122,9 @@ async def main():
 if __name__ == "__main__":
     try: # Pyodide specific runner (experimental: https://pyodide.org/en/stable/usage/api/python-api/ffi.html#pyodide.ffi.run_sync)
         from pyodide.ffi import run_sync
-        run_sync(main())
+        while run_sync(main()) is not True: # XXX: avoid run_sync bug returning after numpy load attempt?
+            pass
+        
     except SyntaxError: # fallback for standard Python interpreters
         import asyncio
         asyncio.run(main())
