@@ -1,6 +1,8 @@
-def download_and_patch_build123d(tag_or_branch: str):
-    from crossplatformtricks import install_package, common_fetch
+async def download_and_patch_build123d(tag_or_branch: str):
+    from crossplatformtricks import bootstrap, install_package, common_fetch
     import zipfile, io, tempfile, os, sys, re
+
+    await bootstrap()
 
     # Clone the sources from the specified branch
     sources_url = f"https://github.com/gumyr/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
@@ -66,7 +68,7 @@ def download_and_patch_build123d(tag_or_branch: str):
     return _extracted_dir, _tmpdir
 
 
-def main():
+async def main():
     import argparse, sys, unittest, os
 
     default_branch = os.environ.get("BUILD123D_BRANCH", "stable")
@@ -117,4 +119,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try: # Pyodide specific runner (experimental: https://pyodide.org/en/stable/usage/api/python-api/ffi.html#pyodide.ffi.run_sync)
+        from pyodide.ffi import run_sync 
+        run_sync(main)()
+    except SyntaxError: # fallback for standard Python interpreters
+        import asyncio
+        asyncio.run(main())

@@ -31,7 +31,7 @@ applications. Or look at the [projects using OCP.wasm](#projects-using-ocpwasm) 
 
 - [Yet Another CAD Viewer](https://github.com/yeicor-3d/yet-another-cad-viewer):  A CAD viewer capable of displaying OCP
   models (CadQuery/Build123d) in a web
-  browser. ([🌐 demo](https://yeicor-3d.github.io/yet-another-cad-viewer/#pg_code_url=https://raw.githubusercontent.com/gumyr/build123d/refs/heads/dev/examples/toy_truck.py)).
+  browser. ([🌐 demo](https://yeicor-3d.github.io/yet-another-cad-viewer/#pg_code=https://raw.githubusercontent.com/gumyr/build123d/refs/heads/dev/examples/toy_truck.py)).
 - [build123dWebAssmGenDemo](https://github.com/Radther/build123dWebAssmGenDemo): A web-based 3D model generator that
   creates parametric models using Python and WebAssembly ([🌐 demo](https://radther.github.io/build123dWebAssmGenDemo/)).
 - [build123d-sandbox](https://github.com/jojain/build123d-sandbox/): A minimal webapp to expose the Python CAD library
