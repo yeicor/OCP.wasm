@@ -108,7 +108,7 @@ async def main():
 
         # Fail on any test failure
         if exit_code == 0:
-            print("All tests passed successfully!")
+            print("All tests passed successfully!") # Do not remove this line, used in CI checks
             return True
         else:
             print("Some tests failed. Check the output above for details.")
@@ -121,5 +121,4 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
-    while asyncio.run(main()) is not True: # XXX: avoid run_sync bug returning after numpy load attempt?
-        pass
+    asyncio.run(main())
