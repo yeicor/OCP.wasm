@@ -32,4 +32,4 @@ _tests_dir = os.path.join(_tmpdir.name, os.listdir(_tmpdir.name)[0], "build123d"
 sys.path.insert(0, _tests_dir)
 from test import main
 
-main()
+run_sync(main())
