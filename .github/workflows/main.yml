@@ -40,7 +40,7 @@ jobs:
           path: |  # Same below!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
-            !${{ matrix.package }}/build/*/_deps/opencascade-build
+            !${{ matrix.package }}/build/*/_deps/opencascade-build/src
           key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ hashFiles('**/*.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
           restore-keys: |
             build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-
@@ -85,7 +85,7 @@ jobs:
           path: |  # Same below and above!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
-            !${{ matrix.package }}/build/*/_deps/opencascade-build
+            !${{ matrix.package }}/build/*/_deps/opencascade-build/src
 
       - if: "always()"  # Upload cache and wheels as an artifact for debugging
         uses: "actions/upload-artifact@v6"
@@ -95,7 +95,7 @@ jobs:
           path: |  # Same above!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
-            !${{ matrix.package }}/build/*/_deps/opencascade-build
+            !${{ matrix.package }}/build/*/_deps/opencascade-build/src
 
   build_package_index:
     needs: "build_wheels"
@@ -157,17 +157,14 @@ jobs:
           # Install build123d and run tests (stable and dev versions)
           build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
           function test_build123d_branch() {
-            local version="$1"
-            echo "Testing build123d version: $version"
-            pip install build123d=="$version"
-            python -m build123d --version
-            python -m pip show build123d
+            local branch="$1"
+            echo "Testing build123d branch: $branch"
             # XXX: There is a bug causing async tests to stop at a random point,
             # so retry until the output contains the proper completion statement or we give up (assume okay then)
             local max_retries=50
             local attempt=1
             while [ $attempt -le $max_retries ]; do
-              python -m build123d test --log-file test.log | tee -a test.log
+              python test.py "$branch" | tee -a test.log
               if grep -q "All tests passed successfully!" test.log; then
                 echo "Tests finished successfully on attempt $attempt for build123d version $version"
                 break
