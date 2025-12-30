@@ -73,14 +73,8 @@ if sys.platform == 'emscripten':
 
     async def common_fetch(url: str) -> bytes:
         from pyodide.http import pyfetch
-        import asyncio
-        # noinspection PyUnresolvedReferences
-        loop = asyncio.new_event_loop()
-        try:
-            response = loop.run_until_complete(pyfetch(url))
-            return loop.run_until_complete(response.bytes())
-        finally:
-            loop.close()
+        response = await pyfetch(url)
+        return await response.bytes()
 
 
     async def install_package(package_name: str):
