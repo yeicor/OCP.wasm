@@ -120,11 +120,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    try: # Pyodide specific runner (experimental: https://pyodide.org/en/stable/usage/api/python-api/ffi.html#pyodide.ffi.run_sync)
-        from pyodide.ffi import run_sync
-        while run_sync(main()) is not True: # XXX: avoid run_sync bug returning after numpy load attempt?
-            pass
-        
-    except SyntaxError: # fallback for standard Python interpreters
-        import asyncio
-        asyncio.run(main())
+    import asyncio
+    while asyncio.run(main()) is not True: # XXX: avoid run_sync bug returning after numpy load attempt?
+        pass
