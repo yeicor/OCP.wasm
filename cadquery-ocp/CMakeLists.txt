@@ -144,7 +144,9 @@ FetchContent_Declare(
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
     -Dfreetype_INCLUDE_DIR=${EMSCRIPTEN_SYSROOT}/include/freetype2
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
-    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" && # XXX: Better caching!
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<BINARY_DIR>" && # XXX: Better caching!
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "${EMSCRIPTEN_SYSROOT}" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(OpenCASCADE)

@@ -41,6 +41,7 @@ jobs:
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
+            ${{ matrix.package }}/emsdk/upstream/emscripten/cache
           key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ hashFiles('**/*.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
           restore-keys: |
             build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-
@@ -86,6 +87,7 @@ jobs:
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
+            ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
       - if: "always()"  # Upload cache and wheels as an artifact for debugging
         uses: "actions/upload-artifact@v6"
@@ -96,6 +98,7 @@ jobs:
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
+            ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
   build_package_index:
     needs: "build_wheels"
