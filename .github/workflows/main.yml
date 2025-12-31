@@ -164,7 +164,7 @@ jobs:
             local max_retries=50
             local attempt=1
             while [ $attempt -le $max_retries ]; do
-              python test.py "$branch" | tee -a test.log
+              FORCE_COLOR=1 python test.py "$branch" | tee -a test.log
               if grep -q "All tests passed successfully!" test.log; then
                 echo "Tests finished successfully on attempt $attempt for build123d version $version"
                 break
