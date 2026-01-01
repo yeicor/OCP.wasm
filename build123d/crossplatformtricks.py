@@ -15,7 +15,8 @@ if sys.platform == 'emscripten':
             # Try to avoid breaking other uses of urlretrieve (which are probably unsupported anyway)
             if url.startswith("https://") and filename is not None and not reporthook and not data:
                 # print("XXX: Using patched urllib.request.urlretrieve to use pyodide's pyfetch for URL:", url)
-                bs = common_fetch(url)  # Download the file to cache it
+                from pyodide.ffi import run_sync
+                bs = run_sync(common_fetch(url))  # Download the file to cache it
                 with open(filename, "wb") as f:
                     f.write(bs)
                 return filename, {}  # Return the filename and a dummy response object
@@ -73,16 +74,13 @@ if sys.platform == 'emscripten':
 
     async def common_fetch(url: str) -> bytes:
         from pyodide.http import pyfetch
-        import asyncio
-        # noinspection PyUnresolvedReferences
-        loop = asyncio.get_event_loop()
-        response = loop.run_until_complete(pyfetch(url))
-        return loop.run_until_complete(response.bytes())
+        response = await pyfetch(url)
+        return await response.bytes()
 
 
     async def install_package(package_name: str):
-        # Install the package using micropip
-        await micropip.install(package_name)
+        import micropip
+        await micropip.install(package_name, reinstall=True)
 
 
 else:
@@ -93,11 +91,9 @@ else:
         
 
     async def common_fetch(url: str) -> bytes:
-        import aiohttp
-        import asyncio
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                return await response.read()
+        import urllib.request
+        with urllib.request.urlopen(url) as response:
+            return response.read()
 
 
     async def install_package(package_name: str):

@@ -135,7 +135,7 @@ set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # For some reason this toolkit from the Vis
 FetchContent_Declare(
   OpenCASCADE
   GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
-  GIT_TAG "V7_8_1"
+  GIT_TAG "V7_9_2"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
@@ -144,7 +144,8 @@ FetchContent_Declare(
     -Drapidjson_SOURCE_DIR=${rapidjson_SOURCE_DIR}
     -Dfreetype_INCLUDE_DIR=${EMSCRIPTEN_SYSROOT}/include/freetype2
     -P ${CMAKE_CURRENT_LIST_DIR}/patch_OpenCASCADE.cmake &&
-    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" && # XXX: Better caching!
+    "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "${EMSCRIPTEN_SYSROOT}" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(OpenCASCADE)
@@ -169,7 +170,7 @@ message(STATUS "-DOpenCASCADE_LIBRARIES=\\\"${BUILD_TOOLKITS_C}\\\"")
 # ##### OCP #####
 FetchContent_Declare(
   OCP
-  URL "https://github.com/CadQuery/OCP/releases/download/7.8.1.2/OCP_src_stubs_ubuntu-20.04.zip"
+  URL "https://github.com/CadQuery/OCP/releases/download/7.9.2.0/OCP_src_stubs_Linux.zip"
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
