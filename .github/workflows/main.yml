@@ -63,6 +63,7 @@ jobs:
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
           git clone https://github.com/emscripten-core/emsdk emsdk-tmp  # Avoids non-empty directory error (CI cache)
           mkdir -p emsdk && ( mv emsdk-tmp/* emsdk-tmp/.[^.]* emsdk || true ) && rm -rf emsdk-tmp
+          mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +  # Ensures cache is used?
 
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
