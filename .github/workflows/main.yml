@@ -30,7 +30,7 @@ jobs:
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf" # Smaller debug files, default is too big for CI
     steps:
       - run: "sudo apt install -y binaryen"  # ccache does not seem to work on CI
-      - uses: "egor-tensin/setup-gcc@v2"
+      
       - uses: "actions/checkout@v6"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
