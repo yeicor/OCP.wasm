@@ -170,7 +170,7 @@ message(STATUS "-DOpenCASCADE_LIBRARIES=\\\"${BUILD_TOOLKITS_C}\\\"")
 # ##### OCP #####
 FetchContent_Declare(
   OCP
-  URL "https://github.com/CadQuery/OCP/releases/download/7.9.2.0/OCP_src_stubs_Linux.zip"
+  URL "https://github.com/CadQuery/OCP/releases/download/7.9.3.0/OCP_src_stubs_Linux.zip"
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
