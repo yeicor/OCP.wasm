@@ -9,6 +9,8 @@ import json
 import logging
 import os
 import shutil
+import tempfile
+import zipfile
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
@@ -39,6 +41,55 @@ def detect_github_pages_url() -> Optional[str]:
     return None
 
 
+def create_renamed_wheel(original_wheel: Path, new_name: str) -> Path:
+    """Create a new wheel with modified package name in metadata."""
+    name, version, _ = parse_wheel_filename(original_wheel.name)
+    new_wheel_name = original_wheel.name.replace(name, new_name, 1)
+    new_wheel_path = original_wheel.parent / new_wheel_name
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        
+        # Extract the original wheel
+        with zipfile.ZipFile(original_wheel, 'r') as zip_in:
+            zip_in.extractall(tmpdir_path)
+        
+        # Modify the METADATA file
+        dist_info_dirs = list(tmpdir_path.glob('*.dist-info'))
+        if dist_info_dirs:
+            old_dist_info = dist_info_dirs[0]
+            metadata_file = old_dist_info / 'METADATA'
+            
+            if metadata_file.exists():
+                # Read and modify metadata
+                content = metadata_file.read_text()
+                lines = content.split('\n')com
+                    else:
+                        new_lines.append(line)
+                metadata_file.write_text('\n'.join(new_lines))
+            
+            # Rename .dist-info directory
+            new_dist_info_name = new_wheel_name.rsplit('-', 3)[0] + '.dist-info'
+            new_dist_info = tmpdir_path / new_dist_info_name
+            old_dist_info.rename(new_dist_info)
+            
+            # Update RECORD file if it exists
+            record_file = new_dist_info / 'RECORD'
+            if record_file.exists():
+                content = record_file.read_text()
+                content = content.replace(str(old_dist_info.name), new_dist_info_name)
+                record_file.write_text(content)
+        
+        # Repack the wheel
+        with zipfile.ZipFile(new_wheel_path, 'w', zipfile.ZIP_DEFLATED) as zip_out:
+            for file in tmpdir_path.rglob('*'):
+                if file.is_file():
+                    arcname = file.relative_to(tmpdir_path)
+                    zip_out.write(file, arcname)
+    
+    return new_wheel_path
+
+
 def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> None:
     out_path = Path(output_dir)
 
@@ -55,12 +106,24 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
             new_wheel_path = None
             if wheel_path.parent.name.endswith('-Debug'):
                 name, version, _ = parse_wheel_filename(wheel_path.name)
-                new_wheel_path = wheel_path.parent / (str(wheel_path.name).replace(name, name + "_debug", 1))
-                if not new_wheel_path.exists():
-                    shutil.copy2(wheel_path, new_wheel_path)
+                new_wheel_path = create_renamed_wheel(wheel_path, name + "_debug")
                 wheel_path = new_wheel_path
-                
+            
+            # Create -novtk alias for cadquery-ocp wheels
             name, version, _ = parse_wheel_filename(wheel_path.name)
+            if name == "cadquery-ocp" or name == "cadquery_ocp":
+                novtk_wheel_path = create_renamed_wheel(wheel_path, "cadquery-ocp-novtk")
+                novtk_name = "cadquery-ocp-novtk"
+                norm_novtk_name = novtk_name.lower().replace('_', '-')
+                packages[norm_novtk_name].add(novtk_wheel_path.name)
+                
+                pkg_path = out_path / norm_novtk_name
+                pkg_path.mkdir(parents=True, exist_ok=True)
+                dest_path = pkg_path / novtk_wheel_path.name
+                if novtk_wheel_path != dest_path:
+                    shutil.copy2(novtk_wheel_path, dest_path)
+                novtk_wheel_path.unlink()
+                
             norm_name = name.lower().replace('_', '-')
             
             if wheel_path.name in packages[norm_name]:
@@ -76,18 +139,6 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
             if new_wheel_path is not None:
                 new_wheel_path.unlink()
                 new_wheel_path = None
-            
-            # Publish cadquery-ocp as cadquery-ocp-novtk alias (they're the same, VTK already removed)
-            if norm_name == 'cadquery-ocp':
-                novtk_name = 'cadquery-ocp-novtk'
-                novtk_wheel_name = wheel_path.name.replace('cadquery_ocp', 'cadquery_ocp_novtk', 1)
-                packages[novtk_name].add(novtk_wheel_name)
-                
-                novtk_pkg_path = out_path / novtk_name
-                novtk_pkg_path.mkdir(parents=True, exist_ok=True)
-                novtk_dest_path = novtk_pkg_path / novtk_wheel_name
-                shutil.copy2(dest_path, novtk_dest_path)
-                log.info(f"  ↳ Also publishing as {novtk_name} (alias)")
 
     with (out_path / "index.html").open("w") as f_index_all:
         f_index_all.write('<!DOCTYPE html><html><head><title>OCP.wasm wheel registry</title></head><body>\n')
