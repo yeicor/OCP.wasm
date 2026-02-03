@@ -64,8 +64,12 @@ def create_renamed_wheel(original_wheel: Path, new_name: str) -> Path:
                 # Read and modify metadata
                 content = metadata_file.read_text()
                 lines = content.split('\n')
-            else:
-                new_lines.append(line)
+                new_lines = []
+                for line in lines:
+                    if line.startswith('Name:'):
+                        new_lines.append(f'Name: {new_name}')
+                    else:
+                        new_lines.append(line)
                 metadata_file.write_text('\n'.join(new_lines))
             
             # Rename .dist-info directory
