@@ -76,6 +76,18 @@ def build_static_repo(wheel_dirs: List[str], output_dir: str, base_url: str) -> 
             if new_wheel_path is not None:
                 new_wheel_path.unlink()
                 new_wheel_path = None
+            
+            # Publish cadquery-ocp as cadquery-ocp-novtk alias (they're the same, VTK already removed)
+            if norm_name == 'cadquery-ocp':
+                novtk_name = 'cadquery-ocp-novtk'
+                novtk_wheel_name = wheel_path.name.replace('cadquery_ocp', 'cadquery_ocp_novtk', 1)
+                packages[novtk_name].add(novtk_wheel_name)
+                
+                novtk_pkg_path = out_path / novtk_name
+                novtk_pkg_path.mkdir(parents=True, exist_ok=True)
+                novtk_dest_path = novtk_pkg_path / novtk_wheel_name
+                shutil.copy2(dest_path, novtk_dest_path)
+                log.info(f"  ↳ Also publishing as {novtk_name} (alias)")
 
     with (out_path / "index.html").open("w") as f_index_all:
         f_index_all.write('<!DOCTYPE html><html><head><title>OCP.wasm wheel registry</title></head><body>\n')
