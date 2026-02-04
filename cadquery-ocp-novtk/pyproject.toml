@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 # Warning: `pyodide build` requires `--exports=whole_archive` to avoid missing symbols from emscripten exports
 
 [project]
-name = "cadquery-ocp"
+name = "cadquery-ocp-novtk"
 dynamic = ["version"]
 description = "Python bindings for OCP using scikit-build-core"
 authors = [{ name = "Yeicor" }]

@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ "cadquery-ocp", "lib3mf" ]
+        package: [ "cadquery-ocp-novtk", "lib3mf" ]
         build_type: [ "Release", "Debug" ]
         include: # Extends and overrides the matrix for specific configurations
           - build_type: "Release"
@@ -19,13 +19,13 @@ jobs:
             ldflags: "-Og -g -gsource-map=inline"
 
           - pyodide_args: ""
-          - package: "cadquery-ocp"
+          - package: "cadquery-ocp-novtk"
             pyodide_args: "--exports=whole_archive"  # Avoids missing symbols due to custom emscripten exports
 
-          - package: "cadquery-ocp"
+          - package: "cadquery-ocp-novtk"
             build_type: "Release"
             ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
-          - package: "cadquery-ocp"
+          - package: "cadquery-ocp-novtk"
             build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf" # Smaller debug files, default is too big for CI
     steps:
