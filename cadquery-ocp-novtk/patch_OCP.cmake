@@ -36,12 +36,16 @@ endforeach()
 
 # ----- Modify OCP.cpp -----
 set(ocp_cpp "${REAL_SOURCE_DIR}/OCP.cpp")
-file(READ "${ocp_cpp}" content)
-set(content_old "${content}")
-string(REGEX REPLACE "(\n)([^/\n]+register_[^\n]*([vV][tT][kK]|OpenGl)[^\n]*)" "\\1/*\\2*/" content "${content}")
-if(NOT content STREQUAL content_old)
-  file(WRITE "${ocp_cpp}" "${content}")
-  message(STATUS "Patched OCP.cpp")
+if(EXISTS "${ocp_cpp}")
+  file(READ "${ocp_cpp}" content)
+  set(content_old "${content}")
+  string(REGEX REPLACE "(\n)([^/\n]+register_[^\n]*([vV][tT][kK]|OpenGl)[^\n]*)" "\\1/*\\2*/" content "${content}")
+  if(NOT content STREQUAL content_old)
+    file(WRITE "${ocp_cpp}" "${content}")
+    message(STATUS "Patched OCP.cpp")
+  endif()
+else()
+  message(WARNING "OCP.cpp not found at ${ocp_cpp}, skipping patch step")
 endif()
 
 # ----- Modify OSD.cpp -----
