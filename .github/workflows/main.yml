@@ -39,6 +39,7 @@ jobs:
           path: |  # Same below!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
+            !${{ matrix.package }}/build/*/_deps/*-subbuild
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
           key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ hashFiles('**/*.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
@@ -92,6 +93,7 @@ jobs:
           path: |  # Same below and above!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
+            !${{ matrix.package }}/build/*/_deps/*-subbuild
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
@@ -103,6 +105,7 @@ jobs:
           path: |  # Same above!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
+            !${{ matrix.package }}/build/*/_deps/*-subbuild
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
