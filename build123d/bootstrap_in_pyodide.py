@@ -1,10 +1,11 @@
-import micropip, asyncio
+import micropip, asyncio, os
 
 async def bootstrap():
     # If using the Pyodide JS API, you need to `loadPackage("micropip")` first.
 
     # Prioritize the OCP.wasm package repository so that wasm-specific packages are preferred.
-    micropip.set_index_urls(["https://yeicor.github.io/OCP.wasm", "https://pypi.org/simple"])
+    ocp_index = os.environ.get("OCP_WASM_INDEX_URL", "https://yeicor.github.io/OCP.wasm")
+    micropip.set_index_urls([ocp_index, "https://pypi.org/simple"])
 
     # ONLY for build123d versions <0.10.0, we need to redirect the import of `py_lib3mf` to our ported `lib3mf` package.
     await micropip.install("lib3mf")
