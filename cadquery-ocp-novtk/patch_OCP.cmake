@@ -22,25 +22,20 @@ file(GLOB_RECURSE all_sources
 set(vtk_and_opengl_sources "")
 foreach(f IN LISTS all_sources)
   string(TOLOWER "${f}" f_lower)
-  if(f_lower MATCHES "vtk")
+  if(f_lower MATCHES "vtk[^/]*$")
     list(APPEND vtk_and_opengl_sources "${f}")
   endif()
-  if(f_lower MATCHES "opengl")
+  if(f_lower MATCHES "opengl[^/]*$")
     list(APPEND vtk_and_opengl_sources "${f}")
   endif()
 endforeach()
 
 foreach(f IN LISTS vtk_and_opengl_sources)
+  message(STATUS "Removing vtk/opengl source: ${f}")
   file(REMOVE "${f}")
 endforeach()
 
 # ----- Modify OCP.cpp -----
-file(GLOB SOURCE_CONTENTS "${REAL_SOURCE_DIR}/*")
-message(STATUS "Contents of ${REAL_SOURCE_DIR}:")
-foreach(ITEM ${SOURCE_CONTENTS})
-    message(STATUS "  ${ITEM}")
-endforeach()
-
 set(ocp_cpp "${REAL_SOURCE_DIR}/OCP.cpp")
 file(READ "${ocp_cpp}" content)
 set(content_old "${content}")
