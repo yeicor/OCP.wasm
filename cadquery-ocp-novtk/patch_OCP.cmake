@@ -35,6 +35,12 @@ foreach(f IN LISTS vtk_and_opengl_sources)
 endforeach()
 
 # ----- Modify OCP.cpp -----
+file(GLOB SOURCE_CONTENTS "${REAL_SOURCE_DIR}/*")
+message(STATUS "Contents of ${REAL_SOURCE_DIR}:")
+foreach(ITEM ${SOURCE_CONTENTS})
+    message(STATUS "  ${ITEM}")
+endforeach()
+
 set(ocp_cpp "${REAL_SOURCE_DIR}/OCP.cpp")
 file(READ "${ocp_cpp}" content)
 set(content_old "${content}")
