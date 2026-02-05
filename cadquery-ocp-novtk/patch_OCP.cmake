@@ -11,17 +11,6 @@ if(NOT DEFINED rapidjson_SOURCE_DIR)
   message(FATAL_ERROR "OpenCASCADE_BINARY_DIR must be defined")
 endif()
 
-# ----- Debug: Check if OCP.cpp exists before processing -----
-message(STATUS "REAL_SOURCE_DIR=${REAL_SOURCE_DIR}")
-execute_process(COMMAND ls -la "${REAL_SOURCE_DIR}" OUTPUT_VARIABLE LS_OUTPUT RESULT_VARIABLE LS_RESULT)
-message(STATUS "Directory listing result: ${LS_RESULT}")
-message(STATUS "Directory contents:\n${LS_OUTPUT}")
-if(EXISTS "${REAL_SOURCE_DIR}/OCP.cpp")
-  message(STATUS "OCP.cpp exists at start of patch script")
-else()
-  message(FATAL_ERROR "OCP.cpp does NOT exist at ${REAL_SOURCE_DIR}/OCP.cpp - cannot proceed with patching")
-endif()
-
 # ----- Remove vtk-related files (case-insensitive) -----
 file(GLOB_RECURSE all_sources
   "${REAL_SOURCE_DIR}/*.cpp"
@@ -32,11 +21,12 @@ file(GLOB_RECURSE all_sources
 
 set(vtk_and_opengl_sources "")
 foreach(f IN LISTS all_sources)
-  string(TOLOWER "${f}" f_lower)
-  if(f_lower MATCHES "vtk")
+  get_filename_component(fname "${f}" NAME)
+  string(TOLOWER "${fname}" fname_lower)
+  if(fname_lower MATCHES "vtk")
     list(APPEND vtk_and_opengl_sources "${f}")
   endif()
-  if(f_lower MATCHES "opengl")
+  if(fname_lower MATCHES "opengl")
     list(APPEND vtk_and_opengl_sources "${f}")
   endif()
 endforeach()
