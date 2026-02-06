@@ -22,15 +22,16 @@ file(GLOB_RECURSE all_sources
 set(vtk_and_opengl_sources "")
 foreach(f IN LISTS all_sources)
   string(TOLOWER "${f}" f_lower)
-  if(f_lower MATCHES "vtk")
+  if(f_lower MATCHES "vtk[^/]*$")
     list(APPEND vtk_and_opengl_sources "${f}")
   endif()
-  if(f_lower MATCHES "opengl")
+  if(f_lower MATCHES "opengl[^/]*$")
     list(APPEND vtk_and_opengl_sources "${f}")
   endif()
 endforeach()
 
 foreach(f IN LISTS vtk_and_opengl_sources)
+  message(STATUS "Removing vtk/opengl source: ${f}")
   file(REMOVE "${f}")
 endforeach()
 
