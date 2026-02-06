@@ -159,17 +159,16 @@ jobs:
           package_index_url="http://127.0.0.1:8000/"
           find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|${package_index_url}|g" {} \;
           
-          # Set up the Pyodide test environment
-          pip install -r ../requirements.txt
-          pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
-          pyodide venv .venv-pyodide
-          . .venv-pyodide/bin/activate
-          
           # Install build123d and run tests (stable and dev versions)
-          build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
           function test_build123d_branch() {
             local branch="$1"
             echo "Testing build123d branch: $branch"
+            # Set up the Pyodide test environment (ensure new)
+            pip install -r ../requirements.txt
+            [ -f .venv-pyodide/bin/activate ] && rm -rf .venv-pyodide/
+            pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
+            pyodide venv .venv-pyodide
+            . .venv-pyodide/bin/activate
             # XXX: There is a bug causing async tests to stop at a random point,
             # so retry until the output contains the proper completion statement or we give up (assume okay then)
             local max_retries=50
@@ -188,6 +187,8 @@ jobs:
               echo "Warning: Tests did not finish after $max_retries attempts for build123d version $version (assuming okay)"
             fi
           }
+            
+          build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
           test_build123d_branch "v$build123d_stable_version"
           test_build123d_branch "dev"
 
