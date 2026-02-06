@@ -155,7 +155,7 @@ jobs:
           # Update package index links to point to the local files
           to_remove="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           package_index_folder="$(realpath $(pwd)/../package-index)/"
-          python -m http.server &
+          python -m http.server --directory "$package_index_folder" &
           package_index_url="http://127.0.0.1:8000/"
           find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|${package_index_url}|g" {} \;
           
