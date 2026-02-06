@@ -155,7 +155,9 @@ jobs:
           # Update package index links to point to the local files
           to_remove="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           package_index_folder="$(realpath $(pwd)/../package-index)/"
-          find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|file://${package_index_folder}|g" {} \;
+          python -m http.server &
+          package_index_url="http://127.0.0.1:8000/"
+          find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|${package_index_url}|g" {} \;
           
           # Set up the Pyodide test environment
           pip install -r ../requirements.txt
@@ -173,7 +175,7 @@ jobs:
             local max_retries=50
             local attempt=1
             while [ $attempt -le $max_retries ]; do
-              FORCE_COLOR=1 OCP_WASM_INDEX_URL="file://$package_index_folder" python test.py "$branch" | tee -a test.log
+              FORCE_COLOR=1 OCP_WASM_INDEX_URL="$package_index_url" python test.py "$branch" | tee -a test.log
               if grep -q "All tests passed successfully!" test.log; then
                 echo "Tests finished successfully on attempt $attempt for build123d version $version"
                 break
