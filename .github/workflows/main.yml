@@ -72,11 +72,11 @@ jobs:
           pyodide build ${{ matrix.pyodide_args }}
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
-          SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
+          #SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
-          CMAKE_BUILD_PARALLEL_LEVEL: 2 # XXX: Try to avoid running out of memory for heavy builds ("The hosted runner lost communication with the server.")
+          CMAKE_BUILD_PARALLEL_LEVEL: 1 # XXX: Try to avoid running out of memory for heavy builds ("The hosted runner lost communication with the server.")
           _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
