@@ -16,7 +16,7 @@ jobs:
           - build_type: "Debug"
             cflags: "-Og -g"
             cxxflags: "-Og -g"
-            ldflags: "-Og -g -gsource-map=inline"
+            ldflags: "-Og -g" #  -gsource-map=inline
 
           - pyodide_args: ""
           - package: "cadquery-ocp-novtk"
