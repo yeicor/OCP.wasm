@@ -26,7 +26,7 @@ jobs:
             build_type: "Release"
             ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
           - package: "cadquery-ocp-novtk"
-          ildDebug"
+            build_type: "Debug"
             ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf" # Smaller debug files, default is too big for CI
     steps:
       - uses: "actions/checkout@v6"
