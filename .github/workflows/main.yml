@@ -27,7 +27,7 @@ jobs:
             ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
           - package: "cadquery-ocp-novtk"
             build_type: "Debug"
-            ldflags: "-Og -g -gsource-map=inline -gseparate-dwarf" # Smaller debug files, default is too big for CI
+            ldflags: "-Og -g2 -gseparate-dwarf" # Smaller debug files, default is too big for CI. The usual g3 level also crashes CI.
     steps:
       - uses: "actions/checkout@v6"
         with:
@@ -76,7 +76,7 @@ jobs:
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
-          CMAKE_BUILD_PARALLEL_LEVEL: 1 # XXX: Try to avoid running out of memory for heavy builds ("The hosted runner lost communication with the server.")
+          CMAKE_BUILD_PARALLEL_LEVEL: 2 # XXX: Try to avoid running out of memory for heavy builds ("The hosted runner lost communication with the server.")
           _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
