@@ -72,7 +72,7 @@ jobs:
           pyodide build ${{ matrix.pyodide_args }}
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
-          #SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
+          # SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
