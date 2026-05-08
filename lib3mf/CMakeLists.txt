@@ -42,7 +42,7 @@ if(EMSCRIPTEN)
 
   FetchContent_Declare(
     lib3mf-wheel-original
-    URL "https://github.com/3MFConsortium/lib3mf/releases/download/v2.4.1/lib3mf-2.4.1-py3-none-manylinux2014_x86_64.whl"
+    URL "https://github.com/3MFConsortium/lib3mf/releases/download/v2.5.0/lib3mf-2.4.1-py3-none-manylinux2014_x86_64.whl"
   )
   FetchContent_MakeAvailable(lib3mf-wheel-original)
 
