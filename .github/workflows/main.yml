@@ -80,7 +80,7 @@ jobs:
           _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
-      - uses: "actions/upload-artifact@v6"
+      - uses: "actions/upload-artifact@v7"
         with:
           name: "wheel-${{ matrix.package }}-${{ matrix.build_type }}"
           path: "${{ matrix.package }}/dist/*.whl"
@@ -97,7 +97,7 @@ jobs:
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
       - if: "always()"  # Upload cache and wheels as an artifact for debugging
-        uses: "actions/upload-artifact@v6"
+        uses: "actions/upload-artifact@v7"
         with:
           name: "cache-${{ matrix.package }}-${{ matrix.build_type }}"
           include-hidden-files: true
@@ -115,7 +115,7 @@ jobs:
         with:
           ref: "gh-pages"
 
-      - uses: "actions/download-artifact@v7"
+      - uses: "actions/download-artifact@v8"
         with:
           pattern: "wheel-*"
           path: "_wheels"
@@ -126,7 +126,7 @@ jobs:
           python3 _package_index.py --wheels . _wheels --output .  # Overwrites matching versions (warnings are ok!)
           rm -rf _wheels _package_index.py
 
-      - uses: "actions/upload-artifact@v6"
+      - uses: "actions/upload-artifact@v7"
         with:
           name: "package-index"
           path: "."
@@ -137,7 +137,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v6"
 
-      - uses: "actions/download-artifact@v7"
+      - uses: "actions/download-artifact@v8"
         with:
           name: "package-index"
           path: "package-index"
@@ -193,7 +193,7 @@ jobs:
           test_build123d_branch "v$build123d_stable_version"
           test_build123d_branch "dev"
 
-      - uses: "actions/upload-artifact@v6"
+      - uses: "actions/upload-artifact@v7"
         if: "always()"
         with:
           name: "test-build123d-integration-log"
@@ -208,7 +208,7 @@ jobs:
         with:
           fetch-depth: 0   # required to delete/replace branch
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: "package-index"
           path: "."
