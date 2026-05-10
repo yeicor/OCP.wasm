@@ -22,35 +22,28 @@ async def bootstrap(ocp_index = "https://yeicor.github.io/OCP.wasm"):
         try:
             await micropip.install(requirements, **kwargs)
         except ValueError as e:
-            error_msg = str(e)
-            match = re.search(r"wheel for '(.*?)'\.", error_msg)
-            if not match:
-                raise e
-                
-            raw_failed_specs = match.group(1)
-            
-            # Micropip often joins conflicting constraints into a single string like 'pkg==1,==2'
-            # We split by commas and treat each as a potential requirement part
-            for part in re.split(r"', '|,", raw_failed_specs):
-                # Use 'packaging' to parse the specifier correctly
-                req = Requirement(part.strip().strip("'"))
+            matches = re.findall(r"'([^']+)'", str(e))
+
+            if not matches:
+                raise
+
+            for req_str in matches:
+                req = Requirement(req_str)
                 pkg_name = req.name
-                
-                # Attempt to find a 'valid' version from the specifier
-                # If pkg==1.2.3 is requested, we use 1.2.3. 
-                # If no specific version is found, 999.9.9 is a safe "high" version to satisfy >= constraints.
+
                 mock_version = "999.9.9"
-                if req.specifier:
-                    # Pick the first explicit version found in the specifier (e.g., from '==')
-                    for spec in req.specifier:
-                        if spec.operator in ("==", ">=", "~="):
-                            mock_version = spec.version
-                            break
-                
-                warnings.warn(f"Mocking {pkg_name} with version {mock_version} to bypass requirements failure ({raw_failed_specs}).")
+
+                for spec in req.specifier:
+                    if spec.operator in ("==", ">=", "~="):
+                        mock_version = spec.version
+                        break
+
+                warnings.warn(
+                    f"Mocking {pkg_name} with version {mock_version}"
+                )
+
                 micropip.add_mock_package(pkg_name, mock_version)
 
-            # Retry to finalize the transaction for supported packages
             kwargs.pop("keep_going", None)
             await micropip.install(requirements, **kwargs)
 
