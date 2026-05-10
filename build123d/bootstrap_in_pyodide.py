@@ -22,29 +22,34 @@ async def bootstrap(ocp_index = "https://yeicor.github.io/OCP.wasm"):
         try:
             await micropip.install(requirements, **kwargs)
         except ValueError as e:
-            matches = re.findall(r"'([^']+)'", str(e))
+            match = re.search(
+                r"Can't find a pure Python 3 wheel for:\s*'([^']+)'",
+                str(e),
+            )
 
-            if not matches:
+            if not match:
                 raise
 
-            for req_str in matches:
-                req = Requirement(req_str)
-                pkg_name = req.name
+            req_str = match.group(1)
+            req = Requirement(req_str)
 
-                mock_version = "999.9.9"
+            pkg_name = req.name
 
-                for spec in req.specifier:
-                    if spec.operator in ("==", ">=", "~="):
-                        mock_version = spec.version
-                        break
+            mock_version = "999.9.9"
 
-                warnings.warn(
-                    f"Mocking {pkg_name} with version {mock_version}"
-                )
+            for spec in req.specifier:
+                if spec.operator in ("==", ">=", "~="):
+                    mock_version = spec.version
+                    break
 
-                micropip.add_mock_package(pkg_name, mock_version)
+            warnings.warn(
+                f"Mocking {pkg_name} with version {mock_version}"
+            )
+
+            micropip.add_mock_package(pkg_name, mock_version)
 
             kwargs.pop("keep_going", None)
+
             await micropip.install(requirements, **kwargs)
 
     await graceful_install("build123d")
