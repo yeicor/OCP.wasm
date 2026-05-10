@@ -5,7 +5,8 @@ async def download_and_patch_build123d(tag_or_branch: str):
     await bootstrap()
 
     # Clone the sources from the specified branch
-    sources_url = f"https://github.com/gumyr/build123d/archive/refs/{"heads" if tag_or_branch == "dev" else "tags"}/{tag_or_branch}.zip"
+    ref_type = "heads" if tag_or_branch == "dev" else "tags"
+    sources_url = f"https://github.com/gumyr/build123d/archive/refs/{ref_type}/{tag_or_branch}.zip"
     if sys.platform == "emscripten": sources_url = "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + sources_url
     version = '0.0.0+dev' if tag_or_branch == "dev" else tag_or_branch.strip("v")
     print(f"Running tests for build123d {version} from: {sources_url}")
@@ -54,7 +55,7 @@ async def download_and_patch_build123d(tag_or_branch: str):
         _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
         if sys.platform == "emscripten": 
             _dependencies += ["sqlite3"]  # sqlite3 is not included by default in Pyodide
-            _dependencies.remove("mypy")  # mypy is not compatible with Pyodide
+            _dependencies.remove("mypy")  # Not compatible with Pyodide
     for dep in _dependencies:
         dep = dep.strip()
         if dep:

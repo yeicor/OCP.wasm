@@ -1,4 +1,4 @@
-import micropip, asyncio, os
+import micropip, asyncio, os, warnings, re
 
 async def bootstrap(ocp_index = "https://yeicor.github.io/OCP.wasm"):
     # If using the Pyodide JS API, you need to `loadPackage("micropip")` first.
@@ -10,7 +10,48 @@ async def bootstrap(ocp_index = "https://yeicor.github.io/OCP.wasm"):
     await micropip.install("lib3mf")
     micropip.add_mock_package("py-lib3mf", "2.4.1", modules={"py_lib3mf": '''from lib3mf import *'''})
 
-    # Install the required packages.
-    await micropip.install(["build123d", "sqlite3"])
+    # Missing on Pyodide by default
+    await micropip.install("sqlite3")
+
+    # Install the required packages, warning on dependencies that are unsupported on WASM.
+    async def graceful_install(requirements, **kwargs):
+        await micropip.install("packaging")
+        from packaging.requirements import Requirement
+        kwargs = dict(kwargs)
+        kwargs["keep_going"] = True
+        try:
+            await micropip.install(requirements, **kwargs)
+        except ValueError as e:
+            match = re.search(
+                r"Can't find a pure Python 3 wheel for:\s*'([^']+)'",
+                str(e),
+            )
+
+            if not match:
+                raise
+
+            req_str = match.group(1)
+            req = Requirement(req_str)
+
+            pkg_name = req.name
+
+            mock_version = "999.9.9"
+
+            for spec in req.specifier:
+                if spec.operator in ("==", ">=", "~="):
+                    mock_version = spec.version
+                    break
+
+            warnings.warn(
+                f"Mocking {pkg_name} with version {mock_version}"
+            )
+
+            micropip.add_mock_package(pkg_name, mock_version)
+
+            kwargs.pop("keep_going", None)
+
+            await micropip.install(requirements, **kwargs)
+
+    await graceful_install("build123d")
 
     # You can now include your own build123d script, as `import build123d` will work.
