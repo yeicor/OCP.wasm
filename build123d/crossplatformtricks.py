@@ -33,7 +33,7 @@ if sys.platform == 'emscripten':
         # XXX: Download and install any font so that the tests can run
         import asyncio, micropip
 
-        asyncio.run(micropip.install(["font-fetcher"]))
+        await micropip.install("font-fetcher")
         from font_fetcher.ocp import install_ocp_font_hook
 
         install_ocp_font_hook()

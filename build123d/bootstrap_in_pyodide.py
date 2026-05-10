@@ -1,4 +1,4 @@
-import micropip, asyncio, os, warnings
+import micropip, asyncio, os, warnings, re
 
 async def bootstrap(ocp_index = "https://yeicor.github.io/OCP.wasm"):
     # If using the Pyodide JS API, you need to `loadPackage("micropip")` first.
@@ -16,7 +16,8 @@ async def bootstrap(ocp_index = "https://yeicor.github.io/OCP.wasm"):
     # Install the required packages, warning on dependencies that are unsupported on WASM.
     async def graceful_install(requirements, **kwargs):
         await micropip.install("packaging")
-        from packaging.requirement import Requirement
+        from packaging.requirements import Requirement
+        kwargs = dict(kwargs)
         kwargs["keep_going"] = True
         try:
             await micropip.install(requirements, **kwargs)
