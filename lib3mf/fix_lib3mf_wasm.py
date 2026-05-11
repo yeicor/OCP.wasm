@@ -28,7 +28,7 @@ def fix_lib3mf(content: str) -> str:
         r"(.*?POINTER\(ctypes\.c_uint64\),\s*ctypes\.c_char_p)"
     )
 
-    for raw_line in lines:
+    for i, raw_line in enumerate(lines):
         line = raw_line
 
         is_indented = line.startswith((" ", "\t"))
@@ -41,8 +41,13 @@ def fix_lib3mf(content: str) -> str:
         # ── Transform 1: CFUNCTYPE (inside methods) ──────────────────
         if is_indented and "CFUNCTYPE" in line and not is_callback_def:
             # 1a: POINTER(c_uint32) → POINTER(c_uint64)  (count outputs)
+            # Only change for count functions (function name in next line)
             if "POINTER(ctypes.c_uint32)" in raw_line:
-                line = line.replace("POINTER(ctypes.c_uint32)", "POINTER(ctypes.c_uint64)")
+                _fn_match = None
+                if i + 1 < len(lines):
+                    _fn_match = re.search(r"lib3mf_(\w+)", lines[i + 1])
+                if _fn_match and "count" in _fn_match.group(1).lower():
+                    line = line.replace("POINTER(ctypes.c_uint32)", "POINTER(ctypes.c_uint64)")
 
             # 1b: standalone c_uint64, POINTER(c_uint64), c_char_p → c_uint32, POINTER(c_uint32), c_char_p
             line = _RE_BUF_GETTER.sub(
@@ -56,8 +61,11 @@ def fix_lib3mf(content: str) -> str:
         # ── Transform 2: argtypes ────────────────────────────────────
         if ".argtypes" in line:
             # 2a: POINTER(c_uint32) → POINTER(c_uint64)  (count outputs)
+            # Only change for count functions
             if "POINTER(ctypes.c_uint32)" in raw_line:
-                line = line.replace("POINTER(ctypes.c_uint32)", "POINTER(ctypes.c_uint64)")
+                _fn_match = re.search(r"lib3mf_(\w+)\.argtypes", raw_line)
+                if _fn_match and "count" in _fn_match.group(1).lower():
+                    line = line.replace("POINTER(ctypes.c_uint32)", "POINTER(ctypes.c_uint64)")
 
             # 2b: standalone c_uint64, POINTER(c_uint64), c_char_p → c_uint32, POINTER(c_uint32), c_char_p
             line = _RE_BUF_GETTER.sub(
