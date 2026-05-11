@@ -48,15 +48,21 @@ if(EMSCRIPTEN)
 
   FetchContent_GetProperties(lib3mf lib3mf-wheel-original)
   set(WHEEL_CONTENTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/lib3mf-wheel-contents")
+  set(WHEEL_LIB3MF_DIR "${WHEEL_CONTENTS_DIR}/lib3mf")
+  set(WHEEL_LIB3MF_PY "${WHEEL_LIB3MF_DIR}/Lib3MF.py")
+  set(WHEEL_LIB3MF_PY_TMP "${WHEEL_LIB3MF_DIR}/Lib3MF.py.wasm.tmp")
   add_custom_command(
     DEPENDS lib3mf
     OUTPUT "${WHEEL_CONTENTS_DIR}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${WHEEL_CONTENTS_DIR}"
     COMMAND /bin/sh -c "rm -r '${WHEEL_CONTENTS_DIR}/lib3mf' || true"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${WHEEL_CONTENTS_DIR}/lib3mf"
-    COMMAND /bin/sh -c "cp '${lib3mf-wheel-original_SOURCE_DIR}/lib3mf/'*.py '${WHEEL_CONTENTS_DIR}/lib3mf/'"
-    COMMAND /bin/sh -c "sed -i 's/linux/emscripten/g;s/Linux/Emscripten/g' '${WHEEL_CONTENTS_DIR}/lib3mf/'*.py"
-    COMMAND /bin/sh -c "python3 '${CMAKE_CURRENT_LIST_DIR}/fix_lib3mf_wasm.py' '${WHEEL_CONTENTS_DIR}/lib3mf/Lib3MF.py' '${WHEEL_CONTENTS_DIR}/lib3mf/Lib3MF.py'"    COMMAND /bin/sh -c "cp '${lib3mf_BINARY_DIR}/lib3mf.so' '${WHEEL_CONTENTS_DIR}/lib3mf/lib3mf.so'"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${WHEEL_LIB3MF_DIR}"
+    COMMAND /bin/sh -c "cp '${lib3mf-wheel-original_SOURCE_DIR}/lib3mf/'*.py '${WHEEL_LIB3MF_DIR}/'"
+    COMMAND /bin/sh -c "sed -i 's/linux/emscripten/g;s/Linux/Emscripten/g' '${WHEEL_LIB3MF_DIR}/'*.py"
+    COMMAND python3 "${CMAKE_CURRENT_LIST_DIR}/fix_lib3mf_wasm.py" "${WHEEL_LIB3MF_PY}" "${WHEEL_LIB3MF_PY_TMP}"
+    COMMAND ${CMAKE_COMMAND} -E rename "${WHEEL_LIB3MF_PY_TMP}" "${WHEEL_LIB3MF_PY}"
+    COMMAND /bin/sh -c "! grep -q 'lib3mf_getlibraryversion\\.argtypes = \\[ctypes\\.POINTER(ctypes\\.c_uint64)' '${WHEEL_LIB3MF_PY}'"
+    COMMAND /bin/sh -c "cp '${lib3mf_BINARY_DIR}/lib3mf.so' '${WHEEL_LIB3MF_DIR}/lib3mf.so'"
     COMMAND /bin/sh -c "[ -f '${lib3mf_BINARY_DIR}/lib3mf.wasm.debug.wasm' ] && cp '${lib3mf_BINARY_DIR}/lib3mf.wasm.debug.wasm' '${WHEEL_CONTENTS_DIR}/lib3mf/lib3mf.wasm.debug.wasm' || true"
     COMMAND /bin/sh -c "[ -f '${lib3mf_BINARY_DIR}/lib3mf.so.map' ] && cp '${lib3mf_BINARY_DIR}/lib3mf.so.map' '${WHEEL_CONTENTS_DIR}/lib3mf/lib3mf.so.map' || true"
     VERBATIM
@@ -64,6 +70,5 @@ if(EMSCRIPTEN)
   add_custom_target(lib3mf-wheel-target ALL DEPENDS "${WHEEL_CONTENTS_DIR}")
   install(INSTALL_ME DIRECTORY "${WHEEL_CONTENTS_DIR}/" DESTINATION ".")
 endif()
-
 
 
