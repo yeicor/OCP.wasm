@@ -98,7 +98,10 @@ async def main():
         # Discover and run all tests
         import pytest
         exit_code = pytest.main([
-            "-v",
+            "-vvv", # Maximum verbosity
+            "-s", # Do not capture test output, i.e., print immediately to console
+            "--setup-show", # Prints fixture setup/teardown around every test
+            "--tb=long", # Full tracebacks
             # "--benchmark-disable", # These are somewhat slow, but they work
             # VTK is not compiled, so the following visualization tests must be disabled
             "--ignore=tests/test_direct_api/test_jupyter.py",
