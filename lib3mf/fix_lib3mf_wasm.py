@@ -1,133 +1,249 @@
 """
-Applies WASM/ctypes compatibility fixes to the ACT-generated Lib3MF.py.
+Applies WASM/ctypes compatibility fixes to ACT-generated Lib3MF.py files.
 
-On WASM (Pyodide/Emscripten):
-  - ctypes.CFUNCTYPE cannot register callbacks with c_uint64 parameters
-    (WASM32 ABI has no 64-bit integer support for function signatures).
-  - Buffer size parameters (uint64_t in native API) must be uint32_t on WASM.
-  - Count output parameters (uint32_t*) remain as pointer types but the
-    pointee type must match what the library actually writes.
+The generated bindings mix up pointer-sized and fixed-width integers on
+WASM32/Pyodide. This patcher rewrites only the proven problematic cases:
 
-This script transforms the auto-generated Lib3MF.py to work on WASM.
-It is designed to be resilient across ACT-generated version bumps:
-new functions following the same patterns are automatically handled.
+- String-buffer getters:
+  (..., uint64 bufferSize, uint64* neededChars, char* buffer)
+  must use uint32/uint32* on WASM.
+- Count-like outputs:
+  functions whose name includes "count" and expose uint32* outputs must use
+  uint64* so the wrapper matches the generated ABI expectations.
+- Wrapper locals:
+  local ctypes variables are rewritten from the callee signature that they are
+  passed into, which also fixes newer functions such as getlibraryversion.
 """
 
+from __future__ import annotations
+
 import re
+import sys
+
+
+ARGTYPES_RE = re.compile(
+    r"^(?P<indent>\s*)self\.lib\.(?P<name>lib3mf_\w+)\.argtypes = \[(?P<args>.*)\]\s*$"
+)
+METHOD_ASSIGN_RE = re.compile(
+    r"^\s*self\.lib\.(?P<name>lib3mf_\w+)\s*=\s*methodType\("
+)
+CALL_START_RE = re.compile(r"lib\.(?P<name>lib3mf_\w+)\(")
+ASSIGN_RE = re.compile(
+    r"^(?P<indent>\s*)(?P<var>\w+)\s*=\s*ctypes\.(?P<ctype>c_uint32|c_uint64)\((?P<expr>.*)\)\s*$"
+)
+METHOD_DEF_RE = re.compile(r"^\s*def\s+\w+\(")
+
+
+def split_top_level(text: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for char in text:
+        if char == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+            continue
+        current.append(char)
+        if char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+    tail = "".join(current).strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+
+def classify_argtypes(name: str, argtypes: list[str]) -> list[str]:
+    fixed = list(argtypes)
+
+    # String getter pattern:
+    # [..., c_uint64, POINTER(c_uint64), c_char_p]
+    for i in range(len(fixed) - 2):
+        if (
+            fixed[i] == "ctypes.c_uint64"
+            and fixed[i + 1] == "ctypes.POINTER(ctypes.c_uint64)"
+            and fixed[i + 2] == "ctypes.c_char_p"
+        ):
+            fixed[i] = "ctypes.c_uint32"
+            fixed[i + 1] = "ctypes.POINTER(ctypes.c_uint32)"
+
+    # Count outputs use 64-bit pointees in the generated WASM ABI.
+    if "count" in name.lower():
+        fixed = [
+            "ctypes.POINTER(ctypes.c_uint64)"
+            if arg == "ctypes.POINTER(ctypes.c_uint32)"
+            else arg
+            for arg in fixed
+        ]
+
+    return fixed
+
+
+def desired_ctype_for_arg(argtype: str) -> str | None:
+    if argtype in ("ctypes.c_uint32", "ctypes.POINTER(ctypes.c_uint32)"):
+        return "c_uint32"
+    if argtype in ("ctypes.c_uint64", "ctypes.POINTER(ctypes.c_uint64)"):
+        return "c_uint64"
+    return None
+
+
+def collect_signature_map(lines: list[str]) -> dict[str, list[str]]:
+    signatures: dict[str, list[str]] = {}
+    for line in lines:
+        match = ARGTYPES_RE.match(line)
+        if not match:
+            continue
+        signatures[match.group("name")] = classify_argtypes(
+            match.group("name"),
+            split_top_level(match.group("args")),
+        )
+    return signatures
+
+
+def rewrite_argtypes(lines: list[str], signatures: dict[str, list[str]]) -> list[str]:
+    result: list[str] = []
+    for line in lines:
+        match = ARGTYPES_RE.match(line)
+        if not match:
+            result.append(line)
+            continue
+        name = match.group("name")
+        new_args = ", ".join(signatures[name])
+        result.append(f"{match.group('indent')}self.lib.{name}.argtypes = [{new_args}]")
+    return result
+
+
+def rewrite_methodtypes(lines: list[str], signatures: dict[str, list[str]]) -> list[str]:
+    result = list(lines)
+    for i, line in enumerate(lines[:-1]):
+        if "methodType = ctypes.CFUNCTYPE(" not in line:
+            continue
+        assign_match = METHOD_ASSIGN_RE.match(lines[i + 1])
+        if not assign_match:
+            continue
+        name = assign_match.group("name")
+        if name not in signatures:
+            continue
+
+        prefix, inner = line.split("ctypes.CFUNCTYPE(", 1)
+        if not inner.endswith(")"):
+            continue
+        params = split_top_level(inner[:-1])
+        if len(params) < 1:
+            continue
+
+        restype = params[0]
+        new_line = (
+            f"{prefix}ctypes.CFUNCTYPE("
+            + ", ".join([restype, *signatures[name]])
+            + ")"
+        )
+        result[i] = new_line
+    return result
+
+
+def extract_call_signature_needs(block: list[str], signatures: dict[str, list[str]]) -> dict[str, str]:
+    desired: dict[str, str] = {}
+
+    for line in block:
+        for match in CALL_START_RE.finditer(line):
+            name = match.group("name")
+            if name not in signatures:
+                continue
+            start = match.end()
+            depth = 1
+            end = start
+            while end < len(line) and depth > 0:
+                if line[end] == "(":
+                    depth += 1
+                elif line[end] == ")":
+                    depth -= 1
+                end += 1
+            if depth != 0:
+                continue
+
+            args = split_top_level(line[start : end - 1])
+            for expr, argtype in zip(args, signatures[name]):
+                expr = expr.strip()
+                ctype = desired_ctype_for_arg(argtype)
+                if ctype is None or not re.fullmatch(r"\w+", expr):
+                    continue
+                if expr in desired and desired[expr] != ctype:
+                    continue
+                desired[expr] = ctype
+
+    return desired
+
+
+def rewrite_method_block(block: list[str], signatures: dict[str, list[str]]) -> list[str]:
+    desired = extract_call_signature_needs(block, signatures)
+    if not desired:
+        return block
+
+    result: list[str] = []
+    for line in block:
+        match = ASSIGN_RE.match(line)
+        if not match:
+            result.append(line)
+            continue
+
+        var = match.group("var")
+        target = desired.get(var)
+        if target is None or target == match.group("ctype"):
+            result.append(line)
+            continue
+
+        result.append(
+            f"{match.group('indent')}{var} = ctypes.{target}({match.group('expr')})"
+        )
+    return result
+
+
+def rewrite_method_locals(lines: list[str], signatures: dict[str, list[str]]) -> list[str]:
+    result: list[str] = []
+    i = 0
+    while i < len(lines):
+        if not METHOD_DEF_RE.match(lines[i]):
+            result.append(lines[i])
+            i += 1
+            continue
+
+        block = [lines[i]]
+        i += 1
+        while i < len(lines) and not METHOD_DEF_RE.match(lines[i]):
+            block.append(lines[i])
+            i += 1
+        result.extend(rewrite_method_block(block, signatures))
+    return result
 
 
 def fix_lib3mf(content: str) -> str:
-    lines = content.split("\n")
-    result = []
-
-    # Match: standalone ctypes.c_uint64 (not inside POINTER) followed by:
-    #   ...POINTER(ctypes.c_uint64), ctypes.c_char_p
-    # (the buffer-string-getter pattern — the only context the proven patch changes)
-    _RE_BUF_GETTER = re.compile(
-        r"(?<!POINTER\()ctypes\.c_uint64"
-        r"(.*?POINTER\(ctypes\.c_uint64\),\s*ctypes\.c_char_p)"
-    )
-
-    for i, raw_line in enumerate(lines):
-        line = raw_line
-
-        is_indented = line.startswith((" ", "\t"))
-        is_callback_def = line.strip().startswith((
-            "ProgressCallback", "WriteCallback", "ReadCallback",
-            "SeekCallback", "RandomNumberCallback", "KeyWrappingCallback",
-            "ContentEncryptionCallback",
-        ))
-
-        # ── Transform 1: CFUNCTYPE (inside methods) ──────────────────
-        if is_indented and "CFUNCTYPE" in line and not is_callback_def:
-            # 1a: POINTER(c_uint32) → POINTER(c_uint64)  (count outputs)
-            # Only change for count functions (function name in next line)
-            if "POINTER(ctypes.c_uint32)" in raw_line:
-                _fn_match = None
-                if i + 1 < len(lines):
-                    _fn_match = re.search(r"lib3mf_(\w+)", lines[i + 1])
-                if _fn_match and "count" in _fn_match.group(1).lower():
-                    line = line.replace("POINTER(ctypes.c_uint32)", "POINTER(ctypes.c_uint64)")
-
-            # 1b: standalone c_uint64, POINTER(c_uint64), c_char_p → c_uint32, POINTER(c_uint32), c_char_p
-            line = _RE_BUF_GETTER.sub(
-                lambda m: "ctypes.c_uint32"
-                + m.group(1).replace(
-                    "POINTER(ctypes.c_uint64)", "POINTER(ctypes.c_uint32)"
-                ),
-                line,
-            )
-
-        # ── Transform 2: argtypes ────────────────────────────────────
-        if ".argtypes" in line:
-            # 2a: POINTER(c_uint32) → POINTER(c_uint64)  (count outputs)
-            # Only change for count functions
-            if "POINTER(ctypes.c_uint32)" in raw_line:
-                _fn_match = re.search(r"lib3mf_(\w+)\.argtypes", raw_line)
-                if _fn_match and "count" in _fn_match.group(1).lower():
-                    line = line.replace("POINTER(ctypes.c_uint32)", "POINTER(ctypes.c_uint64)")
-
-            # 2b: standalone c_uint64, POINTER(c_uint64), c_char_p → c_uint32, POINTER(c_uint32), c_char_p
-            line = _RE_BUF_GETTER.sub(
-                lambda m: "ctypes.c_uint32"
-                + m.group(1).replace(
-                    "POINTER(ctypes.c_uint64)", "POINTER(ctypes.c_uint32)"
-                ),
-                line,
-            )
-
-        # ── Transform 3: Method-body code (indented, non-signature) ──
-        if is_indented and "CFUNCTYPE" not in line and ".argtypes" not in line:
-            # 3a: ctypes.c_uint64(0) → ctypes.c_uint32(0)  (buffer-size init)
-            line = re.sub(r"\bctypes\.c_uint64\(0\)", "ctypes.c_uint32(0)", line)
-
-            # 3b: ctypes.c_uint64(name.value) → ctypes.c_uint32(name.value)  (re-assignment)
-            line = re.sub(
-                r"\bctypes\.c_uint64\((\w+\.value)\)", r"ctypes.c_uint32(\1)", line
-            )
-
-            # 3c: ctypes.c_uint64(StreamSize) → ctypes.c_uint32(StreamSize)
-            line = re.sub(
-                r"\bctypes\.c_uint64\((StreamSize)\)", r"ctypes.c_uint32(\1)", line
-            )
-
-            # 3d: pCount|c|SheetCount = ctypes.c_uint32() → ctypes.c_uint64()
-            line = re.sub(
-                r"(p(?:Count|RowCount|ColumnCount|SheetCount))\s*=\s*ctypes\.c_uint32\(\)",
-                r"\1 = ctypes.c_uint64()",
-                line,
-            )
-
-            # 3e: ctypes.c_uint32((Row|Column|Sheet)Count) → ctypes.c_uint64(...)
-            line = re.sub(
-                r"\bctypes\.c_uint32\(((?:Row|Column|Sheet)Count)\)",
-                r"ctypes.c_uint64(\1)",
-                line,
-            )
-
-        result.append(line)
-
-    return "\n".join(result)
+    lines = content.splitlines()
+    signatures = collect_signature_map(lines)
+    lines = rewrite_argtypes(lines, signatures)
+    lines = rewrite_methodtypes(lines, signatures)
+    lines = rewrite_method_locals(lines, signatures)
+    return "\n".join(lines) + ("\n" if content.endswith("\n") else "")
 
 
-def main():
-    import sys
-
+def main() -> None:
     if len(sys.argv) != 3:
         print("Usage: fix_lib3mf_wasm.py <input.py> <output.py>")
         sys.exit(1)
 
-    with open(sys.argv[1]) as f:
+    with open(sys.argv[1], encoding="utf-8") as f:
         content = f.read()
 
     fixed = fix_lib3mf(content)
 
-    with open(sys.argv[2], "w") as f:
+    with open(sys.argv[2], "w", encoding="utf-8") as f:
         f.write(fixed)
 
-    orig_lines = content.split("\n")
-    new_lines = fixed.split("\n")
+    orig_lines = content.splitlines()
+    new_lines = fixed.splitlines()
     changes = sum(1 for a, b in zip(orig_lines, new_lines) if a != b)
+    changes += abs(len(orig_lines) - len(new_lines))
     print(f"Total lines changed: {changes}")
 
 
