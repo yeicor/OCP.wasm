@@ -154,7 +154,7 @@ jobs:
 
       - uses: "actions/download-artifact@v8"
         with:
-          pattern: "wheel-*"
+          pattern: "wheel-*-Release"
           path: "_wheels"
           merge-multiple: true
 
@@ -176,8 +176,11 @@ jobs:
           pyodide venv .venv-pyodide
           . .venv-pyodide/bin/activate
           
-          # Install the pre-built wasm wheels locally so micropip skips fetching them
-          pip install ../_wheels/*.whl
+          # Install the pre-built wasm wheels into the pyodide venv (pip has issues with emscripten wheels, so extract directly)
+          SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_path("platlib"))')"
+          for whl in ../_wheels/*.whl; do
+            unzip -o "$whl" -d "$SITE_PACKAGES"
+          done
           
           # Install build123d and run tests (stable and dev versions)
           function test_build123d_branch() {
