@@ -2,12 +2,33 @@ import importlib.metadata
 import micropip
 
 
-def _parse_first_compatible_version(spec_str):
+def _select_mock_version(spec_str):
+    upper = None
+    lower_bounds = []
+
     for part in spec_str.split(","):
         part = part.strip()
-        for op in (">=", "~=", "==", ">"):
-            if part.startswith(op):
-                return part[len(op):].strip()
+        if part.startswith("<="):
+            v = part[2:].strip()
+            if upper is None or v < upper:
+                upper = v
+        elif part.startswith("<"):
+            v = part[1:].strip()
+            if upper is None or v < upper:
+                upper = v
+        elif part.startswith(">="):
+            lower_bounds.append(part[2:].strip())
+        elif part.startswith(">"):
+            lower_bounds.append(part[1:].strip())
+        elif part.startswith("~="):
+            lower_bounds.append(part[2:].strip())
+        elif part.startswith("=="):
+            lower_bounds.append(part[2:].strip())
+
+    if upper:
+        return upper + ".dev0"
+    if lower_bounds:
+        return max(lower_bounds)
     return None
 
 
@@ -31,7 +52,7 @@ async def _mock_from_build123d_metadata(build123d_version="stable"):
                 suffix = req[len(pkg_name):].lstrip()
                 if not suffix or suffix[0] not in (">", "<", "=", "~", "!", "("):
                     continue
-                version = _parse_first_compatible_version(suffix)
+                version = _select_mock_version(suffix)
                 if version:
                     if pkg_name not in mock_versions or version > mock_versions[pkg_name]:
                         mock_versions[pkg_name] = version
@@ -45,11 +66,16 @@ async def _mock_from_build123d_metadata(build123d_version="stable"):
                 if ir.startswith("psutil"):
                     suffix = ir[len("psutil"):].lstrip()
                     if suffix and suffix[0] in (">", "<", "=", "~", "!", "("):
-                        v = _parse_first_compatible_version(suffix)
+                        v = _select_mock_version(suffix)
                         if v:
                             if "psutil" not in mock_versions or v > mock_versions["psutil"]:
                                 mock_versions["psutil"] = v
                     break
+
+    if "cadquery-ocp" in mock_versions and "cadquery-ocp-novtk" not in mock_versions:
+        mock_versions["cadquery-ocp-novtk"] = mock_versions["cadquery-ocp"]
+    if "cadquery-ocp-novtk" in mock_versions and "cadquery-ocp" not in mock_versions:
+        mock_versions["cadquery-ocp"] = mock_versions["cadquery-ocp-novtk"]
 
     for pkg_name, version in mock_versions.items():
         micropip.add_mock_package(pkg_name, version)
