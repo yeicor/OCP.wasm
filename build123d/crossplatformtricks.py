@@ -5,9 +5,8 @@ if sys.platform == 'emscripten':
     from bootstrap_in_pyodide import bootstrap as _bootstrap
 
     async def bootstrap():
-        ocp_index = os.environ.get("OCP_WASM_INDEX_URL", "https://yeicor.github.io/OCP.wasm")
-        print(f"Bootstrapping build123d with index {ocp_index}...")
-        await _bootstrap(ocp_index)
+        print("Bootstrapping build123d...")
+        await _bootstrap()
 
         # Now bootstrap a few optional extra hacks to make all build123d tests pass in pyodide
 
