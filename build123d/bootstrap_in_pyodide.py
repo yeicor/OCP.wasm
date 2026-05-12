@@ -22,6 +22,8 @@ async def _mock_from_build123d_metadata(build123d_version="stable"):
     data = await response.json()
     requires_dist = data["info"].get("requires_dist", [])
 
+    mock_versions = {}
+
     for req in requires_dist:
         req = req.replace("(", "").replace(")", "")
         for pkg_name in ("cadquery-ocp-novtk", "cadquery-ocp", "lib3mf"):
@@ -31,7 +33,8 @@ async def _mock_from_build123d_metadata(build123d_version="stable"):
                     continue
                 version = _parse_first_compatible_version(suffix)
                 if version:
-                    micropip.add_mock_package(pkg_name, version)
+                    if pkg_name not in mock_versions or version > mock_versions[pkg_name]:
+                        mock_versions[pkg_name] = version
                 break
 
         if req.startswith("ipython"): # Always assume latest, as build123d uses wide valid range
@@ -44,8 +47,12 @@ async def _mock_from_build123d_metadata(build123d_version="stable"):
                     if suffix and suffix[0] in (">", "<", "=", "~", "!", "("):
                         v = _parse_first_compatible_version(suffix)
                         if v:
-                            micropip.add_mock_package("psutil", v)
+                            if "psutil" not in mock_versions or v > mock_versions["psutil"]:
+                                mock_versions["psutil"] = v
                     break
+
+    for pkg_name, version in mock_versions.items():
+        micropip.add_mock_package(pkg_name, version)
 
     return data["info"]["version"] if build123d_version == "stable" else build123d_version
 
