@@ -25,11 +25,13 @@ def _select_mock_version(spec_str):
         elif part.startswith("=="):
             lower_bounds.append(part[2:].strip())
 
+    if not lower_bounds:
+        return None
+
+    highest_lower = max(lower_bounds)
     if upper:
-        return upper + ".dev0"
-    if lower_bounds:
-        return max(lower_bounds)
-    return None
+        return highest_lower + ".9999999999"
+    return highest_lower
 
 
 async def _mock_from_build123d_metadata(build123d_version="stable"):
