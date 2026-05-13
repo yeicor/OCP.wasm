@@ -4,8 +4,7 @@ on:
       - "master"
       - "renovate/**"
   pull_request:
-  workflow_dispatch:
-    # Always allow manual runs
+  workflow_dispatch: # Always allow manual runs
 
 jobs:
   build_wheels:
@@ -40,56 +39,52 @@ jobs:
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
 
-      - uses: "actions/cache@v5"
-        id: "cache"
-        with:
-          path: | # Same below!
-            ${{ matrix.package }}/build
-            !${{ matrix.package }}/build/*/_deps/*-src
-            !${{ matrix.package }}/build/*/_deps/opencascade-build/src
-            ${{ matrix.package }}/emsdk/upstream/emscripten/cache
-          key: "build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-${{ hashFiles('**/*.txt', '**/*.cmake', '**/pyproject.toml', '**/*.py') }}"
-          restore-keys: |
-            build_wheels-${{ matrix.package }}-${{ matrix.build_type }}-
-            build_wheels-${{ matrix.package }}-
-
       - id: "xbuildenv_data"
         run: ".github/scripts/xbuildenv_data.sh"
       - uses: "actions/setup-python@v6"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         with:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
-          cache: "pip" # caching pip dependencies
+          cache: "pip"
+
+      - uses: "dawidd6/action-download-artifact@v6"
+        with:
+          workflow_conclusion: ""
+          name: "build-${{ matrix.package }}-${{ matrix.build_type }}"
+          path: "${{ matrix.package }}"
+          search_artifacts: true
+          if_no_artifact_found: ignore
 
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: | # Install dependencies
-          sudo apt update && sudo apt install -y binaryen  # ccache does not seem to work on CI
+          sudo apt update && sudo apt install -y binaryen ccache
           pip install -r ../requirements.txt
           pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
-          git clone https://github.com/emscripten-core/emsdk emsdk-tmp  # Avoids non-empty directory error (CI cache)
+          git clone https://github.com/emscripten-core/emsdk emsdk-tmp
           mkdir -p emsdk && ( mv emsdk-tmp/* emsdk-tmp/.[^.]* emsdk || true ) && rm -rf emsdk-tmp
-          mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +  # XXX: Ensures cache is used
+          mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +
 
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
-        run: | # Activate emsdk and build with pyodide
+        run: |
           cd emsdk && PYODIDE_EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) && ./emsdk install ${PYODIDE_EMSCRIPTEN_VERSION} && ./emsdk activate ${PYODIDE_EMSCRIPTEN_VERSION} && source emsdk_env.sh && cd ..
+          ccache -s -v || true
           pyodide build ${{ matrix.pyodide_args }}
+          ccache -s -v || true
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
-          # SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
-          CMAKE_BUILD_PARALLEL_LEVEL: 2 # XXX: Try to avoid running out of memory for heavy builds ("The hosted runner lost communication with the server.")
-          _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
-        timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
+          CMAKE_BUILD_PARALLEL_LEVEL: 2
+          _FORCE_OLD_SOURCES: "TRUE"
+        timeout-minutes: 310
 
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
-        run: | # Post-process wheel version to add date-based suffix (avoids build-system version precedence issues)
+        run: |
           pip install change-wheel-version
           for whl in dist/*.whl; do
             change_wheel_version "$whl" \
@@ -97,32 +92,18 @@ jobs:
               --delete-old-wheel
           done
 
-      - uses: "actions/upload-artifact@v7"
-        with:
-          name: "wheel-${{ matrix.package }}-${{ matrix.build_type }}"
-          path: "${{ matrix.package }}/dist/*.whl"
-          if-no-files-found: "error" # Fail if no wheels are built, as this indicates a problem with the build process
-
-      - if: "failure()" # Save cache even on failures
-        uses: "actions/cache/save@v5"
-        with:
-          key: "${{ steps.cache.outputs.cache-primary-key }}"
-          path: | # Same below and above!
-            ${{ matrix.package }}/build
-            !${{ matrix.package }}/build/*/_deps/*-src
-            !${{ matrix.package }}/build/*/_deps/opencascade-build/src
-            ${{ matrix.package }}/emsdk/upstream/emscripten/cache
-
-      - if: "always()" # Upload cache and wheels as an artifact for debugging
+      - if: "!cancelled()"
         uses: "actions/upload-artifact@v7"
         with:
-          name: "cache-${{ matrix.package }}-${{ matrix.build_type }}"
+          name: "build-${{ matrix.package }}-${{ matrix.build_type }}"
           include-hidden-files: true
-          path: | # Same above!
+          path: |
+            ${{ matrix.package }}/dist/*.whl
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
+          retention-days: 5
 
   test_build123d_integration:
     needs: "build_wheels"
