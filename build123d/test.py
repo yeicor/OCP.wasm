@@ -73,7 +73,10 @@ async def download_and_patch_build123d(tag_or_branch: str):
 
     # Debug: inspect lib3mf state before importing build123d
     import lib3mf as _l3
-    print(f"lib3mf state: file={_l3.__file__}, path={_l3.__path__}, has_Lib3MF={hasattr(_l3, 'Lib3MF')}")
+    _l3_file = getattr(_l3, '__file__', None)
+    _l3_path = getattr(_l3, '__path__', None)
+    _l3_has = hasattr(_l3, 'Lib3MF')
+    print(f"lib3mf state: file={_l3_file}, path={_l3_path}, has_Lib3MF={_l3_has}")
 
     import importlib.metadata
     try:
