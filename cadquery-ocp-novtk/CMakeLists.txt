@@ -18,7 +18,7 @@ endif()
 # Set default debug and release flags
 set(_IS_DEBUG OFF) # Useful for later
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(_IS_DEBUG ON)
+  set(_IS_DEBUG ON)
 endif()
 message(STATUS "Is this a debug build? ${_IS_DEBUG}")
 # XXX: The following is overwritten by pyodide during build, so moved to main.yml as environment vars
@@ -34,7 +34,7 @@ if(NOT _IS_DEBUG AND ENABLE_IPO)
   check_ipo_supported(RESULT check_ipo_res)
   if(check_ipo_res)
     message(STATUS "Enabling interprocedural optimization globally (LTO)")
-    cmake_policy(SET CMP0069 NEW) 
+    cmake_policy(SET CMP0069 NEW)
     set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
   endif()
@@ -48,7 +48,7 @@ if(EMSCRIPTEN)
     RESULT_VARIABLE EMBUILD_RESULT
   )
   if(NOT EMBUILD_RESULT EQUAL 0)
-      message(FATAL_ERROR "Failed to run embuilder")
+    message(FATAL_ERROR "Failed to run embuilder")
   endif()
 
   # XXX: Make a local link to the sysroot, since pyodide will just drop it if it falls under /src
@@ -130,12 +130,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(pybind11 rapidjson)
 
 # ##### OCCT #####
-set(BUILD_DOC_Overview OFF) 
+set(BUILD_DOC_Overview OFF)
 set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # For some reason this toolkit from the Visualization module is required from other modules...
 FetchContent_Declare(
   OpenCASCADE
   GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
-  GIT_TAG "V7_9_3"
+  GIT_TAG "V7_8_1"
   GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
@@ -170,7 +170,7 @@ message(STATUS "-DOpenCASCADE_LIBRARIES=\\\"${BUILD_TOOLKITS_C}\\\"")
 # ##### OCP #####
 FetchContent_Declare(
   OCP
-  URL "https://github.com/CadQuery/OCP/releases/download/7.9.3.0/OCP_src_stubs_Linux.zip"
+  URL "https://github.com/CadQuery/OCP/releases/download/7.8.1.2/OCP_src_stubs_ubuntu-20.04.zip"
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
@@ -220,6 +220,3 @@ if(EMSCRIPTEN)
   add_custom_target(OCP-wasm-opt-target ALL DEPENDS "${OPTIMIZED_DIR}")
   install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION ".")
 endif()
-
-
-
