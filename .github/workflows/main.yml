@@ -1,4 +1,11 @@
-on: ["push", "pull_request", "workflow_dispatch"]
+on:
+  push:
+    branches:
+      - "master"
+      - "renovate/**"
+  pull_request:
+  workflow_dispatch:
+    # Always allow manual runs
 
 jobs:
   build_wheels:
