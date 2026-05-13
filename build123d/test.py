@@ -70,7 +70,8 @@ async def main():
         def _new_urlretrieve(url, filename=None, reporthook=None, data=None):
             if url.startswith("https://") and filename is not None and not reporthook and not data:
                 from pyodide.http import pyfetch
-                bs = run_sync(pyfetch(url).then(lambda r: r.bytes()))
+                response = run_sync(pyfetch(url))
+                bs = run_sync(response.bytes())
                 with open(filename, "wb") as f:
                     f.write(bs)
                 return filename, {}
@@ -87,8 +88,10 @@ async def main():
 
         def _new_subprocess_run(cmd, *args, **kwargs):
             if cmd[0] == sys.executable and cmd[1] == '-c':
-                import io, contextlib, subprocess
+                import io, contextlib, re, subprocess
                 code = cmd[2]
+                code = re.sub(r'open\(([^,)]+),\s*encoding=([^)]+)\)\.read\(\)', r'open(\1, "rb").read().decode(\2)', code)
+                code = code.replace(').read()', ', "rb").read().decode("utf-8")')
                 stdout = io.StringIO()
                 stderr = io.StringIO()
                 exit_code = 0
@@ -96,7 +99,7 @@ async def main():
                 with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                     try:
                         os.chdir(kwargs.get('cwd', oldwd))
-                        exec(code.replace(').read()', ', "rb").read().decode("utf-8")'), {})
+                        exec(code, {})
                     except Exception as e:
                         import traceback
                         traceback.print_exc(file=stderr)
