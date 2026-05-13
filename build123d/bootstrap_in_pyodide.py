@@ -129,4 +129,4 @@ async def bootstrap(build123d_version_arg="stable"):
     # Remove the mocks now that build123d is installed, so imports like
     # "from lib3mf import Lib3MF" resolve to the real OCP.wasm packages.
     for pkg_name, _version in mock_versions.items():
-        micropip.remove_mock_package(_pkg)
+        micropip.remove_mock_package(pkg_name)
