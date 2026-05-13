@@ -80,6 +80,7 @@ jobs:
           LDFLAGS: "${{ matrix.ldflags }}"
           CMAKE_BUILD_PARALLEL_LEVEL: 2
           _FORCE_OLD_SOURCES: "TRUE"
+          CCACHE_DIR: "${{ matrix.package }}/.ccache"
         timeout-minutes: 310
 
       - working-directory: "${{ matrix.package }}"
@@ -103,6 +104,7 @@ jobs:
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
+            ${{ matrix.package }}/.ccache
           retention-days: 5
 
   test_build123d_integration:
