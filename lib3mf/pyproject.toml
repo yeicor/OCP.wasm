@@ -3,7 +3,7 @@ requires = ["scikit-build-core==0.12.2"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "lib3mf"
+name = "lib3mf-OCP.wasm"
 dynamic = ["version"]
 description = "Python bindings for lib3mf using scikit-build-core"
 authors = [{ name = "Yeicor" }]

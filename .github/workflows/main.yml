@@ -1,4 +1,4 @@
-on: [ "push", "pull_request", "workflow_dispatch" ]
+on: ["push", "pull_request", "workflow_dispatch"]
 
 jobs:
   build_wheels:
@@ -6,8 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ "cadquery-ocp-novtk", "lib3mf" ]
-        build_type: [ "Release", "Debug" ]
+        package: ["cadquery-ocp-novtk", "lib3mf"]
+        build_type: ["Release", "Debug"]
         include: # Extends and overrides the matrix for specific configurations
           - build_type: "Release"
             cflags: "-O3"
@@ -20,7 +20,7 @@ jobs:
 
           - pyodide_args: ""
           - package: "cadquery-ocp-novtk"
-            pyodide_args: "--exports=whole_archive"  # Avoids missing symbols due to custom emscripten exports
+            pyodide_args: "--exports=whole_archive" # Avoids missing symbols due to custom emscripten exports
 
           - package: "cadquery-ocp-novtk"
             build_type: "Release"
@@ -36,7 +36,7 @@ jobs:
       - uses: "actions/cache@v5"
         id: "cache"
         with:
-          path: |  # Same below!
+          path: | # Same below!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
@@ -52,7 +52,7 @@ jobs:
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         with:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip" # caching pip dependencies
 
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
@@ -65,44 +65,6 @@ jobs:
           mkdir -p emsdk && ( mv emsdk-tmp/* emsdk-tmp/.[^.]* emsdk || true ) && rm -rf emsdk-tmp
           mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +  # XXX: Ensures cache is used
 
-      - id: "dynamic_version"
-        working-directory: "${{ matrix.package }}"
-        run: |
-          set -eux
-
-          BASE_VERSION="$(
-            python <<'PY'
-          import importlib.util
-          import pathlib
-          import re
-          import tomllib
-
-          cfg = tomllib.load(open("pyproject.toml", "rb"))
-
-          version_cfg = cfg["tool"]["scikit-build"]["metadata"]["version"]
-
-          cmake = pathlib.Path(version_cfg["input"]).read_text()
-
-          regex = re.compile(version_cfg["regex"])
-          match = regex.search(cmake)
-
-          if not match:
-              raise RuntimeError("Could not determine version")
-
-          print(match.group("value"))
-          PY
-          )"
-
-          # Tagged releases keep the clean version
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            FINAL_VERSION="$BASE_VERSION"
-          else
-            POST="$(date -u +%Y%m%d%H%M)"
-            FINAL_VERSION="${BASE_VERSION}.post${POST}"
-          fi
-
-          echo "version=$FINAL_VERSION" >> "$GITHUB_OUTPUT"
-
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: | # Activate emsdk and build with pyodide
@@ -111,7 +73,6 @@ jobs:
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           # SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
-          SKBUILD_METADATA_VERSION: "${{ steps.dynamic_version.outputs.version }}"
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
@@ -119,166 +80,120 @@ jobs:
           _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
 
+      - working-directory: "${{ matrix.package }}"
+        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
+        run: | # Post-process wheel version to add date-based suffix (avoids build-system version precedence issues)
+          pip install change-wheel-version
+          for whl in dist/*.whl; do
+            change_wheel_version "$whl" \
+              --version "$(basename "$whl" .whl | cut -d- -f2).post$(date -u +%Y%m%d%H%M)" \
+              --delete-old-wheel
+          done
+
       - uses: "actions/upload-artifact@v7"
         with:
           name: "wheel-${{ matrix.package }}-${{ matrix.build_type }}"
           path: "${{ matrix.package }}/dist/*.whl"
-          if-no-files-found: "error"  # Fail if no wheels are built, as this indicates a problem with the build process
+          if-no-files-found: "error" # Fail if no wheels are built, as this indicates a problem with the build process
 
       - if: "failure()" # Save cache even on failures
         uses: "actions/cache/save@v5"
         with:
           key: "${{ steps.cache.outputs.cache-primary-key }}"
-          path: |  # Same below and above!
+          path: | # Same below and above!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
-      - if: "always()"  # Upload cache and wheels as an artifact for debugging
+      - if: "always()" # Upload cache and wheels as an artifact for debugging
         uses: "actions/upload-artifact@v7"
         with:
           name: "cache-${{ matrix.package }}-${{ matrix.build_type }}"
           include-hidden-files: true
-          path: |  # Same above!
+          path: | # Same above!
             ${{ matrix.package }}/build
             !${{ matrix.package }}/build/*/_deps/*-src
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
 
-  build_package_index:
+  test_build123d_integration:
     needs: "build_wheels"
     runs-on: "ubuntu-24.04"
     steps:
       - uses: "actions/checkout@v6"
-        with:
-          ref: "gh-pages"
 
       - uses: "actions/download-artifact@v8"
         with:
-          pattern: "wheel-*"
+          pattern: "wheel-*-Release"
           path: "_wheels"
-
-      - run: |
-          wget "https://raw.githubusercontent.com/yeicor/OCP.wasm/${{github.ref}}/util/package_index.py" -O _package_index.py
-          find # For debugging
-          python3 _package_index.py --wheels . _wheels --output .  # Overwrites matching versions (warnings are ok!)
-          rm -rf _wheels _package_index.py
-
-      - uses: "actions/upload-artifact@v7"
-        with:
-          name: "package-index"
-          path: "."
-
-  test_build123d_integration: # Test build123d integration using the wheels and package index generated above
-    needs: "build_package_index"
-    runs-on: "ubuntu-24.04"
-    steps:
-      - uses: "actions/checkout@v6"
-
-      - uses: "actions/download-artifact@v8"
-        with:
-          name: "package-index"
-          path: "package-index"
+          merge-multiple: true
 
       - id: "xbuildenv_data"
         run: ".github/scripts/xbuildenv_data.sh"
       - uses: "actions/setup-python@v6"
         with:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
-          cache: 'pip' # caching pip dependencies
+          cache: "pip"
 
       - working-directory: "build123d"
         run: |
           set -ex -o pipefail
-          
-          # Update package index links to point to the local files
-          to_remove="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          package_index_folder="$(realpath $(pwd)/../package-index)/"
-          python -m http.server --directory "$package_index_folder" &
-          package_index_url="http://127.0.0.1:8000/"
-          find "$package_index_folder" -type f -exec sed -i "s|${to_remove}|${package_index_url}|g" {} \;
-          
+
+          # Install pyodide build environment
+          pip install -r ../requirements.txt
+          pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
+          pyodide venv .venv-pyodide
+          . .venv-pyodide/bin/activate
+
           # Install build123d and run tests (stable and dev versions)
           function test_build123d_branch() {
             local branch="$1"
             echo "Testing build123d branch: $branch"
-            # Set up the Pyodide test environment (ensure new)
-            pip install -r ../requirements.txt
+
+            # Reinitialize venv for each test to avoid version conflicts
+            deactivate || true
             [ -f .venv-pyodide/bin/activate ] && rm -rf .venv-pyodide/
-            pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
             pyodide venv .venv-pyodide
             . .venv-pyodide/bin/activate
+
+            # Reinstall the pre-built wasm wheels into the fresh venv (only for dev branch, stable may require older versions that should be downloaded from PyPI instead)
+            if [ "$branch" = "dev" ]; then
+              SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_path("platlib"))')"
+              for whl in ../_wheels/*.whl; do
+                unzip -o "$whl" -d "$SITE_PACKAGES"
+              done
+            fi
+
             # XXX: There is a bug causing async tests to stop at a random point,
             # so retry until the output contains the proper completion statement or we give up (assume okay then)
             local max_retries=50
             local attempt=1
             while [ $attempt -le $max_retries ]; do
-              FORCE_COLOR=1 OCP_WASM_INDEX_URL="$package_index_url" python test.py "$branch" | tee -a test.log
+              FORCE_COLOR=1 python test.py "$branch" | tee -a test.log
               if grep -q "All tests passed successfully!" test.log; then
-                echo "Tests finished successfully on attempt $attempt for build123d version $version"
+                echo "Tests finished successfully on attempt $attempt"
                 break
               else
-                echo "Tests did not finish on attempt $attempt for build123d version $version (known async issue), retrying..."
+                echo "Tests did not finish on attempt $attempt (known async issue), retrying..."
                 attempt=$((attempt + 1))
               fi
             done
             if [ $attempt -gt $max_retries ]; then
-              echo "Warning: Tests did not finish after $max_retries attempts for build123d version $version (assuming okay)"
+              echo "Warning: Tests did not finish after $max_retries attempts (assuming okay)"
             fi
           }
-            
-          build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
-          test_build123d_branch "v$build123d_stable_version"
+
+          # We always test the built wheels on the latest dev branch, which will eventually become stable
           test_build123d_branch "dev"
+          # Sometimes, stable builds require older versions that should be downloaded from PyPI instead
+          #test_build123d_branch "stable" # TODO: Waiting to build older versions of the wheels for stable branch
 
       - uses: "actions/upload-artifact@v7"
         if: "always()"
         with:
           name: "test-build123d-integration-log"
           path: "build123d/test.log"
-
-  deploy_to_pages:
-    needs: "test_build123d_integration"
-    if: |
-      github.ref == 'refs/heads/master' ||
-      startsWith(github.ref, 'refs/tags/')
-    runs-on: "ubuntu-24.04"
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0   # required to delete/replace branch
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: "package-index"
-          path: "."
-
-      - run: |
-          set -e
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Create orphan branch with no history
-          git checkout --orphan gh-pages-clean
-
-          # Remove everything from index and working tree
-          git rm -rf . || true
-
-          # Re-add only the new artifact files
-          git add -v .
-
-          # Commit single snapshot
-          git commit -m "Deploy package index (single-snapshot)"
-
-          # Replace gh-pages branch completely
-          git branch -D gh-pages || true
-          git branch -m gh-pages
-
-          # Force-push rewritten history
-          git push --force origin gh-pages
-
 
   deploy_to_pypi:
     needs:
@@ -289,6 +204,7 @@ jobs:
       startsWith(github.ref, 'refs/tags/')
     permissions:
       id-token: write
+    environment: "publish"
     steps:
       - uses: "actions/download-artifact@v8"
         with:
