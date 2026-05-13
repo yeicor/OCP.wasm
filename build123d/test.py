@@ -19,8 +19,6 @@ async def _native_install(package_name):
 
 
 async def _native_bootstrap(ref):
-    import zipfile, io, tempfile, os, re, tomllib
-
     sources_bytes = None
     for url in (
         f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
@@ -35,35 +33,9 @@ async def _native_bootstrap(ref):
     if sources_bytes is None:
         raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
 
-    _tmpdir = tempfile.TemporaryDirectory()
-    with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
-        zipf.extractall(path=_tmpdir.name)
+    from bootstrap_in_pyodide import _extract_and_patch_github
 
-    _extracted_dir = os.path.join(_tmpdir.name, os.listdir(_tmpdir.name)[0])
-    _sources_folder = os.path.join(_extracted_dir, "src")
-    sys.path.insert(0, _sources_folder)
-
-    pyproject_path = os.path.join(_extracted_dir, "pyproject.toml")
-    with open(pyproject_path, "r") as f:
-        pyproject_content = f.read()
-    pyproject_content = re.sub(r'dynamic = \["version"]', 'version = "' + ref + '"', pyproject_content)
-    pyproject_content = re.sub(r'"setuptools_scm.*?",', "", pyproject_content)
-    pyproject_content = re.sub(r'\[tool\.setuptools.*]\n([^\[].*?\n)*', "", pyproject_content)
-    with open(pyproject_path, "w") as f:
-        f.write(pyproject_content)
-
-    init_path = os.path.join(_sources_folder, "build123d", "__init__.py")
-    with open(init_path, "r") as f:
-        init_content = f.read()
-    init_content = re.sub(r"from \.version import version as __version__", f"__version__ = '{ref}'", init_content)
-    with open(init_path, "w") as f:
-        f.write(init_content)
-
-    with open(pyproject_path, "rb") as f:
-        pyproject_data = tomllib.load(f)
-    _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
-    _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("development", [])
-    _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
+    _tmpdir, _extracted_dir, _dependencies, version = _extract_and_patch_github(sources_bytes, ref)
 
     for dep in _dependencies:
         dep = dep.strip()
@@ -79,12 +51,14 @@ async def _native_bootstrap(ref):
 
 
 async def main():
-    import os, json, urllib.request
+    import os, sys, json, urllib.request
 
-    branch = os.environ.get("BUILD123D_BRANCH", "dev")
+    branch = os.environ.get("BUILD123D_BRANCH") or (sys.argv[1] if len(sys.argv) > 1 else "dev")
     if branch == "stable":
         with urllib.request.urlopen("https://pypi.org/pypi/build123d/json") as r:
             branch = "v" + json.load(r)["info"]["version"]
+
+    os.environ["_install_build123d_from_github_also_optional"] = "true"
 
     if sys.platform == "emscripten":
         from bootstrap_in_pyodide import bootstrap
@@ -92,7 +66,6 @@ async def main():
         import micropip
 
         tmpdir, extracted_dir = await bootstrap(branch)
-        os.environ["_install_build123d_from_github_also_optional"] = "true"
 
         def _new_urlretrieve(url, filename=None, reporthook=None, data=None):
             if url.startswith("https://") and filename is not None and not reporthook and not data:

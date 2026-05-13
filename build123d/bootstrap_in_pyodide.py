@@ -1,6 +1,20 @@
 import importlib.metadata
+import io
+import os
+import re
+import sys
+import tempfile
+import zipfile
 
-import micropip
+try:
+    import micropip
+except ModuleNotFoundError:
+    pass
+
+try:
+    from pyodide.http import pyfetch
+except ModuleNotFoundError:
+    pass
 
 
 def _select_mock_version(spec_str):
@@ -64,8 +78,6 @@ def _parse_dep_requirements(requires_dist):
 
 
 async def _is_github_ref(owner, repo, ref):
-    from pyodide.http import pyfetch
-
     for url in (
         f"https://api.github.com/repos/{owner}/{repo}/git/ref/heads/{ref}",
         f"https://api.github.com/repos/{owner}/{repo}/git/ref/tags/{ref}",
@@ -78,8 +90,6 @@ async def _is_github_ref(owner, repo, ref):
 
 
 async def _get_ocp_requirements_from_pypi(build123d_version):
-    from pyodide.http import pyfetch
-
     response = await pyfetch(f"https://pypi.org/pypi/build123d/{build123d_version}/json")
     data = await response.json()
     requires_dist = data["info"].get("requires_dist", [])
@@ -107,8 +117,6 @@ async def _get_ocp_requirements_from_pypi(build123d_version):
 
 
 async def _get_ocp_requirements_from_pyproject(build123d_ref):
-    from pyodide.http import pyfetch
-
     ref_type = "heads" if build123d_ref == "dev" else "tags"
     content = await (await pyfetch(
         f"https://raw.githubusercontent.com/gumyr/build123d/refs/{ref_type}/{build123d_ref}/pyproject.toml"
@@ -142,27 +150,7 @@ async def _remove_mocks(mock_versions):
         micropip.remove_mock_package(pkg_name)
 
 
-async def _install_build123d_from_github(ref):
-    from pyodide.http import pyfetch
-    import zipfile, io, tempfile, re, tomllib, os, sys
-
-    sources_bytes = None
-    for url in (
-        f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
-        f"https://github.com/gumyr/build123d/archive/refs/tags/{ref}.zip",
-        f"https://github.com/gumyr/build123d/archive/zipball/{ref}",
-    ):
-        try:
-            response = await pyfetch(
-                "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + url
-            )
-            sources_bytes = await response.bytes()
-            break
-        except Exception:
-            continue
-    if sources_bytes is None:
-        raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
-
+def _extract_and_patch_github(sources_bytes, ref):
     version = '0.0.0+dev' if ref == "dev" else ref.strip("v")
     _tmpdir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
@@ -188,12 +176,36 @@ async def _install_build123d_from_github(ref):
     with open(init_path, "w") as f:
         f.write(init_content)
 
+    import tomllib
     with open(pyproject_path, "rb") as f:
         pyproject_data = tomllib.load(f)
     _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
     if os.getenv("_install_build123d_from_github_also_optional", "") != "":
         _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("development", [])
         _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
+
+    return _tmpdir, _extracted_dir, _dependencies, version
+
+
+async def _install_build123d_from_github(ref):
+    sources_bytes = None
+    for url in (
+        f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
+        f"https://github.com/gumyr/build123d/archive/refs/tags/{ref}.zip",
+        f"https://github.com/gumyr/build123d/archive/zipball/{ref}",
+    ):
+        try:
+            response = await pyfetch(
+                "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + url
+            )
+            sources_bytes = await response.bytes()
+            break
+        except Exception:
+            continue
+    if sources_bytes is None:
+        raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
+
+    _tmpdir, _extracted_dir, _dependencies, version = _extract_and_patch_github(sources_bytes, ref)
 
     for dep in _dependencies:
         dep = dep.strip()
@@ -209,7 +221,6 @@ async def _install_build123d_from_github(ref):
 
 async def bootstrap(build123d_version_arg="stable"):
     if build123d_version_arg == "stable":
-        from pyodide.http import pyfetch
         stable_version = (await (await pyfetch("https://pypi.org/pypi/build123d/json")).json())["info"]["version"]
         build123d_version_arg = "v" + stable_version
 
