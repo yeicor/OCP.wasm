@@ -4,9 +4,9 @@ import sys
 if sys.platform == 'emscripten':
     from bootstrap_in_pyodide import bootstrap as _bootstrap
 
-    async def bootstrap():
-        print("Bootstrapping build123d...")
-        await _bootstrap()
+    async def bootstrap(build123d_version_arg="stable"):
+        print("Bootstrapping build123d " + build123d_version_arg + "...")
+        tmpdir, extracted_dir = await _bootstrap(build123d_version_arg)
 
         # Now bootstrap a few optional extra hacks to make all build123d tests pass in pyodide
 
@@ -70,7 +70,8 @@ if sys.platform == 'emscripten':
 
         _old_subprocess_run = subprocess.run
         subprocess.run = _new_subprocess_run
-        
+
+        return tmpdir, extracted_dir
 
     async def common_fetch(url: str) -> bytes:
         from pyodide.http import pyfetch
@@ -86,8 +87,9 @@ if sys.platform == 'emscripten':
 else:
 
 
-    async def bootstrap():
+    async def bootstrap(build123d_version_arg="stable"):
         pass # Nothing to do for non-pyodide platforms
+        return None, None
         
 
     async def common_fetch(url: str) -> bytes:
