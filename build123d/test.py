@@ -82,16 +82,35 @@ async def main():
         _old_urlretrieve = urllib.request.urlretrieve
         urllib.request.urlretrieve = _new_urlretrieve
 
+        import os as _os
+        import build123d
+
         await micropip.install("font-fetcher")
         from font_fetcher.ocp import install_ocp_font_hook
+        from OCP.Font import Font_FontMgr, Font_SystemFont, Font_FA_Regular
+        from OCP.TCollection import TCollection_AsciiString
+        _real_font_mgr = Font_FontMgr.GetInstance_s()
         install_ocp_font_hook()
+        font_path = _os.path.join(
+            extracted_dir, "src", "build123d", "data", "fonts",
+            "reliefsingleline", "ReliefSingleLineCAD-Regular.ttf",
+        )
+        _font_t = Font_SystemFont(TCollection_AsciiString("singleline"))
+        _font_t.SetFontPath(Font_FA_Regular, TCollection_AsciiString(font_path))
+        _real_font_mgr.RegisterFont(_font_t, True)
 
         def _new_subprocess_run(cmd, *args, **kwargs):
             if cmd[0] == sys.executable and cmd[1] == '-c':
                 import io, contextlib, re, subprocess
                 code = cmd[2]
-                code = re.sub(r'open\(([^,)]+),\s*encoding=([^)]+)\)\.read\(\)', r'open(\1, "rb").read().decode(\2)', code)
-                code = code.replace(').read()', ', "rb").read().decode("utf-8")')
+
+                def _inline_file(m):
+                    path_repr = m.group(1)
+                    path = path_repr[2:-1] if path_repr.startswith("r'") else path_repr[1:-1]
+                    with open(path, encoding="utf-8") as f:
+                        return f"exec({repr(f.read())})"
+
+                code = re.sub(r"exec\(open\(((?:r)?'[^']+')[^)]*\)\.read\(\)\)", _inline_file, code)
                 stdout = io.StringIO()
                 stderr = io.StringIO()
                 exit_code = 0
