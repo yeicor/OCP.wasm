@@ -14,7 +14,7 @@ or other [projects using OCP.wasm](#projects-using-ocpwasm) below.
 ## Quick Start
 
 Go to [the Pyodide REPL](https://pyodide.org/en/stable/examples/console_webworker.html) and
-run [this code](build123d/bootstrap_in_pyodide.py).
+run [this code](build123d/bootstrap.py).
 Then, run your build123d script as usual.
 
 (Optional) For extra tricks required for passing (almost) 100% of the build123d tests,
