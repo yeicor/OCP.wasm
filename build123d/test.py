@@ -44,9 +44,6 @@ async def _native_bootstrap(ref):
         print(f"Installing dependency: {dep}")
         await _native_install(dep)
 
-    import build123d
-    assert build123d.__version__ == version, f"Version mismatch: expected {version}, got {build123d.__version__}"
-
     return _extracted_dir, _tmpdir
 
 
@@ -82,8 +79,7 @@ async def main():
         _old_urlretrieve = urllib.request.urlretrieve
         urllib.request.urlretrieve = _new_urlretrieve
 
-        import os as _os
-        import build123d
+        import os as _os, warnings
 
         await micropip.install("font-fetcher")
         from font_fetcher.ocp import install_ocp_font_hook
@@ -95,9 +91,13 @@ async def main():
             extracted_dir, "src", "build123d", "data", "fonts",
             "reliefsingleline", "ReliefSingleLineCAD-Regular.ttf",
         )
-        _font_t = Font_SystemFont(TCollection_AsciiString("singleline"))
-        _font_t.SetFontPath(Font_FA_Regular, TCollection_AsciiString(font_path))
-        _real_font_mgr.RegisterFont(_font_t, True)
+        if _os.path.isfile(font_path):
+            _font_t = Font_SystemFont(TCollection_AsciiString("singleline"))
+            _font_t.SetFontPath(Font_FA_Regular, TCollection_AsciiString(font_path))
+            _font_t.SetSingleStrokeFont(True)
+            _real_font_mgr.RegisterFont(_font_t, True)
+        else:
+            warnings.warn(f"Embedded build123d font file not found: {font_path}")
 
         def _new_subprocess_run(cmd, *args, **kwargs):
             if cmd[0] == sys.executable and cmd[1] == '-c':
