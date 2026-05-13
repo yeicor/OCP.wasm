@@ -65,44 +65,6 @@ jobs:
           mkdir -p emsdk && ( mv emsdk-tmp/* emsdk-tmp/.[^.]* emsdk || true ) && rm -rf emsdk-tmp
           mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +  # XXX: Ensures cache is used
 
-      - id: "dynamic_version"
-        working-directory: "${{ matrix.package }}"
-        run: |
-          set -eux
-
-          BASE_VERSION="$(
-            python <<'PY'
-          import importlib.util
-          import pathlib
-          import re
-          import tomllib
-
-          cfg = tomllib.load(open("pyproject.toml", "rb"))
-
-          version_cfg = cfg["tool"]["scikit-build"]["metadata"]["version"]
-
-          cmake = pathlib.Path(version_cfg["input"]).read_text()
-
-          regex = re.compile(version_cfg["regex"])
-          match = regex.search(cmake)
-
-          if not match:
-              raise RuntimeError("Could not determine version")
-
-          print(match.group("value"))
-          PY
-          )"
-
-          # Tagged releases keep the clean version
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            FINAL_VERSION="$BASE_VERSION"
-          else
-            POST="$(date -u +%Y%m%d%H%M)"
-            FINAL_VERSION="${BASE_VERSION}.post${POST}"
-          fi
-
-          echo "version=$FINAL_VERSION" >> "$GITHUB_OUTPUT"
-
       - working-directory: "${{ matrix.package }}"
         if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: | # Activate emsdk and build with pyodide
@@ -111,13 +73,22 @@ jobs:
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           # SKBUILD_BUILD_TOOL_ARGS: "-d;explain;-v" # Useful to debug if caches are not working as expected
-          SKBUILD_METADATA_VERSION: "${{ steps.dynamic_version.outputs.version }}"
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
           CMAKE_BUILD_PARALLEL_LEVEL: 2 # XXX: Try to avoid running out of memory for heavy builds ("The hosted runner lost communication with the server.")
           _FORCE_OLD_SOURCES: "TRUE" # XXX: Force old sources for the caches to be effective (CI-only issue due to redownloading of sources as it sometimes fails if sources are cached)
         timeout-minutes: 310 # This ensures that the following steps are run even if builds take way too long (mainly uploading caches for faster future builds!)
+
+      - working-directory: "${{ matrix.package }}"
+        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
+        run: | # Post-process wheel version to add date-based suffix (avoids build-system version precedence issues)
+          pip install change-wheel-version
+          for whl in dist/*.whl; do
+            change_wheel_version "$whl" \
+              --version "$(basename "$whl" .whl | cut -d- -f2).post$(date -u +%Y%m%d%H%M)" \
+              --delete-old-wheel
+          done
 
       - uses: "actions/upload-artifact@v7"
         with:
