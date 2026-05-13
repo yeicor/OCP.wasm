@@ -82,7 +82,7 @@ async def _mock_from_build123d_metadata(build123d_version="stable"):
     for pkg_name, version in mock_versions.items():
         micropip.add_mock_package(pkg_name, version)
 
-    return data["info"]["version"] if build123d_version == "stable" else build123d_version
+    return data["info"]["version"] if build123d_version == "stable" else build123d_version, mock_versions
 
 
 def _add_pywrap_s_aliases():
@@ -120,8 +120,13 @@ async def bootstrap(build123d_version_arg="stable"):
     micropip.add_mock_package("py-lib3mf", _version, modules={"py_lib3mf": "from lib3mf import *"})
     await micropip.install("cadquery-ocp-novtk-OCP.wasm")
     _add_pywrap_s_aliases()
-    build123d_version = await _mock_from_build123d_metadata(build123d_version_arg)
+    build123d_version, mock_versions = await _mock_from_build123d_metadata(build123d_version_arg)
     await micropip.install("sqlite3") # This is not included by default on pyodide, so install it too
 
-    # Install the requested build123d version
+    # Install the requested build123d version (mocks satisfy dependency resolution)
     await micropip.install(f"build123d=={build123d_version}")
+
+    # Remove the mocks now that build123d is installed, so imports like
+    # "from lib3mf import Lib3MF" resolve to the real OCP.wasm packages.
+    for pkg_name, _version in mock_versions.items():
+        micropip.remove_mock_package(_pkg)
