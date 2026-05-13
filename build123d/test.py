@@ -56,48 +56,17 @@ async def download_and_patch_build123d(tag_or_branch: str):
         if sys.platform == "emscripten":
             _dependencies += ["sqlite3"]  # sqlite3 is not included by default in Pyodide
             _dependencies.remove("mypy")  # Not compatible with Pyodide
+            # Wheels provided by OCP.wasm, do not override!
+            _dependencies.remove("lib3mf")
+            if "cadquery-ocp-novtk" in _dependencies: _dependencies.remove("cadquery-ocp-novtk")
+            elif "cadquery-ocp" in _dependencies: _dependencies.remove("cadquery-ocp")
+            else: raise ValueError("cadquery-ocp not found in build123d dependencies")
     for dep in _dependencies:
         dep = dep.strip()
         if not dep:
             continue
-        # On emscripten, the custom OCP.wasm wheels already provide lib3mf and
-        # cadquery-ocp (via bootstrap).  Re-installing them from PyPI would pull
-        # native-x86_64 wheels (no emscripten wheels exist) and break the import.
-        if sys.platform == "emscripten":
-            dep_name = dep.split("[")[0].split(">")[0].split("<")[0].split("=")[0].split("~")[0].split("!")[0].strip()
-            if dep_name in ("lib3mf", "cadquery-ocp", "cadquery-ocp-novtk"):
-                print(f"Skipping {dep} (provided by OCP.wasm wheels)")
-                continue
         print(f"Installing dependency: {dep}")
         await install_package(dep)
-
-    # Debug: inspect lib3mf state before importing build123d
-    import lib3mf as _l3
-    _l3_file = getattr(_l3, '__file__', None)
-    _l3_path = getattr(_l3, '__path__', None)
-    _l3_has = hasattr(_l3, 'Lib3MF')
-    print(f"lib3mf state: file={_l3_file}, path={_l3_path}, has_Lib3MF={_l3_has}")
-
-    import importlib.metadata
-    try:
-        _dist = importlib.metadata.distribution("lib3mf")
-        print(f"lib3mf dist-info: name={_dist.metadata['Name']}, version={_dist.version}")
-    except importlib.metadata.PackageNotFoundError:
-        print("lib3mf dist-info: NOT FOUND")
-    try:
-        _dist = importlib.metadata.distribution("lib3mf-OCP.wasm")
-        print(f"lib3mf-OCP.wasm dist-info: name={_dist.metadata['Name']}, version={_dist.version}")
-    except importlib.metadata.PackageNotFoundError:
-        print("lib3mf-OCP.wasm dist-info: NOT FOUND")
-
-    import micropip
-    try:
-        _pkg_info = await micropip.list_packages() if hasattr(micropip, 'list_packages') else {}
-        print(f"micropip packages: {_pkg_info}")
-    except Exception as _e:
-        print(f"micropip check failed: {_e}")
-
-    print("=" * 60)
 
     # Sanity check: import build123d results in a matching version to these patched sources
     import build123d
@@ -109,7 +78,7 @@ async def download_and_patch_build123d(tag_or_branch: str):
 async def main():
     import argparse, sys, unittest, os
 
-    default_branch = os.environ.get("BUILD123D_BRANCH", "stable")
+    default_branch = os.environ.get("BUILD123D_BRANCH", "dev")
 
     # Grab default stable version from requirements-stable.txt
     if default_branch == "stable":
