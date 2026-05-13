@@ -1,14 +1,39 @@
 import sys
 
 
-async def _download_and_patch(tag_or_branch, common_fetch, install_package):
-    import zipfile, io, tempfile, os, re
+async def _native_fetch(url):
+    import urllib.request
+    with urllib.request.urlopen(url) as response:
+        return response.read()
 
-    ref_type = "heads" if tag_or_branch == "dev" else "tags"
-    sources_url = "https://github.com/gumyr/build123d/archive/refs/" + ref_type + "/" + tag_or_branch + ".zip"
-    version = '0.0.0+dev' if tag_or_branch == "dev" else tag_or_branch.strip("v")
-    print("Running tests for build123d " + version + " from: " + sources_url)
-    sources_bytes = await common_fetch(sources_url)
+
+async def _native_install(package_name):
+    import subprocess, asyncio
+    process = await asyncio.create_subprocess_exec(
+        sys.executable, '-m', 'pip', 'install', package_name,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = await process.communicate()
+    if process.returncode != 0:
+        raise Exception(f"Failed to install package {package_name}:\n{stderr.decode()}")
+
+
+async def _native_bootstrap(ref):
+    import zipfile, io, tempfile, os, re, tomllib
+
+    sources_bytes = None
+    for url in (
+        f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
+        f"https://github.com/gumyr/build123d/archive/refs/tags/{ref}.zip",
+        f"https://github.com/gumyr/build123d/archive/zipball/{ref}",
+    ):
+        try:
+            sources_bytes = await _native_fetch(url)
+            break
+        except Exception:
+            continue
+    if sources_bytes is None:
+        raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
 
     _tmpdir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
@@ -21,7 +46,7 @@ async def _download_and_patch(tag_or_branch, common_fetch, install_package):
     pyproject_path = os.path.join(_extracted_dir, "pyproject.toml")
     with open(pyproject_path, "r") as f:
         pyproject_content = f.read()
-    pyproject_content = re.sub(r'dynamic = \["version"]', 'version = "' + version + '"', pyproject_content)
+    pyproject_content = re.sub(r'dynamic = \["version"]', 'version = "' + ref + '"', pyproject_content)
     pyproject_content = re.sub(r'"setuptools_scm.*?",', "", pyproject_content)
     pyproject_content = re.sub(r'\[tool\.setuptools.*]\n([^\[].*?\n)*', "", pyproject_content)
     with open(pyproject_path, "w") as f:
@@ -30,60 +55,96 @@ async def _download_and_patch(tag_or_branch, common_fetch, install_package):
     init_path = os.path.join(_sources_folder, "build123d", "__init__.py")
     with open(init_path, "r") as f:
         init_content = f.read()
-    init_content = re.sub(r"from \.version import version as __version__", "__version__ = '" + version + "'",
-                          init_content)
+    init_content = re.sub(r"from \.version import version as __version__", f"__version__ = '{ref}'", init_content)
     with open(init_path, "w") as f:
         f.write(init_content)
 
-    import tomllib
     with open(pyproject_path, "rb") as f:
         pyproject_data = tomllib.load(f)
-        _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
-        _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("development", [])
-        _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
-        if sys.platform == "emscripten":
-            _dependencies += ["sqlite3"]
-            _dependencies = [d for d in _dependencies if d.strip() != "mypy"]
-            _dependencies = [d for d in _dependencies if not d.startswith("lib3mf") and not d.startswith("cadquery-ocp")]
+    _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
+    _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("development", [])
+    _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
 
     for dep in _dependencies:
         dep = dep.strip()
         if not dep:
             continue
-        print("Installing dependency: " + dep)
-        await install_package(dep)
+        print(f"Installing dependency: {dep}")
+        await _native_install(dep)
 
     import build123d
-    assert build123d.__version__ == version, "Version mismatch: expected " + version + ", got " + build123d.__version__
+    assert build123d.__version__ == version, f"Version mismatch: expected {version}, got {build123d.__version__}"
 
     return _extracted_dir, _tmpdir
 
 
 async def main():
-    import argparse, os
+    import os, json, urllib.request
 
-    default_branch = os.environ.get("BUILD123D_BRANCH", "dev")
+    branch = os.environ.get("BUILD123D_BRANCH", "dev")
+    if branch == "stable":
+        with urllib.request.urlopen("https://pypi.org/pypi/build123d/json") as r:
+            branch = "v" + json.load(r)["info"]["version"]
 
-    if default_branch == "stable":
-        with open(os.path.join(os.path.dirname(__file__), "requirements-stable.txt"), "r") as f:
-            default_branch = f.readline().strip()
-            if default_branch.startswith("build123d=="):
-                default_branch = "v" + default_branch.split("==")[1]
-
-    parser = argparse.ArgumentParser(description="Download and test build123d package.")
-    parser.add_argument("branch", nargs='?', default=default_branch,
-                        help="The tag/branch of build123d to test (default: dev).")
-    args = parser.parse_args()
-
-    from crossplatformtricks import bootstrap, common_fetch, install_package
     if sys.platform == "emscripten":
-        tmpdir, extracted_dir = await bootstrap(args.branch)
+        from bootstrap_in_pyodide import bootstrap
+        from pyodide.ffi import run_sync
+        import micropip
+
+        tmpdir, extracted_dir = await bootstrap(branch)
+        os.environ["_install_build123d_from_github_also_optional"] = "true"
+
+        def _new_urlretrieve(url, filename=None, reporthook=None, data=None):
+            if url.startswith("https://") and filename is not None and not reporthook and not data:
+                from pyodide.http import pyfetch
+                bs = run_sync(pyfetch(url).then(lambda r: r.bytes()))
+                with open(filename, "wb") as f:
+                    f.write(bs)
+                return filename, {}
+            else:
+                return _old_urlretrieve(url, filename, reporthook, data)
+
+        import urllib.request
+        _old_urlretrieve = urllib.request.urlretrieve
+        urllib.request.urlretrieve = _new_urlretrieve
+
+        await micropip.install("font-fetcher")
+        from font_fetcher.ocp import install_ocp_font_hook
+        install_ocp_font_hook()
+
+        def _new_subprocess_run(cmd, *args, **kwargs):
+            if cmd[0] == sys.executable and cmd[1] == '-c':
+                import io, contextlib, subprocess
+                code = cmd[2]
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                exit_code = 0
+                oldwd = os.getcwd()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    try:
+                        os.chdir(kwargs.get('cwd', oldwd))
+                        exec(code.replace(').read()', ', "rb").read().decode("utf-8")'), {})
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc(file=stderr)
+                        stdout.write(str(e) + "\n")
+                        exit_code = 1
+                    finally:
+                        os.chdir(oldwd)
+                return subprocess.CompletedProcess(cmd, exit_code, stdout=stdout.getvalue(), stderr=stderr.getvalue())
+            else:
+                return _old_subprocess_run(cmd, *args, **kwargs)
+
+        import subprocess
+        _old_subprocess_run = subprocess.run
+        subprocess.run = _new_subprocess_run
     else:
-        extracted_dir, tmpdir = await _download_and_patch(args.branch, common_fetch, install_package)
+        extracted_dir, tmpdir = await _native_bootstrap(branch)
 
     old_cwd = os.getcwd()
     try:
-        os.chdir(extracted_dir)
+        if extracted_dir is not None:
+            os.chdir(extracted_dir)
 
         import pytest
         exit_code = pytest.main([

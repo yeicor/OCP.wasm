@@ -18,7 +18,7 @@ run [this code](build123d/bootstrap_in_pyodide.py).
 Then, run your build123d script as usual.
 
 (Optional) For extra tricks required for passing (almost) 100% of the build123d tests,
-see [this code](build123d/crossplatformtricks.py).
+see [this code](build123d/test.py).
 
 (Optional) To run all the tests in your (chrome-only for now) browser,
 use [the Pyodide REPL](https://pyodide.org/en/stable/examples/console_webworker.html)

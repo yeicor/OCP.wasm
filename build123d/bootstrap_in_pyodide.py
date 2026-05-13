@@ -1,10 +1,4 @@
 import importlib.metadata
-import io
-import os
-import re
-import sys
-import tempfile
-import zipfile
 
 import micropip
 
@@ -69,15 +63,24 @@ def _parse_dep_requirements(requires_dist):
     return mock_versions, ocp_specifiers
 
 
-def _is_github_ref(version_str):
-    return version_str == "dev" or version_str.startswith("v")
+async def _is_github_ref(owner, repo, ref):
+    from pyodide.http import pyfetch
+
+    for url in (
+        f"https://api.github.com/repos/{owner}/{repo}/git/ref/heads/{ref}",
+        f"https://api.github.com/repos/{owner}/{repo}/git/ref/tags/{ref}",
+        f"https://api.github.com/repos/{owner}/{repo}/commits/{ref}",
+    ):
+        resp = await pyfetch(url)
+        if resp.status == 200:
+            return True
+    return False
 
 
 async def _get_ocp_requirements_from_pypi(build123d_version):
     from pyodide.http import pyfetch
 
-    url = f"https://pypi.org/pypi/build123d/{build123d_version}/json"
-    response = await pyfetch(url)
+    response = await pyfetch(f"https://pypi.org/pypi/build123d/{build123d_version}/json")
     data = await response.json()
     requires_dist = data["info"].get("requires_dist", [])
 
@@ -86,17 +89,15 @@ async def _get_ocp_requirements_from_pypi(build123d_version):
     for req in requires_dist:
         req = req.replace("(", "").replace(")", "")
         if req.startswith("ipython"):
-            resp = await pyfetch("https://pypi.org/pypi/ipython/json")
-            ipy = await resp.json()
+            ipy = await (await pyfetch("https://pypi.org/pypi/ipython/json")).json()
             for ir in ipy["info"].get("requires_dist", []):
                 ir = ir.replace("(", "").replace(")", "")
                 if ir.startswith("psutil"):
                     suffix = ir[len("psutil"):].lstrip()
                     if suffix and suffix[0] in (">", "<", "=", "~", "!", "("):
                         v = _select_mock_version(suffix)
-                        if v:
-                            if "psutil" not in mock_versions or v > mock_versions["psutil"]:
-                                mock_versions["psutil"] = v
+                        if v and ("psutil" not in mock_versions or v > mock_versions["psutil"]):
+                            mock_versions["psutil"] = v
                     break
 
     for pkg_name, version in mock_versions.items():
@@ -109,14 +110,12 @@ async def _get_ocp_requirements_from_pyproject(build123d_ref):
     from pyodide.http import pyfetch
 
     ref_type = "heads" if build123d_ref == "dev" else "tags"
-    url = f"https://raw.githubusercontent.com/gumyr/build123d/refs/{ref_type}/{build123d_ref}/pyproject.toml"
-
-    response = await pyfetch(url)
-    content = await response.text()
+    content = await (await pyfetch(
+        f"https://raw.githubusercontent.com/gumyr/build123d/refs/{ref_type}/{build123d_ref}/pyproject.toml"
+    )).text()
 
     import tomllib
-    pyproject_data = tomllib.loads(content)
-    deps = pyproject_data.get("project", {}).get("dependencies", [])
+    deps = tomllib.loads(content).get("project", {}).get("dependencies", [])
 
     mock_versions, ocp_specifiers = _parse_dep_requirements(deps)
 
@@ -126,7 +125,7 @@ async def _get_ocp_requirements_from_pyproject(build123d_ref):
     return mock_versions, ocp_specifiers
 
 
-async def _install_ocp_wheels(ocp_specifiers):
+async def _install_ocp_wasm_wheels(ocp_specifiers):
     lib3mf_spec = ocp_specifiers.get("lib3mf", "")
     await micropip.install(f"lib3mf-OCP.wasm{lib3mf_spec}")
     _version = importlib.metadata.version("lib3mf-OCP.wasm")
@@ -134,28 +133,37 @@ async def _install_ocp_wheels(ocp_specifiers):
 
     ocp_novtk_spec = ocp_specifiers.get("cadquery-ocp-novtk", "")
     await micropip.install(f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}")
+
     await micropip.install("sqlite3")
 
 
 async def _remove_mocks(mock_versions):
-    for pkg_name, _version in mock_versions.items():
+    for pkg_name in mock_versions:
         micropip.remove_mock_package(pkg_name)
 
 
-async def _install_build123d_from_github(tag_or_branch):
+async def _install_build123d_from_github(ref):
     from pyodide.http import pyfetch
+    import zipfile, io, tempfile, re, tomllib, os, sys
 
-    ref_type = "heads" if tag_or_branch == "dev" else "tags"
-    version = '0.0.0+dev' if tag_or_branch == "dev" else tag_or_branch.strip("v")
+    sources_bytes = None
+    for url in (
+        f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
+        f"https://github.com/gumyr/build123d/archive/refs/tags/{ref}.zip",
+        f"https://github.com/gumyr/build123d/archive/zipball/{ref}",
+    ):
+        try:
+            response = await pyfetch(
+                "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + url
+            )
+            sources_bytes = await response.bytes()
+            break
+        except Exception:
+            continue
+    if sources_bytes is None:
+        raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
 
-    sources_url = f"https://github.com/gumyr/build123d/archive/refs/{ref_type}/{tag_or_branch}.zip"
-    if sys.platform == "emscripten":
-        sources_url = "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + sources_url
-
-    print(f"Downloading build123d {tag_or_branch} from: {sources_url}")
-    response = await pyfetch(sources_url)
-    sources_bytes = await response.bytes()
-
+    version = '0.0.0+dev' if ref == "dev" else ref.strip("v")
     _tmpdir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
         zipf.extractall(path=_tmpdir.name)
@@ -180,10 +188,10 @@ async def _install_build123d_from_github(tag_or_branch):
     with open(init_path, "w") as f:
         f.write(init_content)
 
-    import tomllib
     with open(pyproject_path, "rb") as f:
         pyproject_data = tomllib.load(f)
-        _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
+    _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
+    if os.getenv("_install_build123d_from_github_also_optional", "") != "":
         _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("development", [])
         _dependencies += pyproject_data.get("project", {}).get("optional-dependencies", {}).get("benchmark", [])
 
@@ -191,14 +199,10 @@ async def _install_build123d_from_github(tag_or_branch):
         dep = dep.strip()
         if not dep:
             continue
-        pkg_name = dep.split("[")[0].split(">")[0].split("<")[0].split("=")[0].split("~")[0].split("!")[0].strip()
-        if pkg_name in ("lib3mf", "cadquery-ocp", "cadquery-ocp-novtk", "mypy"):
+        if dep.startswith("lib3mf") or dep.startswith("cadquery-ocp") or dep.strip() == "mypy":
             continue
         print(f"Installing dependency: {dep}")
         await micropip.install(dep, reinstall=True)
-
-    import build123d
-    assert build123d.__version__ == version, "Version mismatch: expected " + version + ", got " + build123d.__version__
 
     return _tmpdir, _extracted_dir
 
@@ -206,27 +210,20 @@ async def _install_build123d_from_github(tag_or_branch):
 async def bootstrap(build123d_version_arg="stable"):
     if build123d_version_arg == "stable":
         from pyodide.http import pyfetch
-        response = await pyfetch("https://pypi.org/pypi/build123d/json")
-        data = await response.json()
-        stable_version = data["info"]["version"]
+        stable_version = (await (await pyfetch("https://pypi.org/pypi/build123d/json")).json())["info"]["version"]
         build123d_version_arg = "v" + stable_version
 
     tmpdir = None
     extracted_dir = None
     mock_versions = None
 
-    if _is_github_ref(build123d_version_arg):
-        ref = build123d_version_arg
-        pypi_version = None if ref == "dev" else ref.strip("v")
-        if pypi_version:
-            mock_versions, ocp_specifiers = await _get_ocp_requirements_from_pypi(pypi_version)
-        else:
-            mock_versions, ocp_specifiers = await _get_ocp_requirements_from_pyproject(ref)
-        await _install_ocp_wheels(ocp_specifiers)
-        tmpdir, extracted_dir = await _install_build123d_from_github(ref)
+    if await _is_github_ref("gumyr", "build123d", build123d_version_arg):
+        mock_versions, ocp_specifiers = await _get_ocp_requirements_from_pyproject(build123d_version_arg)
+        await _install_ocp_wasm_wheels(ocp_specifiers)
+        tmpdir, extracted_dir = await _install_build123d_from_github(build123d_version_arg)
     else:
         mock_versions, ocp_specifiers = await _get_ocp_requirements_from_pypi(build123d_version_arg)
-        await _install_ocp_wheels(ocp_specifiers)
+        await _install_ocp_wasm_wheels(ocp_specifiers)
         await micropip.install("build123d==" + build123d_version_arg)
 
     if mock_versions:

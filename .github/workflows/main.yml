@@ -176,11 +176,10 @@ jobs:
             fi
           }
             
-          build123d_stable_version="$(grep -oP 'build123d==\K[0-9.]+' requirements-stable.txt)"
           # We always test the built wheels on the latest dev branch, which will eventually become stable.
           test_build123d_branch "dev"
           # Sometimes, stable builds require older versions that should be downloaded from PyPI instead.
-          test_build123d_branch "v$build123d_stable_version"
+          test_build123d_branch "stable"
 
       - uses: "actions/upload-artifact@v7"
         if: "always()"
