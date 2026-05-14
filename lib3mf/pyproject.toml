@@ -25,4 +25,4 @@ LIB3MF_TESTS="OFF"
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt"
-regex = 'GIT_TAG *"v(?P<value>[^"]+)"'
+regex = 'URL "https://github.com/3MFConsortium/lib3mf/archive/refs/tags/v(?P<value>[^"]+)\.zip"'
