@@ -12,20 +12,14 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
-      "matchStrings": [
-        "FetchContent_Declare\\(\\s*pybind11\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>pybind\\/pybind11)\\.git\"[^)]*GIT_TAG\\s*\"v(?<currentValue>[^\"]+)\"",
-        "FetchContent_Declare\\(\\s*lib3mf\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>3MFConsortium\\/lib3mf)\\.git\"[^)]*GIT_TAG\\s*\"v(?<currentValue>[^\"]+)\"",
-        "FetchContent_Declare\\(\\s*OpenCASCADE\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Open-Cascade-SAS\\/OCCT)\\.git\"[^)]*GIT_TAG\\s*\"V(?<currentValue>[^\"]+)\""
-      ],
+      "matchStrings": ["checkout_git_tag(.*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^.]*)\\.git\".*TAG\\s*\"v(?<currentValue>[^\"]+\")"],
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "loose"
     },
     {
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
-      "matchStrings": [
-        "FetchContent_Declare\\(\\s*rapidjson\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Tencent\\/rapidjson)\\.git\"[^)]*GIT_TAG\\s*\"(?<currentValue>[a-f0-9]{40})\""
-      ],
+      "matchStrings": ["checkout_git_tag(.*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^.]*)\\.git\".*TAG\\s*\"v(?<currentValue>[^\"]+\")"],
       "datasourceTemplate": "git-refs",
       "versioningTemplate": "git"
     },
@@ -33,7 +27,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "FetchContent_Declare\\(\\s*OCP\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]*)\""
+        "download_url\\(.*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]*)\""
       ],
       "datasourceTemplate": "github-release-attachments",
       "versioningTemplate": "loose"

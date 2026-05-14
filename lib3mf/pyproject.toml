@@ -25,4 +25,4 @@ LIB3MF_TESTS="OFF"
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt"
-regex = 'GIT_TAG[ \t]*"v(?P<value>[^"]+)"'
+regex = 'LIB3MF_VERSION[ \t]*"(?P<value>[^"]+)"'

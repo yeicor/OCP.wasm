@@ -29,14 +29,12 @@ else() # XXX: Not the first time, ensure the timestamp is kept to an old value t
 endif()
 
 # Disable Python interpreter check for Emscripten cross-compilation
-if(EMSCRIPTEN)
-  set(tools_file "${REAL_SOURCE_DIR}/tools/pybind11NewTools.cmake")
-  file(READ "${tools_file}" content)
-  set(content_old "${content}")
-  # Remove all occurrences of ${_pybind11_interp_component}
-  string(REPLACE "${_pybind11_interp_component}" "" content "${content}")
-  if(NOT content STREQUAL content_old)
-    file(WRITE "${tools_file}" "${content}")
-    message(STATUS "Removed _pybind11_interp_component from ${tools_file} for Emscripten")
-  endif()
+set(tools_file "${REAL_SOURCE_DIR}/tools/pybind11NewTools.cmake")
+file(READ "${tools_file}" content)
+set(content_old "${content}")
+# Remove all occurrences of ${_pybind11_interp_component}
+string(REPLACE "\${_pybind11_interp_component}" "" content "${content}")
+if(NOT content STREQUAL content_old)
+  file(WRITE "${tools_file}" "${content}")
+  message(STATUS "Removed _pybind11_interp_component from ${tools_file} for Emscripten")
 endif()

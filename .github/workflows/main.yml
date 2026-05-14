@@ -26,7 +26,7 @@ jobs:
 
           - pyodide_args: ""
           - package: "cadquery-ocp-novtk"
-            pyodide_args: "--exports=whole_archive" # Avoids missing symbols due to custom emscripten exports
+            pyodide_args: "--exports=pyinit" # Avoids missing symbols due to custom emscripten exports
 
           - package: "cadquery-ocp-novtk"
             build_type: "Release"
