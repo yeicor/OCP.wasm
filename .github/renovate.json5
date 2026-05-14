@@ -18,7 +18,7 @@
       "matchStrings": [
         "FetchContent_Declare\\(\\s*pybind11\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>pybind\\/pybind11)\\/archive\\/refs\\/tags\\/v(?<currentValue>[^\"]+)\\.zip\"",
         "FetchContent_Declare\\(\\s*lib3mf\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>3MFConsortium\\/lib3mf)\\/archive\\/refs\\/tags\\/v(?<currentValue>[^\"]+)\\.zip\"",
-        "FetchContent_Declare\\(\\s*OCP\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]*)\""
+        "FetchContent_Declare\\(\\s*OpenCASCADE\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Open-Cascade-SAS\\/OCCT)\\/archive\\/refs\\/tags\\/V(?<currentValue>[^\"]+)\\.zip\""
       ],
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "loose"
@@ -36,9 +36,9 @@
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "FetchContent_Declare\\(\\s*OpenCASCADE\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Open-Cascade-SAS\\/OCCT)\\/archive\\/refs\\/tags\\/V(?<currentValue>[^\"]+)\\.zip\""
+        "FetchContent_Declare\\(\\s*OCP\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]*)\""
       ],
-      "datasourceTemplate": "github-tags",
+      "datasourceTemplate": "github-release-attachments",
       "versioningTemplate": "loose"
     },
     {
