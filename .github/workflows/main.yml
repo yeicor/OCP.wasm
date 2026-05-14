@@ -42,7 +42,6 @@ jobs:
       - id: "xbuildenv_data"
         run: ".github/scripts/xbuildenv_data.sh"
       - uses: "actions/setup-python@v6"
-        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         with:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
           cache: "pip"
@@ -56,7 +55,6 @@ jobs:
           if_no_artifact_found: ignore
 
       - working-directory: "${{ matrix.package }}"
-        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: | # Install dependencies
           sudo apt update && sudo apt install -y binaryen ccache
           pip install -r ../requirements.txt
@@ -67,7 +65,6 @@ jobs:
           mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +
 
       - working-directory: "${{ matrix.package }}"
-        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: |
           cd emsdk && PYODIDE_EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) && ./emsdk install ${PYODIDE_EMSCRIPTEN_VERSION} && ./emsdk activate ${PYODIDE_EMSCRIPTEN_VERSION} && source emsdk_env.sh && cd ..
           ccache -s -v || true
@@ -84,7 +81,6 @@ jobs:
         timeout-minutes: 310
 
       - working-directory: "${{ matrix.package }}"
-        if: "steps.wheel_up_to_date.outputs.skip_build != 'true'"
         run: |
           pip install change-wheel-version
           for whl in dist/*.whl; do

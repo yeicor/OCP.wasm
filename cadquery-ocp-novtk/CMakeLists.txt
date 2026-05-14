@@ -1,18 +1,25 @@
 cmake_minimum_required(VERSION 3.24)
+
+# Setup ccache BEFORE project() to ensure it's available for all subprojects
+option(AUTO_CCACHE "Use ccache to speed up rebuilds" ON)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM AND ${AUTO_CCACHE})
+  message(STATUS "Found ccache at ${CCACHE_PROGRAM}, will use as compiler launcher")
+  # Use CACHE to ensure these are set in the cache and inherited by subprojects
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "C compiler launcher" FORCE)
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "C++ compiler launcher" FORCE)
+else()
+  # Explicitly set to empty string in cache if not using ccache
+  set(CMAKE_C_COMPILER_LAUNCHER "" CACHE STRING "C compiler launcher" FORCE)
+  set(CMAKE_CXX_COMPILER_LAUNCHER "" CACHE STRING "C++ compiler launcher" FORCE)
+endif()
+
 project(${SKBUILD_PROJECT_NAME} LANGUAGES C VERSION ${SKBUILD_PROJECT_VERSION})
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE)
-
-option(AUTO_CCACHE "Use ccache to speed up rebuilds" ON)
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM AND ${AUTO_CCACHE})
-  message(STATUS "Using ${CCACHE_PROGRAM} as compiler launcher")
-  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-endif()
 
 
 # Set default debug and release flags
