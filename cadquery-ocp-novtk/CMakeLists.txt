@@ -112,7 +112,9 @@ endfunction()
 set(PYBIND11_USE_CROSSCOMPILING ON) # Will enable this if it is actually used (e.g. emscripten)
 FetchContent_Declare(
   pybind11
-  URL "https://github.com/pybind/pybind11/archive/refs/tags/v3.0.4.zip"
+  GIT_REPOSITORY "https://github.com/pybind/pybind11.git"
+  GIT_TAG "v3.0.4"
+  GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
@@ -125,7 +127,9 @@ FetchContent_Declare(
 # ##### rapidjson #####
 FetchContent_Declare(
   rapidjson
-  URL "https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"
+  GIT_REPOSITORY "https://github.com/Tencent/rapidjson.git"
+  GIT_TAG "24b5e7a8b27f42fa16b96fc70aade9106cf7102f"
+  GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
@@ -143,7 +147,9 @@ set(BUILD_DOC_Overview OFF)
 set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # For some reason this toolkit from the Visualization module is required from other modules...
 FetchContent_Declare(
   OpenCASCADE
-  URL "https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_8_1.zip"
+  GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
+  GIT_TAG "V7_8_1"
+  GIT_PROGRESS TRUE
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>

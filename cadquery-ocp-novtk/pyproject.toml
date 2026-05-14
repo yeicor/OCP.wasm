@@ -31,4 +31,4 @@ USE_TK="OFF"
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
 input = "CMakeLists.txt"
-regex = 'URL *"https://github.com/CadQuery/OCP/releases/download/(?P<value>[^/]+)'
+regex = 'URL.*"https://github.com/CadQuery/OCP/releases/download/(?P<value>[^/]+)'

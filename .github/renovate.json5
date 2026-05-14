@@ -1,24 +1,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":disableDependencyDashboard"
-  ],
+  "extends": ["config:recommended", ":disableDependencyDashboard"],
   "automerge": true,
   "automergeType": "branch",
-  "schedule": [ "* * * * 0,6" ],
+  "schedule": ["* * * * 0,6"],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": [ "* * * * 0,6" ]
+    "schedule": ["* * * * 0,6"]
   },
   "customManagers": [
     {
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "FetchContent_Declare\\(\\s*pybind11\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>pybind\\/pybind11)\\/archive\\/refs\\/tags\\/v(?<currentValue>[^\"]+)\\.zip\"",
-        "FetchContent_Declare\\(\\s*lib3mf\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>3MFConsortium\\/lib3mf)\\/archive\\/refs\\/tags\\/v(?<currentValue>[^\"]+)\\.zip\"",
-        "FetchContent_Declare\\(\\s*OpenCASCADE\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Open-Cascade-SAS\\/OCCT)\\/archive\\/refs\\/tags\\/V(?<currentValue>[^\"]+)\\.zip\""
+        "FetchContent_Declare\\(\\s*pybind11\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>pybind\\/pybind11)\\.git\"[^)]*GIT_TAG\\s*\"v(?<currentValue>[^\"]+)\"",
+        "FetchContent_Declare\\(\\s*lib3mf\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>3MFConsortium\\/lib3mf)\\.git\"[^)]*GIT_TAG\\s*\"v(?<currentValue>[^\"]+)\"",
+        "FetchContent_Declare\\(\\s*OpenCASCADE\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Open-Cascade-SAS\\/OCCT)\\.git\"[^)]*GIT_TAG\\s*\"V(?<currentValue>[^\"]+)\""
       ],
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "loose"
@@ -27,7 +24,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "FetchContent_Declare\\(\\s*rapidjson\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Tencent\\/rapidjson)\\/archive\\/(?<currentValue>[a-f0-9]{40})\\.zip\""
+        "FetchContent_Declare\\(\\s*rapidjson\\s*GIT_REPOSITORY\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Tencent\\/rapidjson)\\.git\"[^)]*GIT_TAG\\s*\"(?<currentValue>[a-f0-9]{40})\""
       ],
       "datasourceTemplate": "git-refs",
       "versioningTemplate": "git"
@@ -44,9 +41,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/requirements\\.txt$/"],
-      "matchStrings": [
-        "pyodide-xbuildenv==(?<currentValue>[^ ]+)"
-      ],
+      "matchStrings": ["pyodide-xbuildenv==(?<currentValue>[^ ]+)"],
       "packageNameTemplate": "pyodide/pyodide",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "loose"
