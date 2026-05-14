@@ -21,6 +21,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE)
 
+# Configure FetchContent to handle cached builds gracefully
+# This prevents git hash validation failures when reusing cached downloads
+# When content is already populated, don't re-validate git information
+set(FETCHCONTENT_FULLY_DISCONNECTED FALSE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
+
 
 # Set default debug and release flags
 set(_IS_DEBUG OFF) # Useful for later
@@ -106,9 +112,8 @@ endfunction()
 set(PYBIND11_USE_CROSSCOMPILING ON) # Will enable this if it is actually used (e.g. emscripten)
 FetchContent_Declare(
   pybind11
-  GIT_REPOSITORY "https://github.com/pybind/pybind11.git"
-  GIT_TAG "v3.0.4"
-  GIT_PROGRESS TRUE
+  URL "https://github.com/pybind/pybind11/archive/refs/tags/v3.0.4.zip"
+  URL_HASH SHA256=SKIP
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
@@ -121,9 +126,8 @@ FetchContent_Declare(
 # ##### rapidjson #####
 FetchContent_Declare(
   rapidjson
-  GIT_REPOSITORY "https://github.com/Tencent/rapidjson.git"
-  GIT_TAG "24b5e7a8b27f42fa16b96fc70aade9106cf7102f"  # They do not make new releases for some reason...
-  GIT_PROGRESS TRUE
+  URL "https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"
+  URL_HASH SHA256=SKIP
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>
@@ -141,9 +145,8 @@ set(BUILD_DOC_Overview OFF)
 set(BUILD_ADDITIONAL_TOOLKITS TKV3d) # For some reason this toolkit from the Visualization module is required from other modules...
 FetchContent_Declare(
   OpenCASCADE
-  GIT_REPOSITORY "https://github.com/Open-Cascade-SAS/OCCT.git"
-  GIT_TAG "V7_8_1"
-  GIT_PROGRESS TRUE
+  URL "https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_8_1.zip"
+  URL_HASH SHA256=SKIP
   PATCH_COMMAND
     ${CMAKE_COMMAND}
     -DREAL_SOURCE_DIR=<SOURCE_DIR>

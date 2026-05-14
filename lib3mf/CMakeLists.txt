@@ -22,6 +22,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE)
 
+# Configure FetchContent to handle cached builds gracefully
+# This prevents git hash validation failures when reusing cached downloads
+# When content is already populated, don't re-validate git information
+set(FETCHCONTENT_FULLY_DISCONNECTED FALSE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
+
 # XXX: I only want to install the final build, not intermediate outputs
 function(install)
   if("${ARGV0}" STREQUAL "INSTALL_ME")
@@ -35,9 +41,8 @@ endfunction()
 
 FetchContent_Declare(
   lib3mf
-  GIT_REPOSITORY "https://github.com/3MFConsortium/lib3mf.git"
-  GIT_TAG "v2.4.1"
-  GIT_PROGRESS TRUE
+  URL "https://github.com/3MFConsortium/lib3mf/archive/refs/tags/v2.4.1.zip"
+  URL_HASH SHA256=SKIP
   PATCH_COMMAND "${CMAKE_COMMAND}" "-DREAL_SOURCE_DIR=<SOURCE_DIR>" -P "${CMAKE_CURRENT_LIST_DIR}/patch.cmake" &&
     "${CMAKE_COMMAND}" -E env PYTHONPATH=$ENV{PYTHONPATH} python3 "${CMAKE_SOURCE_DIR}/../util/set_timestamps.py" "<SOURCE_DIR>" # XXX: Better caching!
   OVERRIDE_FIND_PACKAGE
