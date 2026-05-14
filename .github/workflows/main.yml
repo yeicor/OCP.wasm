@@ -46,13 +46,32 @@ jobs:
           python-version: "${{ steps.xbuildenv_data.outputs.python_version }}"
           cache: "pip"
 
-      - uses: "dawidd6/action-download-artifact@v6"
-        with:
-          workflow_conclusion: ""
-          name: "build-${{ matrix.package }}-${{ matrix.build_type }}"
-          path: "${{ matrix.package }}"
-          search_artifacts: true
-          if_no_artifact_found: ignore
+      - name: "Download cached build artifact"
+        continue-on-error: true
+        run: |
+          mkdir -p "${{ matrix.package }}"
+          ARTIFACT_NAME="build-${{ matrix.package }}-${{ matrix.build_type }}"
+
+          # Find the latest successful run and download artifact
+          LATEST_RUN=$(gh run list --workflow=main.yml --status=success --limit=1 --json databaseId -q '.[0].databaseId' 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_RUN" ]; then
+            echo "⚠ No previous successful runs found, skipping cache download"
+            exit 0
+          fi
+
+          echo "Attempting to download artifact '$ARTIFACT_NAME' from run $LATEST_RUN..."
+          if gh run download "$LATEST_RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
+            echo "✓ Successfully downloaded cached build artifact"
+          else
+            EXIT_CODE=$?
+            echo "⚠ Failed to download artifact (exit code: $EXIT_CODE)"
+            echo "⚠ This may be due to API rate limits or artifact not found"
+            echo "⚠ Continuing with fresh build..."
+            exit 0
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - working-directory: "${{ matrix.package }}"
         run: | # Install dependencies
