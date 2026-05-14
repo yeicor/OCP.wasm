@@ -93,6 +93,9 @@ jobs:
           CMAKE_BUILD_PARALLEL_LEVEL: 2
           _FORCE_OLD_SOURCES: "TRUE"
           CCACHE_DIR: "${{ matrix.package }}/.ccache"
+          CCACHE_DEBUG: "1" # Enable ccache debug mode
+          CCACHE_DEBUGLEVEL: "2" # Set debug level (1 for logs only, 2 for detailed debug files)
+          CCACHE_DEBUGDIR: "${{ matrix.package }}/.ccache/debug" # Directory for debug files
           CMAKE_C_COMPILER_LAUNCHER: "ccache"
           CMAKE_CXX_COMPILER_LAUNCHER: "ccache"
         timeout-minutes: 310
