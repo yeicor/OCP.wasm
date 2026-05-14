@@ -85,11 +85,12 @@ async def _fetch(url):
     if sys.platform == "emscripten":
         if pyfetch is None:
             raise RuntimeError("pyfetch not available in Pyodide environment")
-        if url.startswith("https://pypi.org/") or url.startswith(
-            "https://api.github.com/"
-        ):
+        try:
+            response = await pyfetch(url)
+        except Exception as e:  # pyodide.http._exceptions.AbortError
+            # Assume CORS error and try proxy instead
             url = "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + url
-        response = await pyfetch(url)
+            response = await pyfetch(url)
         return response
     else:
         import urllib.request
