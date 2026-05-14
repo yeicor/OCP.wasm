@@ -11,34 +11,45 @@
     "enabled": true,
     "schedule": [ "* * * * 0,6" ]
   },
-  customManagers: [
+  "customManagers": [
     {
-      customType: "regex",
-      managerFilePatterns: ["/CMakeLists\\.txt$/"],
-      matchStrings: [
-        'FetchContent_Declare[ \\t]*\\([^)]*GIT_REPOSITORY[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]*?)(.git)?"[^)]*GIT_TAG[ \\t]*"(?<currentValue>[^"]*)"'
+      "customType": "regex",
+      "managerFilePatterns": ["/CMakeLists\\.txt$/"],
+      "matchStrings": [
+        "FetchContent_Declare\\(\\s*pybind11\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>pybind\\/pybind11)\\/archive\\/refs\\/tags\\/v(?<currentValue>[^\"]+)\\.zip\"",
+        "FetchContent_Declare\\(\\s*lib3mf\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>3MFConsortium\\/lib3mf)\\/archive\\/refs\\/tags\\/v(?<currentValue>[^\"]+)\\.zip\"",
+        "FetchContent_Declare\\(\\s*OCP\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]*)\""
       ],
-      packageNameTemplate: "{{#if (equals currentValue.length 40)}}https://github.com/{{packageName}}.git{{else}}{{packageName}}{{/if}}",
-      datasourceTemplate: "{{#if (equals currentValue.length 40)}}git-refs{{else}}github-tags{{/if}}",
-      versioningTemplate: "{{#if (equals currentValue.length 40)}}git{{else}}loose{{/if}}",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "loose"
     },
     {
-      customType: "regex",
-      managerFilePatterns: ["/CMakeLists\\.txt$/"],
-      matchStrings: [
-        'FetchContent_Declare[ \\t]*\\([^)]*URL[ \\t]*"https:\\\/\\\/github\\.com\\\/(?<packageName>[^"]+)\\\/releases\\\/download\\\/(?<currentValue>[^\/]+)\\\/(?<depName>[^"]*)"'
+      "customType": "regex",
+      "managerFilePatterns": ["/CMakeLists\\.txt$/"],
+      "matchStrings": [
+        "FetchContent_Declare\\(\\s*rapidjson\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Tencent\\/rapidjson)\\/archive\\/(?<currentValue>[a-f0-9]{40})\\.zip\""
       ],
-      datasourceTemplate: "github-release-attachments",
-      // Note: I think there is no good solution if <depName> changes between releases, maybe autoReplaceStringTemplate with a custom rule for each dependency?
+      "datasourceTemplate": "git-refs",
+      "versioningTemplate": "git"
     },
     {
-      customType: "regex",
-      managerFilePatterns: ["/requirements\\.txt$/"],
-      matchStrings: [
-        'pyodide-xbuildenv==(?<currentValue>[^ ]+)'
+      "customType": "regex",
+      "managerFilePatterns": ["/CMakeLists\\.txt$/"],
+      "matchStrings": [
+        "FetchContent_Declare\\(\\s*OpenCASCADE\\s*URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Open-Cascade-SAS\\/OCCT)\\/archive\\/refs\\/tags\\/V(?<currentValue>[^\"]+)\\.zip\""
       ],
-      packageNameTemplate: "pyodide/pyodide",
-      datasourceTemplate: "github-releases",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/requirements\\.txt$/"],
+      "matchStrings": [
+        "pyodide-xbuildenv==(?<currentValue>[^ ]+)"
+      ],
+      "packageNameTemplate": "pyodide/pyodide",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "loose"
     }
   ]
 }
