@@ -1,15 +1,13 @@
 cmake_minimum_required(VERSION 3.24)
 
-# Setup ccache BEFORE project() to ensure it's available for all subprojects
+# Setup ccache wrapper for emcmake compatibility
 option(AUTO_CCACHE "Use ccache to speed up rebuilds" ON)
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM AND ${AUTO_CCACHE})
   message(STATUS "Found ccache at ${CCACHE_PROGRAM}, will use as compiler launcher")
-  # Use CACHE to ensure these are set in the cache and inherited by subprojects
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "C compiler launcher" FORCE)
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "C++ compiler launcher" FORCE)
 else()
-  # Explicitly set to empty string in cache if not using ccache
   set(CMAKE_C_COMPILER_LAUNCHER "" CACHE STRING "C compiler launcher" FORCE)
   set(CMAKE_CXX_COMPILER_LAUNCHER "" CACHE STRING "C++ compiler launcher" FORCE)
 endif()
@@ -78,14 +76,15 @@ if(EMSCRIPTEN)
   if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
     execute_process(
       COMMAND ${CMAKE_COMMAND} -E create_symlink "${EMSCRIPTEN_SYSROOT}" "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot"
-      RESULT_VARIABLE SYMLINK_RESULT
+      RESULT_VARIABLE LINK_RESULT
     )
-    if(NOT SYMLINK_RESULT EQUAL 0)
-      message(FATAL_ERROR "Failed to create symlink to emscripten sysroot")
+    if(NOT LINK_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to create symbolic link to emscripten sysroot")
     endif()
-    set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
-    message(STATUS "Created symlink to emscripten sysroot at ${EMSCRIPTEN_SYSROOT}")
+    message(STATUS "Created hard link (copy) to emscripten sysroot at ${EMSCRIPTEN_SYSROOT}")
   endif()
+  set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
+  message(STATUS "EMSCRIPTEN_SYSROOT=${EMSCRIPTEN_SYSROOT}")
 
   # XXX: Bad function pointer casts are undefined behavior that mostly works on desktop and hard-crashes on emscripten
   #      The following compile option will automatically create wrappers at compile time to fix this at the cost of performance

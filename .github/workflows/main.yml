@@ -47,29 +47,25 @@ jobs:
           cache: "pip"
 
       - name: "Download cached build artifact"
-        continue-on-error: true
         run: |
           mkdir -p "${{ matrix.package }}"
           ARTIFACT_NAME="build-${{ matrix.package }}-${{ matrix.build_type }}"
-
-          # Find the latest successful run and download artifact
-          LATEST_RUN=$(gh run list --workflow=main.yml --status=success --limit=1 --json databaseId -q '.[0].databaseId' 2>/dev/null || echo "")
-
-          if [ -z "$LATEST_RUN" ]; then
-            echo "⚠ No previous successful runs found, skipping cache download"
-            exit 0
-          fi
-
-          echo "Attempting to download artifact '$ARTIFACT_NAME' from run $LATEST_RUN..."
-          if gh run download "$LATEST_RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
-            echo "✓ Successfully downloaded cached build artifact"
-          else
-            EXIT_CODE=$?
-            echo "⚠ Failed to download artifact (exit code: $EXIT_CODE)"
-            echo "⚠ This may be due to API rate limits or artifact not found"
-            echo "⚠ Continuing with fresh build..."
-            exit 0
-          fi
+          # Try same branch first
+          for RUN in $(gh run list --workflow=main.yml --branch=${{ github.ref_name }} --limit=50 --json databaseId -q 'sort_by(-.createdAt)[].databaseId' 2>/dev/null); do
+            if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
+              echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN on ${{ github.ref_name }}. Deleting older ones on the same branch..."
+              gh run list --workflow=main.yml --branch=${{ github.ref_name }} --limit=50 --json databaseId -q '.[] | select(.databaseId != "'$RUN'") | .databaseId' 2>/dev/null | xargs -I {} sh -c 'gh run delete {} --yes 2>/dev/null && echo "  Deleted run {}" || true'
+              exit 0
+            fi
+          done
+          # Fall back to any branch without deletion
+          for RUN in $(gh run list --workflow=main.yml --limit=50 --json databaseId -q 'sort_by(-.createdAt)[].databaseId' 2>/dev/null); do
+            if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
+              echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN (fallback)"
+              exit 0
+            fi
+          done
+          echo "⚠ No usable artifact found, continuing with fresh build..."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -97,6 +93,8 @@ jobs:
           CMAKE_BUILD_PARALLEL_LEVEL: 2
           _FORCE_OLD_SOURCES: "TRUE"
           CCACHE_DIR: "${{ matrix.package }}/.ccache"
+          CMAKE_C_COMPILER_LAUNCHER: "ccache"
+          CMAKE_CXX_COMPILER_LAUNCHER: "ccache"
         timeout-minutes: 310
 
       - working-directory: "${{ matrix.package }}"
