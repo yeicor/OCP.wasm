@@ -187,16 +187,18 @@ async def _get_ocp_requirements_from_pyproject(build123d_ref):
 async def _install_ocp_wasm_wheels(ocp_specifiers):
     if sys.platform == "emscripten":
         lib3mf_spec = ocp_specifiers.get("lib3mf", "")
-        await micropip.install(f"lib3mf-OCP.wasm{lib3mf_spec}")
+        await micropip.install(f"lib3mf-OCP.wasm{lib3mf_spec}", reinstall=True)
         _version = importlib.metadata.version("lib3mf-OCP.wasm")
         micropip.add_mock_package(
             "py-lib3mf", _version, modules={"py_lib3mf": "from lib3mf import *"}
         )
 
         ocp_novtk_spec = ocp_specifiers.get("cadquery-ocp-novtk", "")
-        await micropip.install(f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}")
+        await micropip.install(
+            f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}", reinstall=True
+        )
 
-        await micropip.install("sqlite3")
+        await micropip.install("sqlite3", reinstall=True)
     else:
         import asyncio
         import subprocess
@@ -207,6 +209,7 @@ async def _install_ocp_wasm_wheels(ocp_specifiers):
             "-m",
             "pip",
             "install",
+            "--force-reinstall",
             f"lib3mf-OCP.wasm{lib3mf_spec}",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -221,6 +224,7 @@ async def _install_ocp_wasm_wheels(ocp_specifiers):
             "-m",
             "pip",
             "install",
+            "--force-reinstall",
             f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -419,7 +423,9 @@ async def bootstrap(build123d_version_arg="stable"):
         )
         await _install_ocp_wasm_wheels(ocp_specifiers)
         if sys.platform == "emscripten":
-            await micropip.install("build123d==" + build123d_version_arg)
+            await micropip.install(
+                "build123d==" + build123d_version_arg, reinstall=True
+            )
         else:
             import asyncio
             import subprocess
@@ -429,6 +435,7 @@ async def bootstrap(build123d_version_arg="stable"):
                 "-m",
                 "pip",
                 "install",
+                "--force-reinstall",
                 "build123d==" + build123d_version_arg,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
