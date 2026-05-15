@@ -52,18 +52,22 @@ jobs:
           ARTIFACT_NAME="build-${{ matrix.package }}-${{ matrix.build_type }}"
           # Try same branch first
           for RUN in $(gh run list --workflow=main.yml --branch=${{ github.ref_name }} --limit=50 --json databaseId -q 'sort_by(-.createdAt)[].databaseId' 2>/dev/null); do
+            echo "Attempting to download from run $RUN on branch ${{ github.ref_name }}"
             if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
               echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN on ${{ github.ref_name }}. Deleting older ones on the same branch..."
               gh run list --workflow=main.yml --branch=${{ github.ref_name }} --limit=50 --json databaseId -q '.[] | select(.databaseId != "'$RUN'") | .databaseId' 2>/dev/null | xargs -I {} sh -c 'gh run delete {} --yes 2>/dev/null && echo "  Deleted run {}" || true'
               exit 0
             fi
+            echo "Run $RUN on branch ${{ github.ref_name }} did not have the artifact"
           done
           # Fall back to any branch without deletion
           for RUN in $(gh run list --workflow=main.yml --limit=50 --json databaseId -q 'sort_by(-.createdAt)[].databaseId' 2>/dev/null); do
+            echo "Attempting fallback download from run $RUN (any branch)"
             if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
               echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN (fallback)"
               exit 0
             fi
+            echo "Run $RUN (fallback) did not have the artifact"
           done
           echo "⚠ No usable artifact found, continuing with fresh build..."
         env:
@@ -116,7 +120,6 @@ jobs:
             !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
             ${{ matrix.package }}/.ccache
-          retention-days: 5
 
   test_build123d_integration:
     needs: "build_wheels"
