@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 set -ex
+cd $(dirname "$0")/../..
 
 GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/stderr}"
 

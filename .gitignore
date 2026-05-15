@@ -1,6 +1,7 @@
 # General
 /.venv*/
 /.idea/
+__pycache__/
 
 # Built packages
 .pyodide_build/

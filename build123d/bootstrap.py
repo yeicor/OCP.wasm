@@ -85,11 +85,12 @@ async def _fetch(url):
     if sys.platform == "emscripten":
         if pyfetch is None:
             raise RuntimeError("pyfetch not available in Pyodide environment")
-        if url.startswith("https://pypi.org/") or url.startswith(
-            "https://api.github.com/"
-        ):
+        try:
+            response = await pyfetch(url)
+        except Exception as e:  # pyodide.http._exceptions.AbortError
+            # Assume CORS error and try proxy instead
             url = "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + url
-        response = await pyfetch(url)
+            response = await pyfetch(url)
         return response
     else:
         import urllib.request
@@ -186,16 +187,18 @@ async def _get_ocp_requirements_from_pyproject(build123d_ref):
 async def _install_ocp_wasm_wheels(ocp_specifiers):
     if sys.platform == "emscripten":
         lib3mf_spec = ocp_specifiers.get("lib3mf", "")
-        await micropip.install(f"lib3mf-OCP.wasm{lib3mf_spec}")
+        await micropip.install(f"lib3mf-OCP.wasm{lib3mf_spec}", reinstall=True)
         _version = importlib.metadata.version("lib3mf-OCP.wasm")
         micropip.add_mock_package(
             "py-lib3mf", _version, modules={"py_lib3mf": "from lib3mf import *"}
         )
 
         ocp_novtk_spec = ocp_specifiers.get("cadquery-ocp-novtk", "")
-        await micropip.install(f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}")
+        await micropip.install(
+            f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}", reinstall=True
+        )
 
-        await micropip.install("sqlite3")
+        await micropip.install("sqlite3", reinstall=True)
     else:
         import asyncio
         import subprocess
@@ -206,6 +209,7 @@ async def _install_ocp_wasm_wheels(ocp_specifiers):
             "-m",
             "pip",
             "install",
+            "--force-reinstall",
             f"lib3mf-OCP.wasm{lib3mf_spec}",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -220,6 +224,7 @@ async def _install_ocp_wasm_wheels(ocp_specifiers):
             "-m",
             "pip",
             "install",
+            "--force-reinstall",
             f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -292,12 +297,30 @@ def _extract_and_patch_github(sources_bytes, ref):
 
 
 async def _fetch_bytes(url):
-    """Fetch URL and return bytes."""
-    response = await _fetch(url)
-    if sys.platform == "emscripten":
-        return await response.bytes()
-    else:
-        return response.read()
+    """Fetch URL and return bytes, following redirects and handling non-error codes."""
+    max_redirects = 5
+    for _ in range(max_redirects):
+        response = await _fetch(url)
+        status = response.status if sys.platform == "emscripten" else response.code
+        # Handle HTTP redirects (3xx)
+        if 300 <= status < 400:
+            if sys.platform == "emscripten":
+                location = response.headers.get("Location")
+            else:
+                location = response.getheader("Location")
+            if not location:
+                raise RuntimeError(f"Redirect with no Location header for {url}")
+            url = location
+            continue
+        # Accept 200-299 as success
+        if 200 <= status < 300:
+            if sys.platform == "emscripten":
+                return await response.bytes()
+            else:
+                return response.read()
+        # Otherwise, error
+        raise RuntimeError(f"Failed to fetch {url}: HTTP {status}")
+    raise RuntimeError(f"Too many redirects while fetching {url}")
 
 
 async def _install_build123d_from_github(ref):
@@ -305,7 +328,7 @@ async def _install_build123d_from_github(ref):
     for url in (
         f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
         f"https://github.com/gumyr/build123d/archive/refs/tags/{ref}.zip",
-        f"https://github.com/gumyr/build123d/archive/zipball/{ref}",
+        f"https://github.com/gumyr/build123d/archive/{ref}.zip",
     ):
         try:
             sources_bytes = await _fetch_bytes(url)
@@ -315,7 +338,7 @@ async def _install_build123d_from_github(ref):
     if sources_bytes is None:
         raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
 
-    _tmpdir, _extracted_dir, _dependencies, version = _extract_and_patch_github(
+    _tmpdir, _extracted_dir, _dependencies, _version = _extract_and_patch_github(
         sources_bytes, ref
     )
 
@@ -400,7 +423,9 @@ async def bootstrap(build123d_version_arg="stable"):
         )
         await _install_ocp_wasm_wheels(ocp_specifiers)
         if sys.platform == "emscripten":
-            await micropip.install("build123d==" + build123d_version_arg)
+            await micropip.install(
+                "build123d==" + build123d_version_arg, reinstall=True
+            )
         else:
             import asyncio
             import subprocess
@@ -410,6 +435,7 @@ async def bootstrap(build123d_version_arg="stable"):
                 "-m",
                 "pip",
                 "install",
+                "--force-reinstall",
                 "build123d==" + build123d_version_arg,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
