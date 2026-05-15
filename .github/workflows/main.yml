@@ -116,10 +116,7 @@ jobs:
           name: "build-${{ matrix.package }}-${{ matrix.build_type }}"
           include-hidden-files: true
           path: |
-            ${{ matrix.package }}/dist/*.whl
             ${{ matrix.package }}/build
-            !${{ matrix.package }}/build/*/_deps/*-src
-            !${{ matrix.package }}/build/*/_deps/opencascade-build/src
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
             ${{ matrix.package }}/.ccache
 
