@@ -69,7 +69,7 @@ jobs:
               echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN (fallback)"
               exit 0
             fi
-            echo "Run $RUN (fallback) did not have the artifact"
+            echo "Run $RUN did not have the artifact"
           done
           echo "⚠ No usable artifact found, continuing with fresh build..."
         env:
