@@ -106,7 +106,7 @@ jobs:
           pip install change-wheel-version
           for whl in dist/*.whl; do
             change_wheel_version "$whl" \
-              --version "$(basename "$whl" .whl | cut -d- -f2).post$(date -u +%Y%m%d%H%M)" \
+              --version "$(basename "$whl" .whl | cut -d- -f2 | sed 's/\.post[0-9]*$//' ).post$(date -u +%Y%m%d%H%M)" \
               --delete-old-wheel
           done
 
