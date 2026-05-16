@@ -123,9 +123,6 @@ jobs:
           _FORCE_OLD_SOURCES: "TRUE"
           CCACHE_DIR: "${{ github.workspace }}/${{ matrix.package }}/ccache"
           CCACHE_COMPILERCHECK: "content" # We are re-downloading the compiler on every run, so avoid timestamp-based checks that will always miss
-          CCACHE_DEBUG: "1"
-          CCACHE_DEBUGDIR: "${{ github.workspace }}/${{ matrix.package }}/ccache-debug"
-          CCACHE_LOGFILE: "${{ github.workspace }}/${{ matrix.package }}/ccache.log"
         timeout-minutes: 310
 
       - working-directory: "${{ matrix.package }}"
