@@ -58,7 +58,7 @@ jobs:
               TMP=$(mktemp -d)
               if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "$TMP" 2>/dev/null; then
                 mv "$TMP"/* "${{ matrix.package }}/" 2>/dev/null || true
-                echo "✓ Downloaded cache from run $RUN. Output dir contents:"
+                echo "✓ Downloaded cache from run $RUN. Output directory contents:"
                 find "${{ matrix.package }}" -mindepth 1 -maxdepth 2
                 if [ "$delete_old" = 1 ]; then
                   for OLD_RUN in $runs; do
