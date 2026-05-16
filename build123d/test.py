@@ -12,6 +12,7 @@ async def main():
     from bootstrap import bootstrap
 
     if sys.platform == "emscripten":
+        # Hackier patches that are required for passing tests, but should not be mandatory for bootstrap()
         import micropip
         from pyodide.ffi import run_sync
 
@@ -135,14 +136,13 @@ async def main():
                 "--setup-show",
                 "--tb=long",
                 # There is no VTK or Jupyter support in the Emscripten environment, so skip those tests there
-                "--ignore=tests/test_direct_api/test_jupyter.py",
-                "--ignore=tests/test_direct_api/test_vtk_poly_data.py",
+                "--ignore=tests/test_direct_api/test_jupyter.py",  # build123d <= v0.10.0
+                "--ignore=tests/test_direct_api/test_vtk_poly_data.py",  # build123d <= v0.10.0
                 # Skip some tests that are known to be flaky in the Emscripten environment, likely due to differences in floating-point behavior or other platform-specific issues. These should be investigated and fixed eventually, but for now this allows us to use tests to catch regressions in the Emscripten environment without being blocked by these known issues.
                 "-k=not ("
                 "test_tan3_2 or "
                 "(TestCadObjects and test_edge_wrapper_radius) or "
-                "((TestAxis or TestLocation or TestPlane) and test_set) or "
-                "(TestFace and (test_make_surface or test_make_surface_patch or test_make_surface_error_checking))"
+                "(TestFace and test_make_surface)"
                 ")",
             ]
         )

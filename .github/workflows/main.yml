@@ -226,7 +226,7 @@ jobs:
           }
 
           # We always test the built wheels on the latest dev branch, which will eventually become stable
-          test_build123d_branch "dev" # TODO: Reupgrade to latest dependency versions before enabling this.
+          test_build123d_branch "dev"
           # Sometimes, stable builds require older versions that should be downloaded from PyPI instead
           test_build123d_branch "stable"
 

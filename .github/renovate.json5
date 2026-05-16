@@ -22,9 +22,9 @@
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "checkout_git_tag\\((?:.|\\n)*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^\\/\\s]+\\/[^\\/\\s]+)\\.git\"(?:.|\\n)*?TAG\\s*\"(?<currentValue>[^\"]+)\""
+        "checkout_git_tag\\((?:.|\\n)*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>Tencent\\/rapidjson)\\.git\"(?:.|\\n)*?TAG\\s*\"(?<currentValue>[^\"]+)\""
       ],
-      "datasourceTemplate": "git-refs", // Same as above but with git-refs to support non-tag versions
+      "datasourceTemplate": "git-refs", // Same as above but with git-refs to support non-tag versions (rapidjson-only)
       "versioningTemplate": "loose"
     },
     {
