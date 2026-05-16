@@ -100,6 +100,17 @@ execute_process(
 set_timestamps("${RAPIDJSON_SRC}")
 add_subdirectory("${RAPIDJSON_SRC}")
 
+# ##### fmt #####
+set(FMT_SRC "${DEPS_DIR}/fmt-src")
+set(FMT_BIN "${DEPS_DIR}/fmt-build")
+checkout_git_tag(SRC "${FMT_SRC}" URL "https://github.com/fmtlib/fmt.git" TAG "12.1.0")
+set_timestamps("${FMT_SRC}")
+# Disable tests/docs/install noise
+set(FMT_DOC OFF CACHE BOOL "" FORCE)
+set(FMT_TEST OFF CACHE BOOL "" FORCE)
+set(FMT_INSTALL ON CACHE BOOL "" FORCE)
+add_subdirectory("${FMT_SRC}" "${FMT_BIN}")
+
 # ##### OCCT #####
 set(OCCT_SRC "${DEPS_DIR}/OpenCASCADE-src")
 set(OCCT_BIN "${DEPS_DIR}/OpenCASCADE-build")
