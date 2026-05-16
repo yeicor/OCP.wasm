@@ -40,6 +40,7 @@ jobs:
           fetch-depth: 0 # Fetch all history for caching purposes
 
       - id: "xbuildenv_data"
+        shell: bash
         run: ".github/scripts/xbuildenv_data.sh"
       - uses: "actions/setup-python@v6"
         with:
@@ -47,68 +48,95 @@ jobs:
           cache: "pip"
 
       - name: "Download cached build artifact"
+        shell: bash
         run: |
           mkdir -p "${{ matrix.package }}"
           ARTIFACT_NAME="build-${{ matrix.package }}-${{ matrix.build_type }}"
-          # Try same branch first
-          SAME_BRANCH_RUNS=$(gh run list --workflow=main.yml --branch=${{ github.ref_name }} --limit=50 --json databaseId -q '.[].databaseId')
-          for RUN in $SAME_BRANCH_RUNS; do
-            echo "Attempting to download from run $RUN on branch ${{ github.ref_name }}"
-            if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
-              echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN on ${{ github.ref_name }}. Deleting older ones on the same branch..."
-              echo "$SAME_BRANCH_RUNS" | grep -v "^$RUN$" | xargs -I {} sh -c 'gh run delete {} --yes 2>/dev/null && echo "  Deleted run {}" || true'
-              exit 0
-            fi
-            echo "Run $RUN on branch ${{ github.ref_name }} did not have the artifact"
-          done
-          # Fall back to any branch without deletion
-          ALL_RUNS=$(gh run list --workflow=main.yml --limit=50 --json databaseId -q '.[].databaseId')
-          for RUN in $ALL_RUNS; do
-            echo "Attempting fallback download from run $RUN (any branch)"
-            if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>&1; then
-              echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN (fallback)"
-              exit 0
-            fi
-            echo "Run $RUN did not have the artifact"
-          done
+          try_download() {
+            local runs="$1"
+            local delete_old="$2"
+            for RUN in $runs; do
+              echo "Attempting download from run $RUN"
+              if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>/dev/null; then
+                echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN"
+                if [ "$delete_old" = 1 ]; then
+                  for OLD_RUN in $runs; do
+                    [ "$OLD_RUN" = "$RUN" ] && continue
+                    gh api \
+                      repos/${{ github.repository }}/actions/runs/$OLD_RUN/artifacts \
+                      --jq '.artifacts[] | select(.name == "'"$ARTIFACT_NAME"'") | .id' |
+                    xargs -r -I {} gh api \
+                      -X DELETE \
+                      repos/${{ github.repository }}/actions/artifacts/{}
+                  done
+                fi
+                return 0
+              fi
+            done
+            return 1
+          }
+          SAME_BRANCH_RUNS=$(gh run list \
+            --workflow="${{ github.workflow }}" \
+            --branch="${{ github.ref_name }}" \
+            --limit=50 \
+            --json databaseId \
+            -q '.[].databaseId')
+          try_download "$SAME_BRANCH_RUNS" 1 && exit 0
+          ALL_RUNS=$(gh run list \
+            --workflow="${{ github.workflow }}" \
+            --limit=50 \
+            --json databaseId \
+            -q '.[].databaseId')
+          try_download "$ALL_RUNS" 0 && exit 0
           echo "⚠ No usable artifact found, continuing with fresh build..."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - working-directory: "${{ matrix.package }}"
+        shell: bash
         run: | # Install dependencies
           sudo apt update && sudo apt install -y binaryen ccache
           pip install -r ../requirements.txt
           pyodide xbuildenv install "${{ steps.xbuildenv_data.outputs.xbuildenv_version }}"
           pip install $(python -c 'import tomllib; cfg = tomllib.load(open("pyproject.toml", "rb")); print(*cfg["build-system"]["requires"])')
           git clone https://github.com/emscripten-core/emsdk emsdk-tmp
-          mkdir -p emsdk && ( mv emsdk-tmp/* emsdk-tmp/.[^.]* emsdk || true ) && rm -rf emsdk-tmp
+          shopt -s dotglob
+          mkdir -p emsdk && mv emsdk-tmp/* emsdk && rm -rf emsdk-tmp
           mkdir -p emsdk/upstream/emscripten/cache && find emsdk/upstream/emscripten/cache -type f -exec touch {} +
 
       - working-directory: "${{ matrix.package }}"
+        shell: bash
         run: |
           cd emsdk && PYODIDE_EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) && ./emsdk install ${PYODIDE_EMSCRIPTEN_VERSION} && ./emsdk activate ${PYODIDE_EMSCRIPTEN_VERSION} && source emsdk_env.sh && cd ..
-          ccache -s -v || true
+          ccache --show-stats --evict-older-than 3d --zero-stats -vv && ccache --show-stats -vv
           pyodide build ${{ matrix.pyodide_args }}
-          ccache -s -v || true
+          ccache --show-stats -vv
         env:
           SKBUILD_CMAKE_BUILD_TYPE: "${{ matrix.build_type }}"
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
-          CMAKE_BUILD_PARALLEL_LEVEL: 2
+          #CMAKE_BUILD_PARALLEL_LEVEL: 2
           _FORCE_OLD_SOURCES: "TRUE"
           CCACHE_DIR: "${{ github.workspace }}/${{ matrix.package }}/.ccache"
+          CCACHE_DEBUG: "1"
+          CCACHE_DEBUGDIR: "${{ github.workspace }}/${{ matrix.package }}/ccache-debug"
+          CCACHE_LOGFILE: "${{ github.workspace }}/${{ matrix.package }}/ccache.log"
         timeout-minutes: 310
 
       - working-directory: "${{ matrix.package }}"
+        shell: bash
         run: |
           pip install change-wheel-version
-          for whl in dist/*.whl; do
-            change_wheel_version "$whl" \
-              --version "$(basename "$whl" .whl | cut -d- -f2 | sed 's/\.post[0-9]*$//' ).post$(date -u +%Y%m%d%H%M)" \
-              --delete-old-wheel
-          done
+          whl=(dist/*.whl)
+          if [ ${#whl[@]} -ne 1 ]; then
+            echo "Error: Expected exactly one wheel in dist/, found ${#whl[@]}" >&2
+            exit 1
+          fi
+          VERSION="$(basename "${whl[0]}" .whl | cut -d- -f2 | sed 's/\.post[0-9]*$//')"
+          change_wheel_version "${whl[0]}" \
+            --version "${VERSION}.post$(date -u +%Y%m%d%H%M)" \
+            --delete-old-wheel
 
       - if: "!cancelled()"
         uses: "actions/upload-artifact@v7"
@@ -119,6 +147,11 @@ jobs:
             ${{ matrix.package }}/build
             ${{ matrix.package }}/emsdk/upstream/emscripten/cache
             ${{ matrix.package }}/.ccache
+
+      - uses: "actions/upload-artifact@v7"
+        with:
+          name: "wheel-${{ matrix.package }}-${{ matrix.build_type }}"
+          path: "${{ matrix.package }}/dist/*.whl"
 
   test_build123d_integration:
     needs: "build_wheels"
@@ -133,6 +166,7 @@ jobs:
           merge-multiple: true
 
       - id: "xbuildenv_data"
+        shell: bash
         run: ".github/scripts/xbuildenv_data.sh"
       - uses: "actions/setup-python@v6"
         with:
@@ -140,6 +174,7 @@ jobs:
           cache: "pip"
 
       - working-directory: "build123d"
+        shell: bash
         run: |
           set -ex -o pipefail
 
@@ -155,7 +190,7 @@ jobs:
             echo "Testing build123d branch: $branch"
 
             # Reinitialize venv for each test to avoid version conflicts
-            deactivate || true
+            type deactivate >/dev/null 2>&1 && deactivate
             [ -f .venv-pyodide/bin/activate ] && rm -rf .venv-pyodide/
             pyodide venv .venv-pyodide
             . .venv-pyodide/bin/activate
@@ -164,7 +199,9 @@ jobs:
             if [ "$branch" = "dev" ]; then
               SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_path("platlib"))')"
               for whl in ../_wheels/*.whl; do
-                unzip -o "$whl" -d "$SITE_PACKAGES"
+                echo "Installing wheel $whl into venv for testing"
+                pip install --no-deps "$whl"
+                #unzip -o "$whl" -d "$SITE_PACKAGES"
               done
             fi
 
@@ -173,8 +210,8 @@ jobs:
             local max_retries=50
             local attempt=1
             while [ $attempt -le $max_retries ]; do
-              FORCE_COLOR=1 python test.py "$branch" | tee -a test.log
-              if grep -q "All tests passed successfully!" test.log; then
+              FORCE_COLOR=1 python test.py "$branch" | tee -a "test-$branch.log"
+              if grep -q "All tests passed successfully!" "test-$branch.log"; then
                 echo "Tests finished successfully on attempt $attempt"
                 break
               else
@@ -188,7 +225,7 @@ jobs:
           }
 
           # We always test the built wheels on the latest dev branch, which will eventually become stable
-          #test_build123d_branch "dev" # TODO: Reupgrade to latest dependency versions before enabling this.
+          test_build123d_branch "dev" # TODO: Reupgrade to latest dependency versions before enabling this.
           # Sometimes, stable builds require older versions that should be downloaded from PyPI instead
           test_build123d_branch "stable"
 
@@ -196,7 +233,7 @@ jobs:
         if: "always()"
         with:
           name: "test-build123d-integration-log"
-          path: "build123d/test.log"
+          path: "build123d/test-*.log"
 
   deploy_to_pypi:
     needs:
@@ -216,8 +253,8 @@ jobs:
           merge-multiple: true
 
       - name: "List wheels"
-        run: |
-          find dist -type f
+        shell: bash
+        run: find dist -type f
 
       - name: "Publish to PyPI"
         uses: "pypa/gh-action-pypi-publish@release/v1"
