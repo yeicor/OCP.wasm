@@ -50,31 +50,32 @@ jobs:
       - name: "Download cached build artifact"
         shell: bash
         run: |
-          mkdir -p "${{ matrix.package }}"
           ARTIFACT_NAME="build-${{ matrix.package }}-${{ matrix.build_type }}"
           try_download() {
-            local runs="$1"
-            local delete_old="$2"
+            local runs="$1" delete_old="$2"
             for RUN in $runs; do
               echo "Attempting download from run $RUN"
-              if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "${{ matrix.package }}" 2>/dev/null; then
-                echo "✓ Downloaded cache ($(du -sh "${{ matrix.package }}" 2>/dev/null | cut -f1)) from run $RUN"
+              TMP=$(mktemp -d)
+              if gh run download "$RUN" --name "$ARTIFACT_NAME" --dir "$TMP" 2>/dev/null; then
+                mv "$TMP"/* "${{ matrix.package }}/" 2>/dev/null || true
+                echo "✓ Downloaded cache from run $RUN. Output dir contents:"
+                find "${{ matrix.package }}" -mindepth 1 -maxdepth 2
                 if [ "$delete_old" = 1 ]; then
                   for OLD_RUN in $runs; do
                     [ "$OLD_RUN" = "$RUN" ] && continue
-                    gh api \
-                      repos/${{ github.repository }}/actions/runs/$OLD_RUN/artifacts \
+                    gh api repos/${{ github.repository }}/actions/runs/$OLD_RUN/artifacts \
                       --jq '.artifacts[] | select(.name == "'"$ARTIFACT_NAME"'") | .id' |
-                    xargs -r -I {} gh api \
-                      -X DELETE \
-                      repos/${{ github.repository }}/actions/artifacts/{}
+                    xargs -r -I {} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
                   done
                 fi
+                rm -rf "$TMP"
                 return 0
               fi
+              rm -rf "$TMP"
             done
             return 1
           }
+
           SAME_BRANCH_RUNS=$(gh run list \
             --workflow="${{ github.workflow }}" \
             --branch="${{ github.ref_name }}" \
@@ -82,13 +83,15 @@ jobs:
             --json databaseId \
             -q '.[].databaseId')
           try_download "$SAME_BRANCH_RUNS" 1 && exit 0
+
           ALL_RUNS=$(gh run list \
             --workflow="${{ github.workflow }}" \
             --limit=50 \
             --json databaseId \
             -q '.[].databaseId')
           try_download "$ALL_RUNS" 0 && exit 0
-          echo "⚠ No usable artifact found, continuing with fresh build..."
+
+          echo "::warning::No usable artifact found, continuing with fresh build..."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

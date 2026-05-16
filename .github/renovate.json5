@@ -13,7 +13,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "checkout_git_tag\\(.*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^\"]+?)\\.git\".*?TAG\\s*\"(?<currentValue>[^\"]+)\""
+        "checkout_git_tag\\((?:.|\\n)*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^\\/\\s]+\\/[^\\/\\s]+)\\.git\"(?:.|\\n)*?TAG\\s*\"(?<currentValue>[^\"]+)\""
       ],
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "loose"
@@ -22,16 +22,16 @@
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "checkout_git_tag\\(.*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^\"]+?)\\.git\".*?TAG\\s*\"(?<currentValue>[^\"]+)\""
+        "checkout_git_tag\\((?:.|\\n)*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>[^\\/\\s]+\\/[^\\/\\s]+)\\.git\"(?:.|\\n)*?TAG\\s*\"(?<currentValue>[^\"]+)\""
       ],
-      "datasourceTemplate": "git-refs",
-      "versioningTemplate": "git"
+      "datasourceTemplate": "git-refs", // Same as above but with git-refs to support non-tag versions
+      "versioningTemplate": "loose"
     },
     {
       "customType": "regex",
       "managerFilePatterns": ["/CMakeLists\\.txt$/"],
       "matchStrings": [
-        "download_url\\(.*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]+)\""
+        "download_url\\((?:.|\\n)*?URL\\s*\"https:\\/\\/github\\.com\\/(?<packageName>CadQuery\\/OCP)\\/releases\\/download\\/(?<currentValue>[^\\/]+)\\/(?<depName>[^\"]+)\"(?:.|\\n)*?\\)"
       ],
       "datasourceTemplate": "github-release-attachments",
       "versioningTemplate": "loose"
