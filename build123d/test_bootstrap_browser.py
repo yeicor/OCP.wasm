@@ -2,21 +2,29 @@
 #
 # import os; os.environ["OCP_WASM_BRANCH"] = "master"; os.environ["BUILD123D_BRANCH"] = "dev"; import micropip; from pyodide.http import pyfetch; exec(await (await pyfetch("https://raw.githubusercontent.com/yeicor/OCP.wasm/"+os.environ["OCP_WASM_BRANCH"]+"/build123d/test_bootstrap_browser.py")).text())
 
-import asyncio
 import io
 import os
 import sys
 import tempfile
+import urllib.parse  # Assume CORS error and try proxy instead
 import zipfile
 
-# noinspection PyUnresolvedReferences
-from pyodide.http import pyfetch
 from pyodide.ffi import run_sync
+from pyodide.http import pyfetch
 
 # First, download a snapshot of the repository.
 print("Downloading the latest OCP.wasm sources...")
 OCP_WASM_BRANCH = os.environ.get("OCP_WASM_BRANCH", "master")
-response = run_sync(pyfetch("https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=https://github.com/yeicor/OCP.wasm/archive/refs/heads/" + OCP_WASM_BRANCH + ".zip"))
+response = run_sync(
+    pyfetch(
+        "https://corsproxy.io/?url="
+        + urllib.parse.quote_plus(
+            "https://github.com/yeicor/OCP.wasm/archive/refs/heads/"
+            + OCP_WASM_BRANCH
+            + ".zip"
+        )
+    )
+)
 sources_zip = run_sync(response.bytes())
 
 # Then, extract it to a temporary directory.

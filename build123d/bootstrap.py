@@ -81,15 +81,16 @@ def _parse_dep_requirements(requires_dist):
 
 
 async def _fetch(url):
-    """Fetch URL content. Native uses urllib, Pyodide uses pyfetch with CORS proxy."""
+    """Fetch URL content. Native uses urllib, Pyodide uses pyfetch with CORS proxy if needed."""
     if sys.platform == "emscripten":
         if pyfetch is None:
             raise RuntimeError("pyfetch not available in Pyodide environment")
         try:
             response = await pyfetch(url)
         except Exception as e:  # pyodide.http._exceptions.AbortError
-            # Assume CORS error and try proxy instead
-            url = "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url=" + url
+            import urllib.parse  # Assume CORS error and try proxy instead
+
+            url = "https://corsproxy.io/?url=" + urllib.parse.quote_plus(url)
             response = await pyfetch(url)
         return response
     else:
