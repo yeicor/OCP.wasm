@@ -90,7 +90,7 @@ async def _fetch(url):
         except Exception as e:  # pyodide.http._exceptions.AbortError
             import urllib.parse  # Assume CORS error and try proxy instead
 
-            url = "https://corsproxy.io/?url=" + urllib.parse.quote_plus(url)
+            url = "https://proxy.corsfix.com/?" + urllib.parse.quote_plus(url)
             response = await pyfetch(url)
         return response
     else:
