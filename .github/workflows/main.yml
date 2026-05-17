@@ -246,12 +246,14 @@ jobs:
     permissions:
       id-token: write
     environment: "publish"
+    strategy:
+      matrix:
+        package: ["cadquery-ocp-novtk", "lib3mf"]
     steps:
       - uses: "actions/download-artifact@v8"
         with:
-          pattern: "wheel-*-Release"
+          name: "wheel-${{ matrix.package }}-Release"
           path: "dist"
-          merge-multiple: true
 
       - name: "List wheels"
         shell: bash
