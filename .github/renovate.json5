@@ -38,6 +38,17 @@
     },
     {
       "customType": "regex",
+      "managerFilePatterns": ["/CMakeLists\\.txt$/"],
+      "matchStrings": [
+        "set\\(LIB3MF_VERSION\\s+\"?(?<currentValue>[^\")]+)\"?\\)"
+      ],
+      "depNameTemplate": "3MFConsortium/lib3mf",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
       "managerFilePatterns": ["/requirements\\.txt$/"],
       "matchStrings": ["pyodide-xbuildenv==(?<currentValue>[^\\s]+)"],
       "packageNameTemplate": "pyodide/pyodide",
