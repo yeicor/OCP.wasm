@@ -197,7 +197,7 @@ jobs:
             . .venv-pyodide/bin/activate
 
             # Reinstall the pre-built wasm wheels into the fresh venv (only for dev branch, stable may require older versions that should be downloaded from PyPI instead)
-            if [ "$branch" = "dev" ]; then
+            if [ "$branch" = "stable" ]; then
               SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_path("platlib"))')"
               for whl in ../_wheels/*.whl; do
                 echo "Installing wheel $whl into venv for testing"
