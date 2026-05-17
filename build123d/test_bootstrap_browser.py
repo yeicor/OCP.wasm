@@ -17,7 +17,7 @@ print("Downloading the latest OCP.wasm sources...")
 OCP_WASM_BRANCH = os.environ.get("OCP_WASM_BRANCH", "master")
 response = run_sync(
     pyfetch(
-        "https://proxy.corsfix.com/?"
+        "https://api.cors.lol/?url="
         + urllib.parse.quote_plus(
             "https://github.com/yeicor/OCP.wasm/archive/refs/heads/"
             + OCP_WASM_BRANCH
