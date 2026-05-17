@@ -9,7 +9,7 @@ set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
 configure_fetchcontent()
 override_install()
 
-set(LIB3MF_VERSION "2.4.1")
+set(LIB3MF_VERSION "2.5.0")
 set(LIB3MF_SRC_DIR "${CMAKE_BINARY_DIR}/_deps/lib3mf-src")
 checkout_git_tag(SRC "${LIB3MF_SRC_DIR}" URL "https://github.com/3MFConsortium/lib3mf.git" TAG "v${LIB3MF_VERSION}")
 message(STATUS "${LIB3MF_SRC_DIR}")
