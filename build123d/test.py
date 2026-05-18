@@ -13,8 +13,8 @@ async def main():
 
     if not branch.startswith("github:"):
         branch = "github:" + branch  # Force using the sources that include tests
-    tmpdir, extracted_dir = await bootstrap(branch, debug=True)
-    assert extracted_dir is not None, "Bootstrap failed to extract the sources"
+    extracted_dir = await bootstrap(branch, debug=True)
+    assert extracted_dir is not None, "Bootstrap failed to install build123d sources"
 
     if sys.platform == "emscripten":
         # Hackier patches that are required for passing tests, but should not be mandatory for bootstrap()
@@ -129,8 +129,7 @@ async def main():
 
     old_cwd = os.getcwd()
     try:
-        if extracted_dir is not None:
-            os.chdir(extracted_dir)
+        os.chdir(extracted_dir)
 
         import pytest  # type: ignore
 
@@ -160,8 +159,6 @@ async def main():
             sys.exit(1)
     finally:
         os.chdir(old_cwd)
-        if tmpdir is not None:
-            tmpdir.cleanup()
 
 
 if __name__ == "__main__":

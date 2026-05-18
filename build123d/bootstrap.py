@@ -132,22 +132,25 @@ async def _fetch_bytes(url):
     raise RuntimeError(f"Too many redirects while fetching {url}")
 
 
-async def _platform_install(pkg, reinstall=False):
-    """Platform-independent install for a package string."""
-    logger.info(f"Installing package: {pkg} (reinstall={reinstall})")
+async def _platform_install(pkg):
+    """Platform-independent install for a package string (always forces reinstall)."""
+    logger.info(f"Installing package: {pkg}")
     if sys.platform == "emscripten":
         if micropip is None:
             logger.error("micropip is not available in this environment")
             raise RuntimeError("micropip is not available in this environment")
-        await micropip.install(pkg, reinstall=reinstall)
+        await micropip.install(pkg, reinstall=True, keep_going=True)
         logger.debug(f"micropip installed {pkg}")
     else:
         import subprocess
 
-        args = [sys.executable, "-m", "pip", "install"]
-        if reinstall:
-            args.append("--force-reinstall")
-        args.append(pkg)
+        args = [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--force-reinstall",
+        ] + pkg.split(" ")
         logger.debug(f"Running pip install: {' '.join(args)}")
         process = await asyncio.create_subprocess_exec(
             *args,
@@ -162,49 +165,17 @@ async def _platform_install(pkg, reinstall=False):
         logger.debug(f"pip installed {pkg}")
 
 
-def _parse_version_spec(spec_str):
-    """Parse version specifier and return the best mock version."""
-    upper = None
-    lower_bounds = []
-
-    for part in spec_str.split(","):
-        part = part.strip()
-        if part.startswith("<="):
-            v = part[2:].strip()
-            if upper is None or v < upper:
-                upper = v
-        elif part.startswith("<"):
-            v = part[1:].strip()
-            if upper is None or v < upper:
-                upper = v
-        elif part.startswith(">="):
-            lower_bounds.append(part[2:].strip())
-        elif part.startswith(">"):
-            lower_bounds.append(part[1:].strip())
-        elif part.startswith("~="):
-            lower_bounds.append(part[2:].strip())
-        elif part.startswith("=="):
-            lower_bounds.append(part[2:].strip())
-
-    if not lower_bounds:
-        return None
-
-    highest_lower = max(lower_bounds)
-    if upper:
-        return highest_lower + ".9999999999"
-    return highest_lower
+# Acceptable variants for OCP packages
+ocp_variants = [
+    ("cadquery-ocp-novtk", ["cadquery-ocp", "cadquery-ocp-novtk"]),
+    ("lib3mf", ["lib3mf", "py-lib3mf"]),
+]
 
 
 def _extract_version_specs(requires_dist):
     """Extract version specifications from requirements list, supporting variant namings."""
     mock_versions = {}
     ocp_specifiers = {}
-
-    # Acceptable variants for OCP packages
-    ocp_variants = [
-        ("cadquery-ocp-novtk", ["cadquery-ocp", "cadquery-ocp-novtk"]),
-        ("lib3mf", ["lib3mf", "py-lib3mf"]),
-    ]
 
     for req in requires_dist:
         req = req.replace("(", "").replace(")", "").strip()
@@ -249,45 +220,42 @@ async def _find_latest_dev_version(package_name, version_spec):
     logger.info(
         f"Looking for latest .dev version for {package_name} (spec: {version_spec})"
     )
-    try:
-        data = await _get_pypi_json(package_name)
-        releases = data.get("releases", {})
-        logger.debug(f"Found versions for {package_name}: {list(releases.keys())}")
+    data = await _get_pypi_json(package_name)
+    releases = data.get("releases", {})
+    logger.debug(f"Found versions for {package_name}: {list(releases.keys())}")
 
-        # Only consider .dev versions that match the version_spec
-        # version_spec may be empty or something like '>=0.9,<0.10'
-        import packaging.specifiers
-        import packaging.version
+    # Only consider .dev versions that match the version_spec
+    # version_spec may be empty or something like '>=0.9,<0.10'
+    await _platform_install("packaging")
+    import packaging.specifiers
+    import packaging.version
 
-        spec = packaging.specifiers.SpecifierSet(version_spec) if version_spec else None
-        dev_versions = []
-        for v in releases.keys():
-            if ".dev" in v:
-                try:
-                    ver = packaging.version.parse(v)
-                    if spec is None or ver in spec:
-                        dev_versions.append(v)
-                except Exception:
-                    continue
-        logger.debug(
-            f"Found .dev versions for {package_name} matching spec: {dev_versions}"
+    spec = packaging.specifiers.SpecifierSet(version_spec) if version_spec else None
+    dev_versions = []
+    for v in releases.keys():
+        if ".dev" in v:
+            try:
+                ver = packaging.version.parse(v)
+                if spec is None or ver in spec:
+                    dev_versions.append(v)
+            except Exception:
+                continue
+    logger.debug(
+        f"Found .dev versions for {package_name} matching spec: {dev_versions}"
+    )
+    if not dev_versions:
+        # Fallback: no dev versions available, return original spec to at least get the latest stable version
+        logger.warning(
+            f"No .dev versions found for {package_name} matching spec {version_spec}"
         )
-        if not dev_versions:
-            # Fallback: no dev versions available, return empty spec
-            logger.warning(
-                f"No .dev versions found for {package_name} matching spec {version_spec}"
-            )
-            return ""
+        return version_spec
 
-        # Sort versions using packaging.version
-        dev_versions.sort(key=packaging.version.parse, reverse=True)
+    # Sort versions using packaging.version
+    dev_versions.sort(key=packaging.version.parse, reverse=True)
 
-        # Return the latest .dev version
-        logger.info(f"Using .dev version for {package_name}: {dev_versions[0]}")
-        return f"=={dev_versions[0]}"
-    except Exception as e:
-        logger.warning(f"Could not query PyPI for {package_name} dev versions: {e}")
-        return ""
+    # Return the latest .dev version
+    logger.info(f"Using .dev version for {package_name}: {dev_versions[0]}")
+    return f"=={dev_versions[0]}"
 
 
 async def _get_pypi_version(build123d_ref):
@@ -307,23 +275,19 @@ async def _install_and_mock_ocp_wasm_wheels(ocp_specifiers, debug=False):
     logger.info(
         f"Installing OCP WASM wheels (debug={debug}) with specifiers: {ocp_specifiers}"
     )
-    # Define OCP packages to install with their specs and mock names
-    ocp_packages = [
-        ("lib3mf-OCP.wasm", ["lib3mf", "py-lib3mf"]),
-        ("cadquery-ocp-novtk-OCP.wasm", ["cadquery-ocp"]),
-    ]
 
     mocked_packages = []
-    for wheel_pkg, mock_names in ocp_packages:
-        spec = ocp_specifiers[wheel_pkg.replace("-OCP.wasm", "")]
+    for canonical_name, mock_names in ocp_variants:
+        spec = ocp_specifiers[canonical_name]
+        my_pkg_name = canonical_name + "-OCP.wasm"
         if debug:  # Replace with ==.dev... if available, as this is the only way to get a prerelease
-            spec = await _find_latest_dev_version(wheel_pkg, spec)
-        await _platform_install(f"{wheel_pkg}{spec}", reinstall=True)
+            spec = await _find_latest_dev_version(my_pkg_name, spec)
+        await _platform_install(f"{my_pkg_name}{spec}")
 
         if sys.platform == "emscripten" and micropip is not None:
-            version = importlib.metadata.version(wheel_pkg)
+            version = importlib.metadata.version(my_pkg_name)
             for mock_name in mock_names:
-                logger.debug(f"Adding mock package {mock_name} for Pyodide")
+                logger.debug(f"Adding mock package {mock_name}=={version} for Pyodide")
                 mocked_packages.append(mock_name)
                 if mock_name == "py-lib3mf":
                     micropip.add_mock_package(
@@ -336,7 +300,7 @@ async def _install_and_mock_ocp_wasm_wheels(ocp_specifiers, debug=False):
 
     if sys.platform == "emscripten":
         logger.debug("Installing sqlite3 for emscripten platform")
-        await _platform_install("sqlite3", reinstall=True)
+        await _platform_install("sqlite3")
 
     async def cleanup_mocks():
         """Remove all mocked packages."""
@@ -351,7 +315,7 @@ async def _install_and_mock_ocp_wasm_wheels(ocp_specifiers, debug=False):
 async def _install_from_pypi(version):
     """Install build123d from PyPI."""
     logger.info(f"Installing build123d from PyPI version {version}")
-    await _platform_install(f"build123d=={version}", reinstall=True)
+    await _platform_install(f"build123d=={version}")
 
 
 async def _get_github_version(ref_name):
@@ -378,11 +342,28 @@ async def _get_github_version(ref_name):
     return ocp_specifiers
 
 
+def _find_build123d_sources():
+    """Find the build123d sources directory in site-packages."""
+    import site
+
+    site_packages_dirs = site.getsitepackages() + [site.getusersitepackages()]
+    for site_pkg in site_packages_dirs:
+        src_path = os.path.join(site_pkg, "build123d-src")
+        if os.path.isdir(src_path):
+            return src_path
+        src_path = os.path.join(site_pkg, "build123d")
+        if os.path.isdir(src_path):
+            return src_path
+    return None
+
+
 async def _install_from_github(build123d_ref):
-    """Download build123d from GitHub as zip, extract, patch, and install dependencies."""
+    """Download and install build123d from GitHub."""
+    import shutil
+
     import tomllib
 
-    # Download zip file from GitHub
+    # Download and extract
     zip_url = f"https://github.com/gumyr/build123d/archive/{build123d_ref}.zip"
     logger.debug(f"Downloading {zip_url}...")
     try:
@@ -394,70 +375,69 @@ async def _install_from_github(build123d_ref):
             ) from e
         raise
 
-    # Extract zip
-    _tmpdir = tempfile.TemporaryDirectory()
+    tmpdir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
-        zipf.extractall(path=_tmpdir.name)
+        zipf.extractall(path=tmpdir.name)
 
-    # Find extracted directory (GitHub creates build123d-<ref> directory)
-    extracted_dirs = os.listdir(_tmpdir.name)
-    _extracted_dir = os.path.join(_tmpdir.name, extracted_dirs[0])
-    _sources_folder = os.path.join(_extracted_dir, "src")
-    sys.path.insert(0, _sources_folder)
+    extracted_dir = os.path.join(tmpdir.name, os.listdir(tmpdir.name)[0])
+    sources_folder = os.path.join(extracted_dir, "src")
 
-    # Patch pyproject.toml
-    pyproject_path = os.path.join(_extracted_dir, "pyproject.toml")
+    # Determine version
+    version_match = re.match(r"^v?(\d+\.\d+\.\d)+$", build123d_ref)
+    if version_match is not None:
+        version = version_match.group(1)
+    else:
+        try:
+            import requests
+
+            response = requests.get("https://pypi.org/pypi/build123d/json")
+            latest_version = response.json()["info"]["version"]
+            version = (
+                latest_version + "+" + build123d_ref.replace(".", "_").replace("/", "_")
+            )
+        except Exception as e:
+            logger.warning(f"Could not fetch latest stable version: {e}")
+            version = "0.0.0+" + build123d_ref.replace(".", "_").replace("/", "_")
+
+    # Patch pyproject.toml and __init__.py
+    pyproject_path = os.path.join(extracted_dir, "pyproject.toml")
     with open(pyproject_path, "r") as f:
-        pyproject_content = f.read()
-
-    version = build123d_ref.strip("v")
-    if re.match(r"^\d+\.\d+\.\d+$", version) is None:
-        version = "0.0.0+" + version.replace(".", "_").replace("/", "_")
-    pyproject_content = re.sub(
-        r'dynamic = \["version"]', 'version = "' + version + '"', pyproject_content
-    )
-    pyproject_content = re.sub(r'"setuptools_scm.*?",', "", pyproject_content)
-    pyproject_content = re.sub(
-        r"\[tool\.setuptools.*]\n([^\[].*?\n)*", "", pyproject_content
-    )
-
+        content = f.read()
+    content = re.sub(r'dynamic = \["version"]', f'version = "{version}"', content)
+    content = re.sub(r'"setuptools_scm.*?",', "", content)
+    content = re.sub(r"\[tool\.setuptools.*]\n([^\[].*?\n)*", "", content)
     with open(pyproject_path, "w") as f:
-        f.write(pyproject_content)
+        f.write(content)
 
-    # Patch __init__.py
-    init_path = os.path.join(_sources_folder, "build123d", "__init__.py")
+    init_path = os.path.join(sources_folder, "build123d", "__init__.py")
     with open(init_path, "r") as f:
-        init_content = f.read()
-
-    init_content = re.sub(
+        content = f.read()
+    content = re.sub(
         r"from \.version import version as __version__",
         f"__version__ = '{version}'",
-        init_content,
+        content,
     )
-
     with open(init_path, "w") as f:
-        f.write(init_content)
+        f.write(content)
 
-    # Parse dependencies
+    # Parse and install dependencies
     with open(pyproject_path, "rb") as f:
         pyproject_data = tomllib.load(f)
 
-    _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
+    deps = pyproject_data.get("project", {}).get("dependencies", [])
     if os.getenv("_install_build123d_from_github_also_optional", "") != "":
-        _dependencies += (
+        deps += (
             pyproject_data.get("project", {})
             .get("optional-dependencies", {})
             .get("development", [])
         )
-        _dependencies += (
+        deps += (
             pyproject_data.get("project", {})
             .get("optional-dependencies", {})
             .get("benchmark", [])
         )
 
-    # Install dependencies
-    logger.info(f"Installing dependencies: {_dependencies}")
-    for dep in _dependencies:
+    for dep in deps:
         dep = dep.strip()
         if (
             not dep
@@ -465,12 +445,60 @@ async def _install_from_github(build123d_ref):
             or dep.startswith("cadquery-ocp")
             or dep == "mypy"
         ):
-            logger.debug(f"Skipping dependency: {dep}")
             continue
-        logger.info(f"Installing dependency: {dep}")
-        await _platform_install(dep, reinstall=True)
+        await _platform_install(dep)
 
-    return _tmpdir, _extracted_dir
+    if sys.platform == "emscripten":
+        import site
+
+        site_packages = site.getsitepackages()[0]
+        dest_base = os.path.join(site_packages, "build123d-src")
+        dest_src = os.path.join(dest_base, "src")
+        os.makedirs(dest_src, exist_ok=True)
+
+        # Copy build123d package
+        shutil.rmtree(os.path.join(dest_src, "build123d"), ignore_errors=True)
+        shutil.copytree(
+            os.path.join(sources_folder, "build123d"),
+            os.path.join(dest_src, "build123d"),
+        )
+
+        # Copy test files and other artifacts
+        for item in os.listdir(extracted_dir):
+            if item not in ("src", ".git", ".gitignore"):
+                src = os.path.join(extracted_dir, item)
+                dst = os.path.join(dest_base, item)
+                if os.path.isdir(src):
+                    shutil.rmtree(dst, ignore_errors=True)
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
+
+        sys.path.insert(0, dest_src)
+
+        # Create dist-info metadata
+        dist_info_dir = os.path.join(site_packages, f"build123d-{version}.dist-info")
+        os.makedirs(dist_info_dir, exist_ok=True)
+        for fname, content in [
+            (
+                "METADATA",
+                f"Metadata-Version: 2.1\nName: build123d\nVersion: {version}\n",
+            ),
+            (
+                "WHEEL",
+                "Wheel-Version: 1.0\nGenerator: build123d-bootstrap\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+            ),
+            ("RECORD", ""),
+            ("entry_points.txt", ""),
+        ]:
+            with open(os.path.join(dist_info_dir, fname), "w") as f:
+                f.write(content)
+        logger.info(f"Installed build123d sources to {dest_base}")
+    else:
+        await _platform_install(f"-e {extracted_dir}")
+
+    # Cleanup temporary directory
+    tmpdir.cleanup()
 
 
 async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
@@ -480,14 +508,13 @@ async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
 
     Args:
         build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), GitHub ref, or custom version
-        debug: If True, use debug OCP.wasm wheels (.dev* suffix) instead of release versions (.post* suffix)
-        mocked_hook: Optional async function to run after build123d and OCP wheels are installed, but before mocks are removed.
-            This can be used to install additional packages that depend on build123d.
+        debug: If True, use debug OCP.wasm wheels (.dev* suffix) instead of release versions
 
     Returns:
-        (tmpdir, extracted_dir): tmpdir for cleanup, extracted_dir for use (None if installed from PyPI)
+        Path to build123d directory (sources for GitHub installs and wheel contents for PyPI installs).
     """
     logger.debug(f"Bootstrapping build123d (ref={build123d_ref}, debug={debug})")
+
     # Handle "stable" by fetching latest version
     if build123d_ref == "stable" or build123d_ref == "github:stable":
         logger.debug("Fetching latest version for build123d from PyPI")
@@ -530,20 +557,15 @@ async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
     if is_pypi_ref:
         logger.debug(f"Installing build123d from PyPI wheels version {build123d_ref}")
         await _install_from_pypi(build123d_ref)
-        tmpdir, extracted_dir = None, None
     else:
         logger.debug(
             f"Installing build123d from GitHub sources version {build123d_ref}"
         )
-        tmpdir, extracted_dir = await _install_from_github(build123d_ref)
-
-    # Run after_bootstrap hook if provided (before cleaning up mocks)
-    if mocked_hook is not None:
-        logger.debug("Running mocked_hook hook before cleaning up mocks")
-        await mocked_hook()
+        await _install_from_github(build123d_ref)
 
     # Clean up mocked packages before returning
     await cleanup_mocks()
 
-    logger.debug(f"Bootstrap complete. tmpdir={tmpdir}, extracted_dir={extracted_dir}")
-    return tmpdir, extracted_dir
+    sources = _find_build123d_sources()
+    logger.debug(f"Bootstrap complete. sources={sources}")
+    return sources
