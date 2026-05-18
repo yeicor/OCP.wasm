@@ -172,6 +172,12 @@ ocp_variants = [
 ]
 
 
+def _is_version_specifier(ref):
+    """Check if ref looks like a version specifier (e.g., '<0.11,>=0.10') vs a tag/branch."""
+    # Version specifiers contain operators like >=, <=, ==, ~=, >, <
+    return any(op in ref for op in [">=", "<=", "==", "~=", ">", "<"])
+
+
 def _extract_version_specs(requires_dist):
     """Extract version specifications from requirements list, supporting variant namings."""
     mock_versions = {}
@@ -200,6 +206,68 @@ def _extract_version_specs(requires_dist):
 
     logger.debug(f"Extracted ocp_specifiers: {ocp_specifiers}")
     return mock_versions, ocp_specifiers
+
+
+async def _resolve_version_specifier(version_spec):
+    """Resolve a version specifier (e.g., '<0.11,>=0.10') to the best matching PyPI version.
+
+    Returns the resolved version string (e.g., 'v0.10.5') or raises an exception if no match found.
+    """
+    logger.info(f"Resolving version specifier: {version_spec}")
+
+    if not version_spec or version_spec == "":
+        logger.warning("Empty version specifier, using latest stable")
+        data = await _get_pypi_json("build123d")
+        return data["info"]["version"]
+
+    # If it's not a specifier, assume it's a concrete version or ref
+    if not _is_version_specifier(version_spec):
+        logger.debug(
+            f"'{version_spec}' is not a specifier, treating as concrete version/ref"
+        )
+        return version_spec
+
+    # Parse the specifier
+    await _platform_install("packaging")
+    import packaging.specifiers
+    import packaging.version
+
+    try:
+        spec_set = packaging.specifiers.SpecifierSet(version_spec)
+    except Exception as e:
+        logger.error(f"Invalid version specifier: {version_spec}: {e}")
+        raise ValueError(f"Invalid version specifier: {version_spec}") from e
+
+    # Fetch all versions from PyPI
+    data = await _get_pypi_json("build123d")
+    releases = data.get("releases", {})
+
+    if not releases:
+        logger.error("No releases found on PyPI for build123d")
+        raise RuntimeError("No releases found on PyPI for build123d")
+
+    # Find versions matching the specifier, sorted from latest to earliest
+    matching_versions = []
+    for v in releases.keys():
+        try:
+            parsed = packaging.version.parse(v)
+            # Skip pre-releases and dev versions unless explicitly requested
+            if parsed in spec_set:
+                matching_versions.append((parsed, v))
+        except Exception as e:
+            logger.debug(f"Could not parse version {v}: {e}")
+            continue
+
+    if not matching_versions:
+        logger.error(f"No versions found matching specifier: {version_spec}")
+        raise RuntimeError(f"No versions found on PyPI matching {version_spec}")
+
+    # Sort by parsed version, descending (latest first)
+    matching_versions.sort(key=lambda x: x[0], reverse=True)
+    best_version = matching_versions[0][1]
+
+    logger.info(f"Resolved version specifier '{version_spec}' to '{best_version}'")
+    return best_version
 
 
 async def _get_pypi_json(package, version=None):
@@ -388,16 +456,15 @@ async def _install_from_github(build123d_ref):
         version = version_match.group(1)
     else:
         try:
-            import requests
-
-            response = requests.get("https://pypi.org/pypi/build123d/json")
-            latest_version = response.json()["info"]["version"]
+            data = await _get_pypi_json("build123d")
+            latest_version = data["info"]["version"]
             version = (
                 latest_version + "+" + build123d_ref.replace(".", "_").replace("/", "_")
             )
         except Exception as e:
             logger.warning(f"Could not fetch latest stable version: {e}")
             version = "0.0.0+" + build123d_ref.replace(".", "_").replace("/", "_")
+
 
     # Patch pyproject.toml and __init__.py
     pyproject_path = os.path.join(extracted_dir, "pyproject.toml")
@@ -507,11 +574,17 @@ async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
     Works in both native and Pyodide environments.
 
     Args:
-        build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), GitHub ref, or custom version
+        build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), version specifier
+                       (e.g., "<0.11,>=0.10"), GitHub ref, or custom version.
+                       Prefix with "github:" to force GitHub sources.
         debug: If True, use debug OCP.wasm wheels (.dev* suffix) instead of release versions
 
     Returns:
         Path to build123d directory (sources for GitHub installs and wheel contents for PyPI installs).
+
+    Raises:
+        RuntimeError: If version cannot be resolved or installation fails.
+        ValueError: If version specifier is invalid.
     """
     logger.debug(f"Bootstrapping build123d (ref={build123d_ref}, debug={debug})")
 
@@ -525,18 +598,35 @@ async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
             build123d_ref = "github:v" + data["info"]["version"]
         logger.debug(f"Latest build123d version: {build123d_ref}")
 
+    # Check if it's a version specifier that needs resolution
+    force_github = build123d_ref.startswith("github:")
+    ref_to_check = (
+        build123d_ref[len("github:") :]
+        if force_github
+        else build123d_ref
+    )
+
+    # If it's a version specifier (e.g., "<0.11,>=0.10"), resolve it to a concrete version
+    if _is_version_specifier(ref_to_check) and not force_github:
+        logger.info(f"Version specifier detected: {ref_to_check}. Resolving to concrete version...")
+        try:
+            resolved_version = await _resolve_version_specifier(ref_to_check)
+            logger.info(f"Resolved '{ref_to_check}' to '{resolved_version}'")
+            build123d_ref = resolved_version
+        except Exception as e:
+            logger.error(f"Failed to resolve version specifier '{ref_to_check}': {e}")
+            raise RuntimeError(
+                f"Could not resolve version specifier '{ref_to_check}': {e}\n"
+                f"Try specifying a concrete version like 'v0.10.5' or '0.10.5'"
+            ) from e
+
     # Try PyPI first as user can always override with a github: prefix if they want to test against the latest sources
     is_pypi_ref = False
     ocp_specifiers = None
+
     if not build123d_ref.startswith("github:"):
         try:
-            logger.debug(f"Gathering dependency specifiers from PyPI: {build123d_ref}")
-            ocp_specifiers = await _get_pypi_version(build123d_ref)
-            is_pypi_ref = True
-            logger.debug(f"Found build123d version {build123d_ref} on PyPI")
-        except Exception as e:
-            logger.debug(
-                f"Could not find build123d version {build123d_ref} on PyPI: {e}. Will try GitHub."
+            logger.debug(f"Gathering dependency specifiers from PyPI: {build123d_ref}")d build123d version {build123d_ref} on PyPI: {e}. Will try GitHub."
             )
 
     # Get dependencies and install OCP wheels
