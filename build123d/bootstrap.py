@@ -1,23 +1,166 @@
+import asyncio
 import importlib.metadata
 import io
+import json
+import logging
 import os
 import re
 import sys
 import tempfile
 import zipfile
 
-try:
-    import micropip
-except ModuleNotFoundError:
-    pass
+# Set up logger
+logger = logging.getLogger("build123d_bootstrap")
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+handler.setFormatter(formatter)
+if not logger.hasHandlers():
+    logger.addHandler(handler)
 
 try:
-    from pyodide.http import pyfetch
+    import micropip  # type: ignore
+except ModuleNotFoundError:
+    micropip = None
+
+try:
+    from pyodide.http import pyfetch  # type: ignore
 except ModuleNotFoundError:
     pyfetch = None
 
 
-def _select_mock_version(spec_str):
+class _NormalizedResponse:
+    """Wrapper to normalize responses from pyfetch (Pyodide) and urllib (native Python)."""
+
+    def __init__(self, response, is_emscripten):
+        self._response = response
+        self._is_emscripten = is_emscripten
+
+    @property
+    def status(self):
+        """Get HTTP status code (works for both platforms)."""
+        if self._is_emscripten:
+            return self._response.status
+        else:
+            return self._response.code
+
+    def get_header(self, name):
+        """Get HTTP header value (works for both platforms)."""
+        if self._is_emscripten:
+            return self._response.headers.get(name)
+        else:
+            return self._response.getheader(name)
+
+    async def text(self):
+        """Get response body as text (works for both platforms)."""
+        if self._is_emscripten:
+            return await self._response.text()
+        else:
+            return self._response.read().decode("utf-8")
+
+    async def bytes(self):
+        """Get response body as bytes (works for both platforms)."""
+        if self._is_emscripten:
+            return await self._response.bytes()
+        else:
+            return self._response.read()
+
+    async def json(self):
+        """Get response body as JSON (works for both platforms)."""
+        if self._is_emscripten:
+            return await self._response.json()
+        else:
+            return json.load(self._response)
+
+
+async def _fetch(url):
+    """Fetch URL content. Returns normalized response (same interface for both platforms)."""
+    is_emscripten = sys.platform == "emscripten"
+    logger.debug(
+        f"Fetching URL: {url} (platform: {'Pyodide' if is_emscripten else 'native'})"
+    )
+
+    if is_emscripten:
+        if pyfetch is None:
+            logger.error("pyfetch not available in Pyodide environment")
+            raise RuntimeError("pyfetch not available in Pyodide environment")
+        try:
+            response = await pyfetch(url)
+        except Exception as e:  # pyodide.http._exceptions.AbortError
+            logger.warning(f"pyfetch failed for {url}: {e}. Retrying with CORS proxy.")
+            import urllib.parse
+
+            url = "https://api.cors.lol/?url=" + urllib.parse.quote_plus(url)
+            response = await pyfetch(url)
+    else:
+        import urllib.request
+
+        logger.debug(f"Using urllib to fetch {url}")
+        response = urllib.request.urlopen(url)
+
+    logger.debug(
+        f"Fetched {url} with status {response.status if is_emscripten else response.code}"
+    )
+    return _NormalizedResponse(response, is_emscripten)
+
+
+async def _fetch_bytes(url):
+    """Fetch URL and return bytes, following redirects."""
+    max_redirects = 5
+    for i in range(max_redirects):
+        logger.debug(f"_fetch_bytes: Attempt {i + 1} for {url}")
+        response = await _fetch(url)
+        status = response.status
+        logger.debug(f"_fetch_bytes: Status {status} for {url}")
+        if 300 <= status < 400:
+            location = response.get_header("Location")
+            logger.info(f"Redirect {url} -> {location}")
+            if not location:
+                logger.error(f"Redirect with no Location header for {url}")
+                raise RuntimeError(f"Redirect with no Location header for {url}")
+            url = location
+            continue
+        if 200 <= status < 300:
+            logger.debug(f"_fetch_bytes: Success for {url}")
+            return await response.bytes()
+        logger.error(f"Failed to fetch {url}: HTTP {status}")
+        raise RuntimeError(f"Failed to fetch {url}: HTTP {status}")
+    logger.error(f"Too many redirects while fetching {url}")
+    raise RuntimeError(f"Too many redirects while fetching {url}")
+
+
+async def _platform_install(pkg, reinstall=False):
+    """Platform-independent install for a package string."""
+    logger.info(f"Installing package: {pkg} (reinstall={reinstall})")
+    if sys.platform == "emscripten":
+        if micropip is None:
+            logger.error("micropip is not available in this environment")
+            raise RuntimeError("micropip is not available in this environment")
+        await micropip.install(pkg, reinstall=reinstall)
+        logger.debug(f"micropip installed {pkg}")
+    else:
+        import subprocess
+
+        args = [sys.executable, "-m", "pip", "install"]
+        if reinstall:
+            args.append("--force-reinstall")
+        args.append(pkg)
+        logger.debug(f"Running pip install: {' '.join(args)}")
+        process = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate()
+        logger.debug(f"pip stdout: {stdout.decode()}")
+        if process.returncode != 0:
+            logger.error(f"Failed to install package {pkg}:\n{stderr.decode()}")
+            raise Exception(f"Failed to install package {pkg}:\n{stderr.decode()}")
+        logger.debug(f"pip installed {pkg}")
+
+
+def _parse_version_spec(spec_str):
+    """Parse version specifier and return the best mock version."""
     upper = None
     lower_bounds = []
 
@@ -49,213 +192,224 @@ def _select_mock_version(spec_str):
     return highest_lower
 
 
-def _parse_dep_requirements(requires_dist):
+def _extract_version_specs(requires_dist):
+    """Extract version specifications from requirements list, supporting variant namings."""
     mock_versions = {}
     ocp_specifiers = {}
 
+    # Acceptable variants for OCP packages
+    ocp_variants = [
+        ("cadquery-ocp-novtk", ["cadquery-ocp", "cadquery-ocp-novtk"]),
+        ("lib3mf", ["lib3mf", "py-lib3mf"]),
+    ]
+
     for req in requires_dist:
-        req = req.replace("(", "").replace(")", "")
-        for pkg_name in ("cadquery-ocp-novtk", "cadquery-ocp", "lib3mf"):
-            if req.startswith(pkg_name):
-                suffix = req[len(pkg_name) :].lstrip()
-                if not suffix or suffix[0] not in (">", "<", "=", "~", "!", "("):
-                    continue
-                version = _select_mock_version(suffix)
-                if version:
-                    if (
-                        pkg_name not in mock_versions
-                        or version > mock_versions[pkg_name]
-                    ):
-                        mock_versions[pkg_name] = version
-                        ocp_specifiers[pkg_name] = suffix
-                break
-
-    if "cadquery-ocp" in mock_versions and "cadquery-ocp-novtk" not in mock_versions:
-        mock_versions["cadquery-ocp-novtk"] = mock_versions["cadquery-ocp"]
-        ocp_specifiers["cadquery-ocp-novtk"] = ocp_specifiers.get("cadquery-ocp", "")
-    if "cadquery-ocp-novtk" in mock_versions and "cadquery-ocp" not in mock_versions:
-        mock_versions["cadquery-ocp"] = mock_versions["cadquery-ocp-novtk"]
-        ocp_specifiers["cadquery-ocp"] = ocp_specifiers.get("cadquery-ocp-novtk", "")
-
-    return mock_versions, ocp_specifiers
-
-
-async def _fetch(url):
-    """Fetch URL content. Native uses urllib, Pyodide uses pyfetch with CORS proxy if needed."""
-    if sys.platform == "emscripten":
-        if pyfetch is None:
-            raise RuntimeError("pyfetch not available in Pyodide environment")
-        try:
-            response = await pyfetch(url)
-        except Exception as e:  # pyodide.http._exceptions.AbortError
-            import urllib.parse  # Assume CORS error and try proxy instead
-
-            url = "https://api.cors.lol/?url=" + urllib.parse.quote_plus(url)
-            response = await pyfetch(url)
-        return response
-    else:
-        import urllib.request
-
-        return urllib.request.urlopen(url)
-
-
-async def _is_github_ref(owner, repo, ref):
-    for url in (
-        f"https://api.github.com/repos/{owner}/{repo}/git/ref/heads/{ref}",
-        f"https://api.github.com/repos/{owner}/{repo}/git/ref/tags/{ref}",
-        f"https://api.github.com/repos/{owner}/{repo}/commits/{ref}",
-    ):
-        try:
-            resp = await _fetch(url)
-            status = resp.status if sys.platform == "emscripten" else resp.code
-            if status == 200:
-                return True
-        except Exception:
+        req = req.replace("(", "").replace(")", "").strip()
+        if not req:
             continue
-    return False
 
+        if ";" in req:  # Strip environment markers (everything after semicolon)
+            req = req.split(";")[0].strip()
 
-async def _get_ocp_requirements_from_pypi(build123d_version):
-    response = await _fetch(f"https://pypi.org/pypi/build123d/{build123d_version}/json")
+        for canonical, variants in ocp_variants:
+            for variant in variants:
+                req_name = re.split(r">=|>|<=|<|~=|==", req)[0].strip()
+                # logger.debug(f"Checking if '{req_name}' matches variant '{variant}' for canonical '{canonical}'")
+                if req_name == variant:
+                    # Get the suffix (version specifier and extras, if any)
+                    suffix = req[len(variant) :].lstrip()
+                    logger.debug(
+                        f"Matched variant '{variant}' for canonical '{canonical}', suffix: '{suffix}'"
+                    )
+                    ocp_specifiers[canonical] = suffix
+                    break
 
-    if sys.platform == "emscripten":
-        data = await response.json()
-    else:
-        import json
-
-        data = json.load(response)
-
-    requires_dist = data["info"].get("requires_dist", [])
-    mock_versions, ocp_specifiers = _parse_dep_requirements(requires_dist)
-
-    if sys.platform == "emscripten":
-        for req in requires_dist:
-            req = req.replace("(", "").replace(")", "")
-            if req.startswith("ipython"):
-                ipy = await (await _fetch("https://pypi.org/pypi/ipython/json")).json()
-                for ir in ipy["info"].get("requires_dist", []):
-                    ir = ir.replace("(", "").replace(")", "")
-                    if ir.startswith("psutil"):
-                        suffix = ir[len("psutil") :].lstrip()
-                        if suffix and suffix[0] in (">", "<", "=", "~", "!", "("):
-                            v = _select_mock_version(suffix)
-                            if v and (
-                                "psutil" not in mock_versions
-                                or v > mock_versions["psutil"]
-                            ):
-                                mock_versions["psutil"] = v
-                        break
-
-        for pkg_name, version in mock_versions.items():
-            micropip.add_mock_package(pkg_name, version)
-
+    logger.debug(f"Extracted ocp_specifiers: {ocp_specifiers}")
     return mock_versions, ocp_specifiers
 
 
-async def _get_ocp_requirements_from_pyproject(build123d_ref):
-    ref_type = "heads" if build123d_ref == "dev" else "tags"
+async def _get_pypi_json(package, version=None):
+    """Fetch package metadata from PyPI."""
+    url = f"https://pypi.org/pypi/{package}"
+    if version:
+        url += f"/{version}"
+    url += "/json"
+    logger.info(f"Fetching PyPI JSON for {package} (version={version})")
+    response = await _fetch(url)
+    data = await response.json()
+    logger.debug(f"Fetched PyPI JSON for {package}: {list(data.keys())}")
+    return data
+
+
+async def _find_latest_dev_version(package_name, version_spec):
+    """Query PyPI to find the latest .dev version matching the version spec."""
+    logger.info(
+        f"Looking for latest .dev version for {package_name} (spec: {version_spec})"
+    )
+    try:
+        data = await _get_pypi_json(package_name)
+        releases = data.get("releases", {})
+        logger.debug(f"Found versions for {package_name}: {list(releases.keys())}")
+
+        # Only consider .dev versions that match the version_spec
+        # version_spec may be empty or something like '>=0.9,<0.10'
+        import packaging.specifiers
+        import packaging.version
+
+        spec = packaging.specifiers.SpecifierSet(version_spec) if version_spec else None
+        dev_versions = []
+        for v in releases.keys():
+            if ".dev" in v:
+                try:
+                    ver = packaging.version.parse(v)
+                    if spec is None or ver in spec:
+                        dev_versions.append(v)
+                except Exception:
+                    continue
+        logger.debug(
+            f"Found .dev versions for {package_name} matching spec: {dev_versions}"
+        )
+        if not dev_versions:
+            # Fallback: no dev versions available, return empty spec
+            logger.warning(
+                f"No .dev versions found for {package_name} matching spec {version_spec}"
+            )
+            return ""
+
+        # Sort versions using packaging.version
+        dev_versions.sort(key=packaging.version.parse, reverse=True)
+
+        # Return the latest .dev version
+        logger.info(f"Using .dev version for {package_name}: {dev_versions[0]}")
+        return f"=={dev_versions[0]}"
+    except Exception as e:
+        logger.warning(f"Could not query PyPI for {package_name} dev versions: {e}")
+        return ""
+
+
+async def _get_pypi_version(build123d_ref):
+    """Fetch build123d dependencies from PyPI."""
+    logger.debug(f"Fetching build123d dependencies from PyPI (version={build123d_ref})")
+    data = await _get_pypi_json("build123d", build123d_ref)
+    requires_dist = data["info"].get("requires_dist", [])
+    _, ocp_specifiers = _extract_version_specs(requires_dist)
+    return ocp_specifiers
+
+
+async def _install_and_mock_ocp_wasm_wheels(ocp_specifiers, debug=False):
+    """Install OCP WASM wheels. If debug=True, prefer .dev versions.
+
+    Returns a cleanup function that removes all mocked packages.
+    """
+    logger.info(
+        f"Installing OCP WASM wheels (debug={debug}) with specifiers: {ocp_specifiers}"
+    )
+    # Define OCP packages to install with their specs and mock names
+    ocp_packages = [
+        ("lib3mf-OCP.wasm", ["lib3mf", "py-lib3mf"]),
+        ("cadquery-ocp-novtk-OCP.wasm", ["cadquery-ocp"]),
+    ]
+
+    mocked_packages = []
+    for wheel_pkg, mock_names in ocp_packages:
+        spec = ocp_specifiers[wheel_pkg.replace("-OCP.wasm", "")]
+        if debug:  # Replace with ==.dev... if available, as this is the only way to get a prerelease
+            spec = await _find_latest_dev_version(wheel_pkg, spec)
+        await _platform_install(f"{wheel_pkg}{spec}", reinstall=True)
+
+        if sys.platform == "emscripten" and micropip is not None:
+            version = importlib.metadata.version(wheel_pkg)
+            for mock_name in mock_names:
+                logger.debug(f"Adding mock package {mock_name} for Pyodide")
+                mocked_packages.append(mock_name)
+                if mock_name == "py-lib3mf":
+                    micropip.add_mock_package(
+                        mock_name,
+                        version,
+                        modules={"py_lib3mf": "from lib3mf import *"},
+                    )
+                else:
+                    micropip.add_mock_package(mock_name, version)
 
     if sys.platform == "emscripten":
-        content = await (
-            await _fetch(
-                f"https://raw.githubusercontent.com/gumyr/build123d/refs/{ref_type}/{build123d_ref}/pyproject.toml"
-            )
-        ).text()
-    else:
-        import urllib.request
+        logger.debug("Installing sqlite3 for emscripten platform")
+        await _platform_install("sqlite3", reinstall=True)
 
-        content = (
-            urllib.request.urlopen(
-                f"https://raw.githubusercontent.com/gumyr/build123d/refs/{ref_type}/{build123d_ref}/pyproject.toml"
-            )
-            .read()
-            .decode()
-        )
+    async def cleanup_mocks():
+        """Remove all mocked packages."""
+        if sys.platform == "emscripten" and micropip is not None:
+            for mock_name in mocked_packages:
+                logger.debug(f"Removing mock package {mock_name}")
+                micropip.remove_mock_package(mock_name)
+
+    return cleanup_mocks
+
+
+async def _install_from_pypi(version):
+    """Install build123d from PyPI."""
+    logger.info(f"Installing build123d from PyPI version {version}")
+    await _platform_install(f"build123d=={version}", reinstall=True)
+
+
+async def _get_github_version(ref_name):
+    """Fetch build123d dependencies from GitHub."""
+    logger.debug(f"Fetching build123d dependencies from GitHub (ref={ref_name})")
+    resp = await _fetch(
+        f"https://raw.githubusercontent.com/gumyr/build123d/{ref_name}/pyproject.toml"
+    )
+    if resp.status != 200:
+        error_msg = f"Failed to fetch pyproject.toml for {ref_name}: HTTP {resp.status}"
+        raise RuntimeError(error_msg)
+    content = await resp.text()
 
     import tomllib
 
-    deps = tomllib.loads(content).get("project", {}).get("dependencies", [])
-
-    mock_versions, ocp_specifiers = _parse_dep_requirements(deps)
-
-    if sys.platform == "emscripten":
-        for pkg_name, version in mock_versions.items():
-            micropip.add_mock_package(pkg_name, version)
-
-    return mock_versions, ocp_specifiers
-
-
-async def _install_ocp_wasm_wheels(ocp_specifiers):
-    if sys.platform == "emscripten":
-        lib3mf_spec = ocp_specifiers.get("lib3mf", "")
-        await micropip.install(f"lib3mf-OCP.wasm{lib3mf_spec}", reinstall=True)
-        _version = importlib.metadata.version("lib3mf-OCP.wasm")
-        micropip.add_mock_package(
-            "py-lib3mf", _version, modules={"py_lib3mf": "from lib3mf import *"}
-        )
-
-        ocp_novtk_spec = ocp_specifiers.get("cadquery-ocp-novtk", "")
-        await micropip.install(
-            f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}", reinstall=True
-        )
-
-        await micropip.install("sqlite3", reinstall=True)
-    else:
-        import asyncio
-        import subprocess
-
-        lib3mf_spec = ocp_specifiers.get("lib3mf", "")
-        process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--force-reinstall",
-            f"lib3mf-OCP.wasm{lib3mf_spec}",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            raise Exception(f"Failed to install lib3mf-OCP.wasm:\n{stderr.decode()}")
-
-        ocp_novtk_spec = ocp_specifiers.get("cadquery-ocp-novtk", "")
-        process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--force-reinstall",
-            f"cadquery-ocp-novtk-OCP.wasm{ocp_novtk_spec}",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            raise Exception(
-                f"Failed to install cadquery-ocp-novtk-OCP.wasm:\n{stderr.decode()}"
-            )
+    try:
+        deps = tomllib.loads(content).get("project", {}).get("dependencies", [])
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to parse pyproject.toml for {ref_name}: {e}\n"
+            f"Content received: {content[:200]}..."
+        ) from e
+    _, ocp_specifiers = _extract_version_specs(deps)
+    return ocp_specifiers
 
 
-async def _remove_mocks(mock_versions):
-    if sys.platform == "emscripten":
-        for pkg_name in mock_versions:
-            micropip.remove_mock_package(pkg_name)
+async def _install_from_github(build123d_ref):
+    """Download build123d from GitHub as zip, extract, patch, and install dependencies."""
+    import tomllib
 
+    # Download zip file from GitHub
+    zip_url = f"https://github.com/gumyr/build123d/archive/{build123d_ref}.zip"
+    logger.debug(f"Downloading {zip_url}...")
+    try:
+        sources_bytes = await _fetch_bytes(zip_url)
+    except RuntimeError as e:
+        if "HTTP 404" in str(e):
+            raise RuntimeError(
+                f"Failed to download build123d from GitHub: the ref '{build123d_ref}' does not exist."
+            ) from e
+        raise
 
-def _extract_and_patch_github(sources_bytes, ref):
-    version = "0.0.0+dev" if ref == "dev" else ref.strip("v")
+    # Extract zip
     _tmpdir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file=io.BytesIO(sources_bytes), mode="r") as zipf:
         zipf.extractall(path=_tmpdir.name)
 
-    _extracted_dir = os.path.join(_tmpdir.name, os.listdir(_tmpdir.name)[0])
+    # Find extracted directory (GitHub creates build123d-<ref> directory)
+    extracted_dirs = os.listdir(_tmpdir.name)
+    _extracted_dir = os.path.join(_tmpdir.name, extracted_dirs[0])
     _sources_folder = os.path.join(_extracted_dir, "src")
     sys.path.insert(0, _sources_folder)
 
+    # Patch pyproject.toml
     pyproject_path = os.path.join(_extracted_dir, "pyproject.toml")
     with open(pyproject_path, "r") as f:
         pyproject_content = f.read()
+
+    version = build123d_ref.strip("v")
+    if re.match(r"^\d+\.\d+\.\d+$", version) is None:
+        version = "0.0.0+" + version.replace(".", "_").replace("/", "_")
     pyproject_content = re.sub(
         r'dynamic = \["version"]', 'version = "' + version + '"', pyproject_content
     )
@@ -263,24 +417,28 @@ def _extract_and_patch_github(sources_bytes, ref):
     pyproject_content = re.sub(
         r"\[tool\.setuptools.*]\n([^\[].*?\n)*", "", pyproject_content
     )
+
     with open(pyproject_path, "w") as f:
         f.write(pyproject_content)
 
+    # Patch __init__.py
     init_path = os.path.join(_sources_folder, "build123d", "__init__.py")
     with open(init_path, "r") as f:
         init_content = f.read()
+
     init_content = re.sub(
         r"from \.version import version as __version__",
         f"__version__ = '{version}'",
         init_content,
     )
+
     with open(init_path, "w") as f:
         f.write(init_content)
 
-    import tomllib
-
+    # Parse dependencies
     with open(pyproject_path, "rb") as f:
         pyproject_data = tomllib.load(f)
+
     _dependencies = pyproject_data.get("project", {}).get("dependencies", [])
     if os.getenv("_install_build123d_from_github_also_optional", "") != "":
         _dependencies += (
@@ -294,158 +452,89 @@ def _extract_and_patch_github(sources_bytes, ref):
             .get("benchmark", [])
         )
 
-    return _tmpdir, _extracted_dir, _dependencies, version
-
-
-async def _fetch_bytes(url):
-    """Fetch URL and return bytes, following redirects and handling non-error codes."""
-    max_redirects = 5
-    for _ in range(max_redirects):
-        response = await _fetch(url)
-        status = response.status if sys.platform == "emscripten" else response.code
-        # Handle HTTP redirects (3xx)
-        if 300 <= status < 400:
-            if sys.platform == "emscripten":
-                location = response.headers.get("Location")
-            else:
-                location = response.getheader("Location")
-            if not location:
-                raise RuntimeError(f"Redirect with no Location header for {url}")
-            url = location
+    # Install dependencies
+    logger.info(f"Installing dependencies: {_dependencies}")
+    for dep in _dependencies:
+        dep = dep.strip()
+        if (
+            not dep
+            or dep.startswith("lib3mf")
+            or dep.startswith("cadquery-ocp")
+            or dep == "mypy"
+        ):
+            logger.debug(f"Skipping dependency: {dep}")
             continue
-        # Accept 200-299 as success
-        if 200 <= status < 300:
-            if sys.platform == "emscripten":
-                return await response.bytes()
-            else:
-                return response.read()
-        # Otherwise, error
-        raise RuntimeError(f"Failed to fetch {url}: HTTP {status}")
-    raise RuntimeError(f"Too many redirects while fetching {url}")
-
-
-async def _install_build123d_from_github(ref):
-    sources_bytes = None
-    for url in (
-        f"https://github.com/gumyr/build123d/archive/refs/heads/{ref}.zip",
-        f"https://github.com/gumyr/build123d/archive/refs/tags/{ref}.zip",
-        f"https://github.com/gumyr/build123d/archive/{ref}.zip",
-    ):
-        try:
-            sources_bytes = await _fetch_bytes(url)
-            break
-        except Exception:
-            continue
-    if sources_bytes is None:
-        raise RuntimeError(f"Could not fetch GitHub ref: {ref}")
-
-    _tmpdir, _extracted_dir, _dependencies, _version = _extract_and_patch_github(
-        sources_bytes, ref
-    )
-
-    if sys.platform == "emscripten":
-        for dep in _dependencies:
-            dep = dep.strip()
-            if not dep:
-                continue
-            if (
-                dep.startswith("lib3mf")
-                or dep.startswith("cadquery-ocp")
-                or dep.strip() == "mypy"
-            ):
-                continue
-            print(f"Installing dependency: {dep}")
-            await micropip.install(dep, reinstall=True)
-    else:
-        import asyncio
-        import subprocess
-
-        for dep in _dependencies:
-            dep = dep.strip()
-            if not dep:
-                continue
-            if (
-                dep.startswith("lib3mf")
-                or dep.startswith("cadquery-ocp")
-                or dep.strip() == "mypy"
-            ):
-                continue
-            print(f"Installing dependency: {dep}")
-            process = await asyncio.create_subprocess_exec(
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                dep,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            stdout, stderr = await process.communicate()
-            if process.returncode != 0:
-                raise Exception(f"Failed to install package {dep}:\n{stderr.decode()}")
+        logger.info(f"Installing dependency: {dep}")
+        await _platform_install(dep, reinstall=True)
 
     return _tmpdir, _extracted_dir
 
 
-async def bootstrap(build123d_version_arg="stable"):
-    """Bootstrap build123d for testing. Works in both native and Pyodide environments.
+async def bootstrap(build123d_ref="stable", debug=False):
+    """Bootstrap build123d for testing.
+
+    Works in both native and Pyodide environments.
 
     Args:
-        build123d_version_arg: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), or GitHub ref (branch/tag/commit)
+        build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), GitHub ref, or custom version
+        debug: If True, use debug OCP.wasm wheels (.dev* suffix) instead of release versions (.post* suffix)
 
     Returns:
         (tmpdir, extracted_dir): tmpdir for cleanup, extracted_dir for use (None if installed from PyPI)
     """
-    if build123d_version_arg == "stable":
-        response = await _fetch("https://pypi.org/pypi/build123d/json")
-        if sys.platform == "emscripten":
-            data = await response.json()
+    logger.debug(f"Bootstrapping build123d (ref={build123d_ref}, debug={debug})")
+    # Handle "stable" by fetching latest version
+    if build123d_ref == "stable" or build123d_ref == "github:stable":
+        logger.debug("Fetching latest version for build123d from PyPI")
+        data = await _get_pypi_json("build123d")
+        if build123d_ref == "stable":
+            build123d_ref = data["info"]["version"]
         else:
-            import json
+            build123d_ref = "github:v" + data["info"]["version"]
+        logger.debug(f"Latest build123d version: {build123d_ref}")
 
-            data = json.load(response)
-        build123d_version_arg = "v" + data["info"]["version"]
+    # Try PyPI first as user can always override with a github: prefix if they want to test against the latest sources
+    is_pypi_ref = False
+    if not build123d_ref.startswith("github:"):
+        try:
+            await _get_pypi_json("build123d", build123d_ref)
+            is_pypi_ref = True
+            logger.debug(f"Found build123d version {build123d_ref} on PyPI")
+        except Exception as e:
+            logger.debug(
+                f"Could not find build123d version {build123d_ref} on PyPI: {e}. Will try GitHub."
+            )
 
-    tmpdir = None
-    extracted_dir = None
-    mock_versions = None
-
-    if await _is_github_ref("gumyr", "build123d", build123d_version_arg):
-        mock_versions, ocp_specifiers = await _get_ocp_requirements_from_pyproject(
-            build123d_version_arg
-        )
-        await _install_ocp_wasm_wheels(ocp_specifiers)
-        tmpdir, extracted_dir = await _install_build123d_from_github(
-            build123d_version_arg
-        )
+    # Get dependencies and install OCP wheels
+    if is_pypi_ref:
+        logger.debug(f"Gathering dependency specifiers from PyPI: {build123d_ref}")
+        ocp_specifiers = await _get_pypi_version(build123d_ref)
     else:
-        mock_versions, ocp_specifiers = await _get_ocp_requirements_from_pypi(
-            build123d_version_arg
+        build123d_ref = (
+            build123d_ref[len("github:") :]
+            if build123d_ref.startswith("github:")
+            else build123d_ref
         )
-        await _install_ocp_wasm_wheels(ocp_specifiers)
-        if sys.platform == "emscripten":
-            await micropip.install(
-                "build123d==" + build123d_version_arg, reinstall=True
-            )
-        else:
-            import asyncio
-            import subprocess
+        logger.debug(
+            f"Installing build123d from GitHub sources with ref: {build123d_ref}"
+        )
+        ocp_specifiers = await _get_github_version(build123d_ref)
 
-            process = await asyncio.create_subprocess_exec(
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--force-reinstall",
-                "build123d==" + build123d_version_arg,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            stdout, stderr = await process.communicate()
-            if process.returncode != 0:
-                raise Exception(f"Failed to install build123d:\n{stderr.decode()}")
+    logger.debug(f"Using OCP specifiers {ocp_specifiers} to install OCP WASM wheels")
+    cleanup_mocks = await _install_and_mock_ocp_wasm_wheels(ocp_specifiers, debug=debug)
 
-    if mock_versions:
-        await _remove_mocks(mock_versions)
+    if is_pypi_ref:
+        logger.debug(f"Installing build123d from PyPI wheels version {build123d_ref}")
+        await _install_from_pypi(build123d_ref)
+        tmpdir, extracted_dir = None, None
+    else:
+        logger.debug(
+            f"Installing build123d from GitHub sources version {build123d_ref}"
+        )
+        tmpdir, extracted_dir = await _install_from_github(build123d_ref)
 
+    # Clean up mocked packages before returning
+    await cleanup_mocks()
+
+    logger.debug(f"Bootstrap complete. tmpdir={tmpdir}, extracted_dir={extracted_dir}")
     return tmpdir, extracted_dir

@@ -135,9 +135,13 @@ jobs:
             exit 1
           fi
           VERSION="$(basename "${whl[0]}" .whl | cut -d- -f2 | sed 's/\.post[0-9]*$//')"
+          TYPE="dev" # For debug wheels, use .dev suffix so they sort before release versions
+          if [ "${{ matrix.build_type }}" = "Release" ]; then
+            TYPE="post"
+          fi
           change_wheel_version "${whl[0]}" \
-            --version "${VERSION}.post$(date -u +%Y%m%d%H%M)" \
-            --delete-old-wheel
+              --version "${VERSION}.${TYPE}$(date -u +%Y%m%d%H%M)" \
+              --delete-old-wheel
 
       - if: "!cancelled()"
         uses: "actions/upload-artifact@v7"
@@ -162,7 +166,7 @@ jobs:
 
       - uses: "actions/download-artifact@v8"
         with:
-          pattern: "wheel-*-Release"
+          pattern: "wheel-*-Debug" # Debug wheels have better crash reporting, so we prefer them for testing
           path: "_wheels"
           merge-multiple: true
 
@@ -198,11 +202,9 @@ jobs:
 
             # Reinstall the pre-built wasm wheels into the fresh venv (only for dev branch, stable may require older versions that should be downloaded from PyPI instead)
             if [ "$branch" = "dev" ]; then
-              SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_path("platlib"))')"
               for whl in ../_wheels/*.whl; do
                 echo "Installing wheel $whl into venv for testing"
-                pip install --no-deps "$whl"
-                #unzip -o "$whl" -d "$SITE_PACKAGES"
+                pip install "$whl"
               done
             fi
 
@@ -252,14 +254,15 @@ jobs:
     steps:
       - uses: "actions/download-artifact@v8"
         with:
-          name: "wheel-${{ matrix.package }}-Release"
+          name: "wheel-${{ matrix.package }}-*" # Debug and Release wheels!
           path: "dist"
+          merge-multiple: true
 
       - name: "List wheels"
         shell: bash
         run: find dist -type f
 
-      - name: "Publish to PyPI"
+      - name: "Publish Release wheels to PyPI"
         uses: "pypa/gh-action-pypi-publish@release/v1"
         with:
           packages-dir: "dist"

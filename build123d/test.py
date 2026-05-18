@@ -11,12 +11,15 @@ async def main():
 
     from bootstrap import bootstrap
 
+    if not branch.startswith("github:"):
+        branch = "github:" + branch  # Force using the sources that include tests
+    tmpdir, extracted_dir = await bootstrap(branch, debug=True)
+    assert extracted_dir is not None, "Bootstrap failed to extract the sources"
+
     if sys.platform == "emscripten":
         # Hackier patches that are required for passing tests, but should not be mandatory for bootstrap()
-        import micropip
-        from pyodide.ffi import run_sync
-
-        tmpdir, extracted_dir = await bootstrap(branch)
+        import micropip  # type: ignore
+        from pyodide.ffi import run_sync  # type: ignore
 
         def _new_urlretrieve(url, filename=None, reporthook=None, data=None):
             if (
@@ -25,7 +28,7 @@ async def main():
                 and not reporthook
                 and not data
             ):
-                from pyodide.http import pyfetch
+                from pyodide.http import pyfetch  # type: ignore
 
                 response = run_sync(pyfetch(url))
                 bs = run_sync(response.bytes())
@@ -43,9 +46,13 @@ async def main():
         import warnings
 
         await micropip.install("font-fetcher")
-        from font_fetcher.ocp import install_ocp_font_hook
-        from OCP.Font import Font_FA_Regular, Font_FontMgr, Font_SystemFont
-        from OCP.TCollection import TCollection_AsciiString
+        from font_fetcher.ocp import install_ocp_font_hook  # type: ignore
+        from OCP.Font import (  # type: ignore
+            Font_FA_Regular,
+            Font_FontMgr,
+            Font_SystemFont,
+        )
+        from OCP.TCollection import TCollection_AsciiString  # type: ignore
 
         _real_font_mgr = Font_FontMgr.GetInstance_s()
         install_ocp_font_hook()
@@ -119,15 +126,13 @@ async def main():
 
         _old_subprocess_run = subprocess.run
         subprocess.run = _new_subprocess_run
-    else:
-        tmpdir, extracted_dir = await bootstrap(branch)
 
     old_cwd = os.getcwd()
     try:
         if extracted_dir is not None:
             os.chdir(extracted_dir)
 
-        import pytest
+        import pytest  # type: ignore
 
         exit_code = pytest.main(
             [
@@ -161,5 +166,21 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+    import logging
 
-    asyncio.run(main())
+    # Set up detailed logging, but suppress overly verbose build123d logs
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[logging.StreamHandler()],
+    )
+    # Suppress build123d logs
+    logging.getLogger("build123d").setLevel(logging.WARNING)
+    logger = logging.getLogger("build123d_test_bootstrap")
+    logger.debug("Starting main async test runner...")
+    try:
+        result = asyncio.run(main())
+        logger.debug(f"main() returned: {result}")
+    except Exception as _e:
+        logger.exception("An error occurred during test bootstrap execution.")
+        raise
