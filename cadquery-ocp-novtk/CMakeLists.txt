@@ -59,10 +59,9 @@ if(EMSCRIPTEN)
     if(NOT LINK_RESULT EQUAL 0)
       message(FATAL_ERROR "Failed to create symbolic link to emscripten sysroot")
     endif()
-    message(STATUS "Created symbolic link to emscripten sysroot at ${EMSCRIPTEN_SYSROOT}")
+    message(STATUS "Created symbolic link to emscripten sysroot at ${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
   endif()
   set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
-  message(STATUS "EMSCRIPTEN_SYSROOT=${EMSCRIPTEN_SYSROOT}")
 endif()
 
 # XXX: I only want to install the final build, not intermediate outputs
@@ -174,16 +173,16 @@ if(EMSCRIPTEN)
   if(NOT FLAGS MATCHES "-O[01g]")
     message(FATAL_ERROR "LDFLAGS must contain -O0, -O1, or -Og.")
   endif()
+
   set(OPTIMIZED_DIR "${CMAKE_CURRENT_BINARY_DIR}/OCP-wasm-opt")
-  file(MAKE_DIRECTORY "${OPTIMIZED_DIR}")
+  file(REMOVE_RECURSE "${OPTIMIZED_DIR}") # Always re-do the optimization step to avoid issues
   add_custom_command(
     DEPENDS OCP
     OUTPUT "${OPTIMIZED_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${OPTIMIZED_DIR}"
     COMMAND ${CMAKE_COMMAND} -E env DEBUG=${_IS_DEBUG} PYTHONPATH=$ENV{PYTHONPATH}
             python3 "${CMAKE_CURRENT_SOURCE_DIR}/repair_wasm.py" "${OCP_BIN}" "${OPTIMIZED_DIR}"
     VERBATIM
   )
   add_custom_target(OCP-wasm-opt-target ALL DEPENDS "${OPTIMIZED_DIR}")
-  install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION ".")
+  install(INSTALL_ME DIRECTORY "${OPTIMIZED_DIR}/" DESTINATION "." FILES_MATCHING PATTERN "*.so")
 endif()

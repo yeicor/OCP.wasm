@@ -53,6 +53,10 @@ def patch_wasm(wasm_bytes, error_offset):
 
 def repair_and_optimize_wasm(input_path, output_path):
     print(f"Copying and repairing: {input_path}")
+
+    if not os.path.isfile(input_path):
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
     with open(input_path, "rb") as f:
         wasm_bytes = bytearray(f.read())
 
@@ -92,13 +96,7 @@ def repair_and_optimize_wasm(input_path, output_path):
         check=True,
     )
 
-    # Makes wheel too large and would have to be fixed by wasm-opt
-    # like above (but requires too many resources...)
-    possible_debug_file = input_path[:-3] + ".wasm.debug.wasm"
-    if False and os.path.isfile(possible_debug_file):
-        print("Also copying .debug.wasm file with debug information")
-        shutil.copy(possible_debug_file, output_path[:-3] + ".wasm.debug.wasm")
-
+    # Copy map file if it exists
     possible_map_file = input_path + ".map"
     if os.path.isfile(possible_map_file):
         print("Also copying map file with debug information")

@@ -31,9 +31,6 @@ jobs:
           - package: "cadquery-ocp-novtk"
             build_type: "Release"
             ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
-          - package: "cadquery-ocp-novtk"
-            build_type: "Debug"
-            ldflags: "-Og -g2 -gseparate-dwarf" # Smaller debug files, default is too big for CI. The usual g3 level also crashes CI.
     steps:
       - uses: "actions/checkout@v6"
         with:
