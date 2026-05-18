@@ -473,7 +473,7 @@ async def _install_from_github(build123d_ref):
     return _tmpdir, _extracted_dir
 
 
-async def bootstrap(build123d_ref="stable", debug=False):
+async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
     """Bootstrap build123d for testing.
 
     Works in both native and Pyodide environments.
@@ -481,6 +481,8 @@ async def bootstrap(build123d_ref="stable", debug=False):
     Args:
         build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), GitHub ref, or custom version
         debug: If True, use debug OCP.wasm wheels (.dev* suffix) instead of release versions (.post* suffix)
+        mocked_hook: Optional async function to run after build123d and OCP wheels are installed, but before mocks are removed.
+            This can be used to install additional packages that depend on build123d.
 
     Returns:
         (tmpdir, extracted_dir): tmpdir for cleanup, extracted_dir for use (None if installed from PyPI)
@@ -498,6 +500,7 @@ async def bootstrap(build123d_ref="stable", debug=False):
 
     # Try PyPI first as user can always override with a github: prefix if they want to test against the latest sources
     is_pypi_ref = False
+    ocp_specifiers = None
     if not build123d_ref.startswith("github:"):
         try:
             logger.debug(f"Gathering dependency specifiers from PyPI: {build123d_ref}")
@@ -533,6 +536,11 @@ async def bootstrap(build123d_ref="stable", debug=False):
             f"Installing build123d from GitHub sources version {build123d_ref}"
         )
         tmpdir, extracted_dir = await _install_from_github(build123d_ref)
+
+    # Run after_bootstrap hook if provided (before cleaning up mocks)
+    if mocked_hook is not None:
+        logger.debug("Running mocked_hook hook before cleaning up mocks")
+        await mocked_hook()
 
     # Clean up mocked packages before returning
     await cleanup_mocks()
