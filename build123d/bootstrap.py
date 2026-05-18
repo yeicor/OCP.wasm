@@ -90,7 +90,10 @@ async def _fetch(url):
             logger.warning(f"pyfetch failed for {url}: {e}. Retrying with CORS proxy.")
             import urllib.parse
 
-            url = "https://api.cors.lol/?url=" + urllib.parse.quote_plus(url)
+            url = (
+                "https://little-hill-4bc4.yeicor-cloudflare.workers.dev/?url="
+                + urllib.parse.quote_plus(url)
+            )
             response = await pyfetch(url)
     else:
         import urllib.request
@@ -497,7 +500,8 @@ async def bootstrap(build123d_ref="stable", debug=False):
     is_pypi_ref = False
     if not build123d_ref.startswith("github:"):
         try:
-            await _get_pypi_json("build123d", build123d_ref)
+            logger.debug(f"Gathering dependency specifiers from PyPI: {build123d_ref}")
+            ocp_specifiers = await _get_pypi_version(build123d_ref)
             is_pypi_ref = True
             logger.debug(f"Found build123d version {build123d_ref} on PyPI")
         except Exception as e:
@@ -506,10 +510,7 @@ async def bootstrap(build123d_ref="stable", debug=False):
             )
 
     # Get dependencies and install OCP wheels
-    if is_pypi_ref:
-        logger.debug(f"Gathering dependency specifiers from PyPI: {build123d_ref}")
-        ocp_specifiers = await _get_pypi_version(build123d_ref)
-    else:
+    if not is_pypi_ref:
         build123d_ref = (
             build123d_ref[len("github:") :]
             if build123d_ref.startswith("github:")
