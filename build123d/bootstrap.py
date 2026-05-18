@@ -504,7 +504,7 @@ async def bootstrap(build123d_ref="stable", debug=False, mocked_hook=None):
     Works in both native and Pyodide environments.
 
     Args:
-        build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), GitHub ref, or custom version
+        build123d_ref: "stable" (latest PyPI), "vX.Y.Z" (PyPI version), or GitHub ref (branch, tag, commit, pr, etc.; optional "github:" prefix)
         debug: If True, use debug OCP.wasm wheels (.dev* suffix) instead of release versions
 
     Returns:

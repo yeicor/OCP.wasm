@@ -67,7 +67,7 @@ endif()
 
 # XXX: I only want to install the final build, not intermediate outputs
 function(install)
-  if("${ARGV1}" STREQUAL "OCP" AND (_IS_DEBUG OR NOT EMSCRIPTEN))
+  if("${ARGV1}" STREQUAL "OCP" AND NOT EMSCRIPTEN)
     message(STATUS "XXX: Calling real install for: ${ARGV1}")
     _install(${ARGV})
   elseif("${ARGV0}" STREQUAL "INSTALL_ME")
