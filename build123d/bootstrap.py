@@ -345,6 +345,8 @@ async def _platform_install(
             else requirement
         )
 
+        micropip.logging._logger = logging.getLogger("micropip")
+        kwargs["verbose"] = False
         logger.debug("micropip.install(%r, %s)", req, kwargs)
 
         await micropip.install(req, **kwargs)
