@@ -346,12 +346,7 @@ async def _platform_install(
         )
 
         logger.debug("micropip.install(%r, %s)", req, kwargs)
-        
-        from contextlib import redirect_stdout
-    
-        with open(os.devnull, 'w') as f:
-            with redirect_stdout(f):
-                await micropip.install(req, **kwargs)
+        await micropip.install(req, **kwargs)
 
         if constraint_lines and hasattr(micropip, "set_constraints"):
             try:
