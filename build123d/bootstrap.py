@@ -632,7 +632,7 @@ async def _install_ocp_wasm_wheels(
     mocked_packages: list[str] = []
 
     try:
-        #installs = []
+        installs = []
 
         for canonical_name, _ in _OCP_VARIANTS:
             spec = ocp_specifiers.get(canonical_name, "")
@@ -646,15 +646,14 @@ async def _install_ocp_wasm_wheels(
                     constraints=constraints,
                 )
 
-            #installs.append(
-            await _platform_install(
+            installs.append(
+                await _platform_install(
                     f"{wheel_name}{spec}",
                     constraints=constraints,
                 )
-            #)
+            )
 
-        #await asyncio.gather(*installs)
-        
+        await asyncio.gather(*installs)
 
         if _platform_is_emscripten():
             await _platform_install(
