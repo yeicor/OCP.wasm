@@ -323,7 +323,16 @@ async def _platform_install(
 
     constraint_lines = list(constraints or [])
 
-    logger.info("Installing: %s", requirement)
+    requirements = (
+        [requirement]
+        if isinstance(requirement, str)
+        else [r for r in requirement if r]
+    )
+
+    if not requirements:
+        return
+
+    logger.info("Installing: %s", requirements)
 
     if _platform_is_emscripten():
         if micropip is None:
@@ -339,16 +348,18 @@ async def _platform_install(
         if constraint_lines:
             kwargs["constraints"] = constraint_lines
 
-        req = (
-            list(requirement)
-            if not isinstance(requirement, str)
-            else requirement
+        logger.debug(
+            "micropip.install(%r, %s)",
+            requirements,
+            kwargs,
         )
 
-        logger.debug("micropip.install(%r, %s)", req, kwargs)
-        await micropip.install(req, **kwargs)
+        await micropip.install(requirements, **kwargs)
 
-        if constraint_lines and hasattr(micropip, "set_constraints"):
+        if (
+            constraint_lines
+            and hasattr(micropip, "set_constraints")
+        ):
             try:
                 micropip.set_constraints(constraint_lines)
             except Exception:
@@ -359,7 +370,7 @@ async def _platform_install(
         return
 
     import subprocess
-    
+
     args = [
         sys.executable,
         "-m",
@@ -385,10 +396,8 @@ async def _platform_install(
 
             args.extend(["-c", constraint_file])
 
-        if isinstance(requirement, str):
-            args.extend(_build_requirement_argv(requirement))
-        else:
-            args.extend(requirement)
+        for req in requirements:
+            args.extend(_build_requirement_argv(req))
 
         logger.debug(
             "Running native install: %s",
@@ -420,10 +429,14 @@ async def _platform_install(
             )
 
             raise RuntimeError(
-                f"Failed to install package {requirement!r}:\n{err_text}"
+                f"Failed to install packages {requirements!r}:\n"
+                f"{err_text}"
             )
 
-        logger.debug("pip install succeeded for %s", requirement)
+        logger.debug(
+            "pip install succeeded for %s",
+            requirements,
+        )
 
     finally:
         if constraint_file:
@@ -631,28 +644,26 @@ async def _install_ocp_wasm_wheels(
     mocked_packages: list[str] = []
 
     try:
-        installs = []
+        install_reqs: list[str] = []
 
         for canonical_name, _ in _OCP_VARIANTS:
             spec = ocp_specifiers.get(canonical_name, "")
-
+        
             wheel_name = f"{canonical_name}-OCP.wasm"
-
+        
             if debug:
                 spec = await _find_latest_dev_version(
                     wheel_name,
                     spec,
                     constraints=constraints,
                 )
-
-            installs.append(
-                _platform_install(
-                    f"{wheel_name}{spec}",
-                    constraints=constraints,
-                )
-            )
-
-        await asyncio.gather(*installs)
+        
+            install_reqs.append(f"{wheel_name}{spec}")
+        
+        await _platform_install(
+            install_reqs,
+            constraints=constraints,
+        )
 
         if _platform_is_emscripten():
             await _platform_install(
@@ -795,11 +806,11 @@ async def _install_from_github(
             deps += optional.get("development", [])
             deps += optional.get("benchmark", [])
 
-        install_tasks = []
+        install_reqs: list[str] = []
 
         for dep in deps:
             dep = dep.strip()
-
+        
             if (
                 not dep
                 or dep.startswith("lib3mf")
@@ -807,16 +818,14 @@ async def _install_from_github(
                 or dep == "mypy"
             ):
                 continue
-
-            install_tasks.append(
-                _platform_install(
-                    dep,
-                    constraints=constraints,
-                )
+        
+            install_reqs.append(dep)
+        
+        if install_reqs:
+            await _platform_install(
+                install_reqs,
+                constraints=constraints,
             )
-
-        if install_tasks:
-            await asyncio.gather(*install_tasks)
 
         if _platform_is_emscripten():
             import site
