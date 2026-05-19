@@ -647,7 +647,7 @@ async def _install_ocp_wasm_wheels(
                 )
 
             installs.append(
-                await _platform_install(
+                _platform_install(
                     f"{wheel_name}{spec}",
                     constraints=constraints,
                 )
