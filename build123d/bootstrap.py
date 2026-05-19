@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import shlex
-import subprocess  # ← ADDED: Was missing but used in _platform_install
 import sys
 import tempfile
 import zipfile
@@ -360,6 +359,8 @@ async def _platform_install(
 
         return
 
+    import subprocess
+    
     args = [
         sys.executable,
         "-m",
@@ -631,18 +632,8 @@ async def _install_ocp_wasm_wheels(
     mocked_packages: list[str] = []
 
     try:
-        # IMPORTANT:
-        # Do NOT parallelize Pyodide wheel installs.
-        #
-        # The OCP WASM wheels are extremely memory-heavy and loading
-        # multiple .so modules concurrently causes Pyodide/WASM OOMs.
-        #
-        # This was the regression introduced by asyncio.gather().
-        #
-        # Native pip installs can usually tolerate parallelism, but
-        # micropip + WASM dynamic loading cannot.
-        #
-        # Install strictly sequentially.
+        installs = []
+
         for canonical_name, _ in _OCP_VARIANTS:
             spec = ocp_specifiers.get(canonical_name, "")
 
@@ -655,10 +646,14 @@ async def _install_ocp_wasm_wheels(
                     constraints=constraints,
                 )
 
-            await _platform_install(
-                f"{wheel_name}{spec}",
-                constraints=constraints,
+            installs.append(
+                _platform_install(
+                    f"{wheel_name}{spec}",
+                    constraints=constraints,
+                )
             )
+
+        await asyncio.gather(*installs)
 
         if _platform_is_emscripten():
             await _platform_install(
@@ -776,7 +771,7 @@ async def _install_from_github(
         with open(version_py, "w", encoding="utf-8") as f:
             f.write(
                 f"version = {version!r}\n"
-                f"__version__ = version\n"
+                "__version__ = version\n"
             )
 
         with open(
