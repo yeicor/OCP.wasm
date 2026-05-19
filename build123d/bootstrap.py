@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import shlex
+import subprocess  # ← ADDED: Was missing but used in _platform_install
 import sys
 import tempfile
 import zipfile
@@ -775,7 +776,7 @@ async def _install_from_github(
         with open(version_py, "w", encoding="utf-8") as f:
             f.write(
                 f"version = {version!r}\n"
-                "__version__ = version\n"
+                f"__version__ = version\n"
             )
 
         with open(
