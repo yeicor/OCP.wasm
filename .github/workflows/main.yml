@@ -260,7 +260,7 @@ jobs:
     steps:
       - uses: "actions/download-artifact@v8"
         with:
-          name: "wheel-${{ matrix.package }}-*" # Debug and Release wheels!
+          pattern: "wheel-${{ matrix.package }}-*" # Debug and Release wheels!
           path: "dist"
           merge-multiple: true
 
