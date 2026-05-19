@@ -95,7 +95,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: sigoden/install-bin@v1
+      - uses: sigoden/install-binary@v1
         with:
           repo: WebAssembly/binaryen
           name: wasm-opt
