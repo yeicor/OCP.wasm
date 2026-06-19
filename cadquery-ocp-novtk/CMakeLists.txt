@@ -35,9 +35,13 @@ if(EMSCRIPTEN)
   execute_process(
     COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept freetype freetype-legacysjlj --pic
     RESULT_VARIABLE EMBUILD_RESULT
+    OUTPUT_VARIABLE EMBUILD_OUTPUT
+    ERROR_VARIABLE EMBUILD_ERROR
   )
+  message(STATUS "embuilder output: ${EMBUILD_OUTPUT}")
+  message(STATUS "embuilder error: ${EMBUILD_ERROR}")
   if(NOT EMBUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to run embuilder")
+    message(FATAL_ERROR "Failed to run embuilder build")
   endif()
 
   # XXX: Make a local link to the sysroot, since pyodide will just drop it if it falls under /src
@@ -62,6 +66,24 @@ if(EMSCRIPTEN)
     message(STATUS "Created symbolic link to emscripten sysroot at ${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
   endif()
   set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
+
+  # XXX: Copy PIC freetype port libraries to the non-PIC library directory.
+  # embuilder --pic only builds PIC variants (into the pic/ subdirectory), but the
+  # pyodide/pywasmcross linker wrapper does not add pic/ to the library search path
+  # for SIDE_MODULE builds. Since this build always produces a SIDE_MODULE (.so),
+  # all static libraries linked must be PIC-compatible.
+  set(_PIC_LIB_DIR "${EMSCRIPTEN_SYSROOT}/lib/wasm32-emscripten/pic")
+  set(_NONPIC_LIB_DIR "${EMSCRIPTEN_SYSROOT}/lib/wasm32-emscripten")
+  foreach(_lib freetype freetype-legacysjlj)
+    set(_pic_lib "${_PIC_LIB_DIR}/lib${_lib}.a")
+    set(_nonpic_lib "${_NONPIC_LIB_DIR}/lib${_lib}.a")
+    if(EXISTS "${_pic_lib}" AND NOT EXISTS "${_nonpic_lib}")
+      file(COPY "${_pic_lib}" DESTINATION "${_NONPIC_LIB_DIR}")
+      message(STATUS "Copied PIC library: ${_pic_lib} -> ${_nonpic_lib}")
+    elseif(NOT EXISTS "${_pic_lib}")
+      message(WARNING "PIC library not found: ${_pic_lib} (embuilder may have failed)")
+    endif()
+  endforeach()
 endif()
 
 # XXX: I only want to install the final build, not intermediate outputs
