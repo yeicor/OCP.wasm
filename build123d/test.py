@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 import sys
 
@@ -6,14 +8,17 @@ async def main():
     branch = os.environ.get("BUILD123D_BRANCH") or (
         sys.argv[1] if len(sys.argv) > 1 else "dev"
     )
-
-    os.environ["_install_build123d_from_github_also_optional"] = "true"
-
-    from bootstrap import bootstrap
-
     if not branch.startswith("github:"):
         branch = "github:" + branch  # Force using the sources that include tests
-    extracted_dir = await bootstrap(branch, debug=True)
+
+    os.environ["_install_build123d_from_github_also_optional"] = "true"
+    if branch == "github:dev":
+        # For the dev branch we must force the built wheel (otherwise we are not testing them!)
+        os.environ["_build123d_bootstrap_skip_ocp_install"] = "true"
+
+    import bootstrap as _bootstrap_module
+
+    extracted_dir = await _bootstrap_module.bootstrap(branch, debug=True)
     assert extracted_dir is not None, "Bootstrap failed to install build123d sources"
 
     if sys.platform == "emscripten":
