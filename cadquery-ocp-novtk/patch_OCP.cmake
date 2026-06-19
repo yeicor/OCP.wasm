@@ -11,6 +11,14 @@ if(NOT DEFINED rapidjson_SOURCE_DIR)
   message(FATAL_ERROR "OpenCASCADE_BINARY_DIR must be defined")
 endif()
 
+if(DEFINED freetype_PIC_LIBRARY AND NOT freetype_PIC_LIBRARY STREQUAL "")
+  message(STATUS "Using PIC freetype library: ${freetype_PIC_LIBRARY}")
+  set(FREETYPE_LINK_ARG "${freetype_PIC_LIBRARY}")
+else()
+  message(STATUS "Using default freetype library lookup")
+  set(FREETYPE_LINK_ARG "freetype")
+endif()
+
 # ----- Remove vtk-related files (case-insensitive) -----
 file(GLOB_RECURSE all_sources
   "${REAL_SOURCE_DIR}/*.cpp"
@@ -65,10 +73,10 @@ string(REGEX REPLACE "\n([ \t]*find_package[ \t]*\\([^)]*(VTK|Python|OpenCASCADE
 string(REGEX REPLACE "([ \t]+)(VTK::[^ )]*)" "\\1#[[\\2]]" content "${content}")
 string(REGEX REPLACE "([ \t]+)(INTERPROCEDURAL_OPTIMIZATION[ \t]+FALSE)" "\\1#[[\\2]]" content "${content}")
 string(REGEX REPLACE "(target_include_directories\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)+\\)" "\\1 \"${OpenCASCADE_BINARY_DIR}/include/opencascade\" \"${rapidjson_SOURCE_DIR}/include\")" content "${content}")
-string(REGEX REPLACE "(\ntarget_link_libraries\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)\\)" "\\1 ${OpenCASCADE_LIBRARIES} freetype)" content "${content}")
+string(REGEX REPLACE "(\ntarget_link_libraries\\([ \t]?[^ )]+[ \t]?[^ )]+[ \t]?[^ )]+[ \t]?)\\)" "\\1 ${OpenCASCADE_LIBRARIES} ${FREETYPE_LINK_ARG})" content "${content}")
 string(REGEX REPLACE "SET\\(PYTHON_SP_DIR \\\"site-packages\\\"" "SET(PYTHON_SP_DIR \".\"" content "${content}")
 if(NOT content MATCHES ".*SKBUILD_SOABI.*")
-    string(APPEND content "\nset_property(TARGET OCP PROPERTY SUFFIX \".\${SKBUILD_SOABI}\${CMAKE_SHARED_MODULE_SUFFIX}\")")
+  string(APPEND content "\nset_property(TARGET OCP PROPERTY SUFFIX \".\${SKBUILD_SOABI}\${CMAKE_SHARED_MODULE_SUFFIX}\")")
 endif()
 if(NOT content STREQUAL content_old)
   file(WRITE "${OCP_CMAKE}" "${content}")
