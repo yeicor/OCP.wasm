@@ -195,8 +195,7 @@ jobs:
           pyodide venv .venv-pyodide
           . .venv-pyodide/bin/activate
 
-          # Install build123d and run tests (stable and dev versions)
-          function test_build123d_branch() {
+          function run_tests() {
             local branch="$1"
             echo "Testing build123d branch: $branch"
 
@@ -206,13 +205,11 @@ jobs:
             pyodide venv .venv-pyodide
             . .venv-pyodide/bin/activate
 
-            # Reinstall the pre-built wasm wheels into the fresh venv (only for dev branch, stable may require older versions that should be downloaded from PyPI instead)
-            if [ "$branch" = "dev" ]; then
-              for whl in ../_wheels/*.whl; do
-                echo "Installing wheel $whl into venv for testing"
+            # Install the just-built wheels. They WILL be used for the dev tests.
+            # If stable requests older versions, they will be installed on top of the dev wheels from PyPI, which is fine.
+            for whl in ../_wheels/*.whl; do
                 pip install "$whl"
-              done
-            fi
+            done
 
             # XXX: There is a bug causing async tests to stop at a random point,
             # so retry until the output contains the proper completion statement or we give up (assume okay then)
@@ -222,21 +219,19 @@ jobs:
               FORCE_COLOR=1 python test.py "$branch" | tee -a "test-$branch.log"
               if grep -q "All tests passed successfully!" "test-$branch.log"; then
                 echo "Tests finished successfully on attempt $attempt"
-                break
-              else
-                echo "Tests did not finish on attempt $attempt (known async issue), retrying..."
-                attempt=$((attempt + 1))
+                return
               fi
+              echo "Retrying failed async completion ($attempt/$max_retries)"
+              attempt=$((attempt + 1))
             done
-            if [ $attempt -gt $max_retries ]; then
-              echo "Warning: Tests did not finish after $max_retries attempts (assuming okay)"
-            fi
+            echo "Warning: test completion marker missing after retries"
           }
 
-          # We always test the built wheels on the latest dev branch, which will eventually become stable
-          test_build123d_branch "dev"
-          # Sometimes, stable builds require older versions that should be downloaded from PyPI instead
-          test_build123d_branch "stable"
+          echo "### Running dev test"
+          run_tests dev
+
+          echo "### Running stable test"
+          run_tests stable
 
       - uses: "actions/upload-artifact@v7"
         if: "always()"

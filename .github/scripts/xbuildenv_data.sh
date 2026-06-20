@@ -14,7 +14,7 @@ fi
 echo "xbuildenv_version=$xbuildenv_version" >>"$GITHUB_OUTPUT"
 
 # Grab the related pyodide version from the main repo
-xbuildenv_json="$(curl -s -q "https://raw.githubusercontent.com/pyodide/pyodide/refs/heads/main/pyodide-cross-build-environments.json" | jq -c --arg ver "$xbuildenv_version" '.releases[$ver]')"
+xbuildenv_json="$(curl -s -q "https://raw.githubusercontent.com/pyodide/pyodide/refs/heads/main/metadata/pyodide-cross-build-environments-v2.json" | jq -c --arg ver "$xbuildenv_version" '.releases[$ver]')"
 if [ -z "$xbuildenv_json" ]; then
   echo "Failed to get xbuildenv JSON for version $xbuildenv_version"
   exit 1

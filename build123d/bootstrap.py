@@ -55,11 +55,7 @@ class _NormalizedResponse:
 
     @property
     def status(self) -> int:
-        return (
-            self._response.status
-            if self._is_emscripten
-            else self._response.code
-        )
+        return self._response.status if self._is_emscripten else self._response.code
 
     def get_header(self, name: str) -> str | None:
         if self._is_emscripten:
@@ -88,13 +84,7 @@ def _platform_is_emscripten() -> bool:
 
 
 def _normalize_constraints(
-    constraints: (
-        Sequence[Any]
-        | Mapping[str, Any]
-        | str
-        | os.PathLike[str]
-        | None
-    ),
+    constraints: (Sequence[Any] | Mapping[str, Any] | str | os.PathLike[str] | None),
 ) -> list[str]:
     """Normalize user constraints into pip-compatible constraint lines.
 
@@ -117,9 +107,7 @@ def _normalize_constraints(
             if not package:
                 continue
 
-            if spec and not spec.startswith(
-                ("=", "<", ">", "~", "!")
-            ):
+            if spec and not spec.startswith(("=", "<", ">", "~", "!")):
                 spec = f"=={spec}"
 
             lines.append(f"{package}{spec}")
@@ -128,11 +116,7 @@ def _normalize_constraints(
     if isinstance(constraints, (str, os.PathLike)):
         raw = os.fspath(constraints)
 
-        if (
-            isinstance(constraints, str)
-            and "\n" not in raw
-            and Path(raw).is_file()
-        ):
+        if isinstance(constraints, str) and "\n" not in raw and Path(raw).is_file():
             text = Path(raw).read_text(encoding="utf-8")
         else:
             text = raw
@@ -170,9 +154,7 @@ async def _fetch(url: str) -> _NormalizedResponse:
 
     if is_emscripten:
         if pyfetch is None:
-            raise RuntimeError(
-                "pyfetch is not available in this Pyodide environment"
-            )
+            raise RuntimeError("pyfetch is not available in this Pyodide environment")
 
         try:
             response = await pyfetch(url)
@@ -219,9 +201,7 @@ async def _fetch_bytes(url: str) -> bytes:
             location = response.get_header("Location")
 
             if not location:
-                raise RuntimeError(
-                    f"Redirect without Location header for {url}"
-                )
+                raise RuntimeError(f"Redirect without Location header for {url}")
 
             logger.info("Redirect %s -> %s", url, location)
             url = location
@@ -324,9 +304,7 @@ async def _platform_install(
     constraint_lines = list(constraints or [])
 
     requirements = (
-        [requirement]
-        if isinstance(requirement, str)
-        else [r for r in requirement if r]
+        [requirement] if isinstance(requirement, str) else [r for r in requirement if r]
     )
 
     if not requirements:
@@ -336,9 +314,7 @@ async def _platform_install(
 
     if _platform_is_emscripten():
         if micropip is None:
-            raise RuntimeError(
-                "micropip is not available in this environment"
-            )
+            raise RuntimeError("micropip is not available in this environment")
 
         kwargs: dict[str, Any] = {
             "reinstall": True,
@@ -356,16 +332,11 @@ async def _platform_install(
 
         await micropip.install(requirements, **kwargs)
 
-        if (
-            constraint_lines
-            and hasattr(micropip, "set_constraints")
-        ):
+        if constraint_lines and hasattr(micropip, "set_constraints"):
             try:
                 micropip.set_constraints(constraint_lines)
             except Exception:
-                logger.debug(
-                    "micropip.set_constraints failed; continuing"
-                )
+                logger.debug("micropip.set_constraints failed; continuing")
 
         return
 
@@ -429,8 +400,7 @@ async def _platform_install(
             )
 
             raise RuntimeError(
-                f"Failed to install packages {requirements!r}:\n"
-                f"{err_text}"
+                f"Failed to install packages {requirements!r}:\n{err_text}"
             )
 
         logger.debug(
@@ -464,19 +434,10 @@ async def _find_latest_dev_version(
 
     releases = data.get("releases", {})
 
-    await _platform_install(
-        "packaging",
-        constraints=constraints,
-    )
-
     import packaging.specifiers
     import packaging.version
 
-    spec = (
-        packaging.specifiers.SpecifierSet(version_spec)
-        if version_spec
-        else None
-    )
+    spec = packaging.specifiers.SpecifierSet(version_spec) if version_spec else None
 
     dev_versions: list[str] = []
 
@@ -529,6 +490,60 @@ async def _find_latest_dev_version(
     return f"=={latest}"
 
 
+def _installed_ocp_versions() -> dict[str, str]:
+    """
+    Return installed OCP WASM package versions.
+
+    This deliberately uses metadata rather than wheel filenames so this
+    works for:
+      - CI-installed wheels
+      - developer-installed wheels
+      - PyPI-installed wheels
+      - editable environments
+    """
+
+    versions = {}
+
+    for canonical_name, _ in _OCP_VARIANTS:
+        wheel_name = f"{canonical_name}-OCP.wasm"
+
+        try:
+            versions[canonical_name] = importlib.metadata.version(wheel_name)
+        except importlib.metadata.PackageNotFoundError:
+            pass
+
+    return versions
+
+
+def _ocp_versions_satisfy(
+    installed: Mapping[str, str],
+    required: Mapping[str, str],
+) -> bool:
+    """
+    Check whether installed OCP WASM packages satisfy build123d requirements.
+    """
+
+    if not required:
+        return True
+
+    import packaging.specifiers
+    import packaging.version
+
+    for package, specifier in required.items():
+        version = installed.get(package)
+
+        if version is None:
+            return False
+
+        if specifier:
+            if packaging.version.Version(version) not in (
+                packaging.specifiers.SpecifierSet(specifier)
+            ):
+                return False
+
+    return True
+
+
 async def _resolve_pypi_plan(ref: str) -> InstallPlan:
     """Resolve a PyPI install plan."""
 
@@ -557,8 +572,7 @@ async def _resolve_github_plan(ref: str) -> InstallPlan:
     )
 
     pyproject_url = (
-        f"https://raw.githubusercontent.com/"
-        f"gumyr/build123d/{ref}/pyproject.toml"
+        f"https://raw.githubusercontent.com/gumyr/build123d/{ref}/pyproject.toml"
     )
 
     content = await _fetch_text(pyproject_url)
@@ -568,13 +582,9 @@ async def _resolve_github_plan(ref: str) -> InstallPlan:
     try:
         pyproject = tomllib.loads(content)
     except Exception as exc:
-        raise RuntimeError(
-            f"Failed to parse pyproject.toml for {ref}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to parse pyproject.toml for {ref}: {exc}") from exc
 
-    requirements = (
-        pyproject.get("project", {}).get("dependencies", [])
-    )
+    requirements = pyproject.get("project", {}).get("dependencies", [])
 
     ocp_specifiers = _extract_ocp_specifiers(requirements)
 
@@ -582,24 +592,16 @@ async def _resolve_github_plan(ref: str) -> InstallPlan:
         version = ref.removeprefix("v")
     else:
         try:
-            latest = (
-                await _get_pypi_json("build123d")
-            )["info"]["version"]
+            latest = (await _get_pypi_json("build123d"))["info"]["version"]
 
-            version = (
-                f"{latest}+"
-                f"{ref.replace('.', '_').replace('/', '_')}"
-            )
+            version = f"{latest}+{ref.replace('.', '_').replace('/', '_')}"
         except Exception as exc:
             logger.warning(
                 "Could not fetch latest stable version: %s",
                 exc,
             )
 
-            version = (
-                f"0.0.0+"
-                f"{ref.replace('.', '_').replace('/', '_')}"
-            )
+            version = f"0.0.0+{ref.replace('.', '_').replace('/', '_')}"
 
     return InstallPlan(
         source="github",
@@ -614,9 +616,7 @@ def _find_build123d_sources() -> str | None:
 
     import site
 
-    site_packages_dirs = (
-        site.getsitepackages() + [site.getusersitepackages()]
-    )
+    site_packages_dirs = site.getsitepackages() + [site.getusersitepackages()]
 
     for site_pkg in site_packages_dirs:
         for candidate in ("build123d-src", "build123d"):
@@ -628,6 +628,48 @@ def _find_build123d_sources() -> str | None:
     return None
 
 
+async def _create_ocp_mock_packages():
+    mocked_packages = []
+
+    if not _platform_is_emscripten():
+
+        async def cleanup():
+            pass
+
+        return cleanup
+
+    import micropip
+
+    for canonical_name, mock_names in _OCP_VARIANTS:
+        wheel_name = f"{canonical_name}-OCP.wasm"
+
+        version = importlib.metadata.version(wheel_name)
+
+        for mock_name in mock_names:
+            mocked_packages.append(mock_name)
+
+            if mock_name == "py-lib3mf":
+                micropip.add_mock_package(
+                    mock_name,
+                    version,
+                    modules={"py_lib3mf": "from lib3mf import *"},
+                )
+            else:
+                micropip.add_mock_package(
+                    mock_name,
+                    version,
+                )
+
+    async def cleanup():
+        for name in mocked_packages:
+            try:
+                micropip.remove_mock_package(name)
+            except Exception:
+                pass
+
+    return cleanup
+
+
 async def _install_ocp_wasm_wheels(
     ocp_specifiers: Mapping[str, str],
     *,
@@ -636,90 +678,56 @@ async def _install_ocp_wasm_wheels(
 ):
     """Install OCP WASM wheels and create Pyodide mock packages."""
 
+    await _platform_install(
+        "packaging",
+        constraints=constraints,
+    )
+
     logger.info(
         "Installing OCP WASM wheels (debug=%s)",
         debug,
     )
 
-    mocked_packages: list[str] = []
+    installed = _installed_ocp_versions()
 
-    try:
-        install_reqs: list[str] = []
+    if _ocp_versions_satisfy(
+        installed,
+        ocp_specifiers,
+    ):
+        return await _create_ocp_mock_packages()
 
-        for canonical_name, _ in _OCP_VARIANTS:
-            spec = ocp_specifiers.get(canonical_name, "")
-        
-            wheel_name = f"{canonical_name}-OCP.wasm"
-        
-            if debug:
-                spec = await _find_latest_dev_version(
-                    wheel_name,
-                    spec,
-                    constraints=constraints,
-                )
-        
-            install_reqs.append(f"{wheel_name}{spec}")
-        
-        await _platform_install(
-            install_reqs,
-            constraints=constraints,
+    if os.environ.get("_build123d_bootstrap_skip_ocp_install", None) is not None:
+        logger.warning(
+            "Skipping OCP WASM wheel installation due to environment variable",
         )
 
-        if _platform_is_emscripten():
-            await _platform_install(
-                "sqlite3",
+        return await _create_ocp_mock_packages()
+
+    install_reqs = []
+
+    for canonical_name, _ in _OCP_VARIANTS:
+        spec = ocp_specifiers.get(
+            canonical_name,
+            "",
+        )
+
+        wheel_name = f"{canonical_name}-OCP.wasm"
+
+        if debug:
+            spec = await _find_latest_dev_version(
+                wheel_name,
+                spec,
                 constraints=constraints,
             )
 
-        if _platform_is_emscripten() and micropip is not None:
-            for canonical_name, mock_names in _OCP_VARIANTS:
-                wheel_name = f"{canonical_name}-OCP.wasm"
+        install_reqs.append(f"{wheel_name}{spec}")
 
-                version = importlib.metadata.version(wheel_name)
+    await _platform_install(
+        install_reqs,
+        constraints=constraints,
+    )
 
-                for mock_name in mock_names:
-                    mocked_packages.append(mock_name)
-
-                    if mock_name == "py-lib3mf":
-                        micropip.add_mock_package(
-                            mock_name,
-                            version,
-                            modules={
-                                "py_lib3mf": "from lib3mf import *"
-                            },
-                        )
-                    else:
-                        micropip.add_mock_package(
-                            mock_name,
-                            version,
-                        )
-
-        async def cleanup_mocks():
-            """Remove all created mock packages."""
-
-            if (
-                _platform_is_emscripten()
-                and micropip is not None
-            ):
-                for mock_name in mocked_packages:
-                    logger.debug(
-                        "Removing mock package %s",
-                        mock_name,
-                    )
-
-                    micropip.remove_mock_package(mock_name)
-
-        return cleanup_mocks
-
-    except Exception:
-        if _platform_is_emscripten() and micropip is not None:
-            for mock_name in mocked_packages:
-                try:
-                    micropip.remove_mock_package(mock_name)
-                except Exception:
-                    pass
-
-        raise
+    return await _create_ocp_mock_packages()
 
 
 async def _install_from_pypi(
@@ -744,11 +752,10 @@ async def _install_from_github(
     """Install build123d directly from GitHub sources."""
 
     import shutil
+
     import tomllib
 
-    zip_url = (
-        f"https://github.com/gumyr/build123d/archive/{ref}.zip"
-    )
+    zip_url = f"https://github.com/gumyr/build123d/archive/{ref}.zip"
 
     logger.debug("Downloading %s", zip_url)
 
@@ -779,10 +786,7 @@ async def _install_from_github(
         os.makedirs(os.path.dirname(version_py), exist_ok=True)
 
         with open(version_py, "w", encoding="utf-8") as f:
-            f.write(
-                f"version = {version!r}\n"
-                "__version__ = version\n"
-            )
+            f.write(f"version = {version!r}\n__version__ = version\n")
 
         with open(
             os.path.join(extracted_dir, "pyproject.toml"),
@@ -790,18 +794,13 @@ async def _install_from_github(
         ) as f:
             pyproject = tomllib.load(f)
 
-        deps = (
-            pyproject.get("project", {}).get("dependencies", [])
-        )
+        deps = pyproject.get("project", {}).get("dependencies", [])
 
         if os.getenv(
             "_install_build123d_from_github_also_optional",
             "",
         ):
-            optional = (
-                pyproject.get("project", {})
-                .get("optional-dependencies", {})
-            )
+            optional = pyproject.get("project", {}).get("optional-dependencies", {})
 
             deps += optional.get("development", [])
             deps += optional.get("benchmark", [])
@@ -810,7 +809,7 @@ async def _install_from_github(
 
         for dep in deps:
             dep = dep.strip()
-        
+
             if (
                 not dep
                 or dep.startswith("lib3mf")
@@ -818,9 +817,9 @@ async def _install_from_github(
                 or dep == "mypy"
             ):
                 continue
-        
+
             install_reqs.append(dep)
-        
+
         if install_reqs:
             await _platform_install(
                 install_reqs,
@@ -885,11 +884,7 @@ async def _install_from_github(
             files = [
                 (
                     "METADATA",
-                    (
-                        "Metadata-Version: 2.1\n"
-                        "Name: build123d\n"
-                        f"Version: {version}\n"
-                    ),
+                    (f"Metadata-Version: 2.1\nName: build123d\nVersion: {version}\n"),
                 ),
                 (
                     "WHEEL",
@@ -920,9 +915,7 @@ async def _install_from_github(
             await _platform_install(
                 f"-e {extracted_dir}",
                 constraints=constraints,
-                env={
-                    "SETUPTOOLS_SCM_PRETEND_VERSION": version
-                },
+                env={"SETUPTOOLS_SCM_PRETEND_VERSION": version},
             )
 
     finally:
@@ -942,11 +935,7 @@ async def bootstrap(
     build123d_ref: str = "stable",
     debug: bool = False,
     constraints: (
-        Sequence[Any]
-        | Mapping[str, Any]
-        | str
-        | os.PathLike[str]
-        | None
+        Sequence[Any] | Mapping[str, Any] | str | os.PathLike[str] | None
     ) = None,
     mocked_hook=None,
 ) -> str | None:
@@ -1020,19 +1009,11 @@ async def bootstrap(
         )
 
     if build123d_ref in {"stable", "github:stable"}:
-        logger.debug(
-            "Resolving latest stable build123d version"
-        )
+        logger.debug("Resolving latest stable build123d version")
 
-        latest = (
-            await _get_pypi_json("build123d")
-        )["info"]["version"]
+        latest = (await _get_pypi_json("build123d"))["info"]["version"]
 
-        build123d_ref = (
-            latest
-            if build123d_ref == "stable"
-            else f"github:v{latest}"
-        )
+        build123d_ref = latest if build123d_ref == "stable" else f"github:v{latest}"
 
         logger.debug(
             "Resolved stable ref to %s",
@@ -1040,23 +1021,18 @@ async def bootstrap(
         )
 
     if build123d_ref.startswith("github:"):
-        plan = await _resolve_github_plan(
-            build123d_ref.removeprefix("github:")
-        )
+        plan = await _resolve_github_plan(build123d_ref.removeprefix("github:"))
     else:
         try:
             plan = await _resolve_pypi_plan(build123d_ref)
         except Exception as exc:
             logger.warning(
-                "Could not resolve %s on PyPI (%s); "
-                "falling back to GitHub",
+                "Could not resolve %s on PyPI (%s); falling back to GitHub",
                 build123d_ref,
                 exc,
             )
 
-            plan = await _resolve_github_plan(
-                build123d_ref
-            )
+            plan = await _resolve_github_plan(build123d_ref)
 
     cleanup_mocks = await _install_ocp_wasm_wheels(
         plan.ocp_specifiers,
@@ -1088,9 +1064,7 @@ async def bootstrap(
             )
 
         if mocked_hook is not None:
-            logger.debug(
-                "Running mocked_hook before cleanup"
-            )
+            logger.debug("Running mocked_hook before cleanup")
 
             await _call_hook(mocked_hook)
 

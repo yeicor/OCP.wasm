@@ -35,9 +35,13 @@ if(EMSCRIPTEN)
   execute_process(
     COMMAND embuilder build libdlmalloc libcompiler_rt-legacysjlj libc++-legacyexcept libc++abi-legacyexcept libunwind-legacyexcept libc++abi-debug-legacyexcept freetype freetype-legacysjlj --pic
     RESULT_VARIABLE EMBUILD_RESULT
+    OUTPUT_VARIABLE EMBUILD_OUTPUT
+    ERROR_VARIABLE EMBUILD_ERROR
   )
+  message(STATUS "embuilder output: ${EMBUILD_OUTPUT}")
+  message(STATUS "embuilder error: ${EMBUILD_ERROR}")
   if(NOT EMBUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to run embuilder")
+    message(FATAL_ERROR "Failed to run embuilder build")
   endif()
 
   # XXX: Make a local link to the sysroot, since pyodide will just drop it if it falls under /src
@@ -61,7 +65,41 @@ if(EMSCRIPTEN)
     endif()
     message(STATUS "Created symbolic link to emscripten sysroot at ${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
   endif()
+  # Save the real sysroot path for use later; EMSCRIPTEN_SYSROOT gets overwritten
+  # with a symlink path (for pyodide compat) on the next line.
+  set(_EMSCRIPTEN_SYSROOT_REAL "${EMSCRIPTEN_SYSROOT}")
   set(EMSCRIPTEN_SYSROOT "${CMAKE_CURRENT_BINARY_DIR}/.emscripten_sysroot")
+
+  # XXX: Copy PIC freetype port libraries to the non-PIC library directory.
+  # embuilder --pic only builds PIC variants (into the pic/ subdirectory), but the
+  # pyodide/pywasmcross linker wrapper does not add pic/ to the library search path
+  # for SIDE_MODULE builds. Since this build always produces a SIDE_MODULE (.so),
+  # all static libraries linked must be PIC-compatible.
+  #
+  # Use the REAL sysroot path (not the .emscripten_sysroot symlink) to ensure the
+  # file ends up in the actual emscripten cache where the linker searches for it.
+  set(_PIC_LIB_DIR "${_EMSCRIPTEN_SYSROOT_REAL}/lib/wasm32-emscripten/pic")
+  set(_NONPIC_LIB_DIR "${_EMSCRIPTEN_SYSROOT_REAL}/lib/wasm32-emscripten")
+  foreach(_lib freetype freetype-legacysjlj)
+    set(_pic_lib "${_PIC_LIB_DIR}/lib${_lib}.a")
+    set(_nonpic_lib "${_NONPIC_LIB_DIR}/lib${_lib}.a")
+    if(EXISTS "${_pic_lib}" AND NOT EXISTS "${_nonpic_lib}")
+      execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${_pic_lib}" "${_NONPIC_LIB_DIR}"
+        RESULT_VARIABLE _copy_result
+      )
+      if(_copy_result EQUAL 0)
+        message(STATUS "Copied PIC library: ${_pic_lib} -> ${_nonpic_lib}")
+      else()
+        message(FATAL_ERROR "Failed to copy ${_pic_lib} to ${_NONPIC_LIB_DIR}")
+      endif()
+      # Double-check the file actually exists at the destination
+      if(NOT EXISTS "${_nonpic_lib}")
+        message(FATAL_ERROR "PIC library copy verification failed for ${_nonpic_lib}")
+      endif()
+    elseif(NOT EXISTS "${_pic_lib}")
+      message(WARNING "PIC library not found: ${_pic_lib} (embuilder may have failed)")
+    endif()
+  endforeach()
 endif()
 
 # XXX: I only want to install the final build, not intermediate outputs
@@ -146,6 +184,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../util") # Findpybind1
 set(OCP_SRC "${DEPS_DIR}/OCP-src")
 set(OCP_BIN "${DEPS_DIR}/OCP-build")
 download_url(NAME OCP URL "https://github.com/CadQuery/OCP/releases/download/7.9.3.1/OCP_src_stubs_Linux.zip" DEST "${OCP_SRC}")
+
 execute_process(
   COMMAND ${CMAKE_COMMAND} "-DREAL_SOURCE_DIR=${OCP_SRC}" "-DREAL_BINARY_DIR=${OCP_BIN}"
     "-DROOT_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
