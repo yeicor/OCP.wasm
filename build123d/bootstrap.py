@@ -434,11 +434,6 @@ async def _find_latest_dev_version(
 
     releases = data.get("releases", {})
 
-    await _platform_install(
-        "packaging",
-        constraints=constraints,
-    )
-
     import packaging.specifiers
     import packaging.version
 
@@ -682,6 +677,11 @@ async def _install_ocp_wasm_wheels(
     debug: bool = False,
 ):
     """Install OCP WASM wheels and create Pyodide mock packages."""
+
+    await _platform_install(
+        "packaging",
+        constraints=constraints,
+    )
 
     logger.info(
         "Installing OCP WASM wheels (debug=%s)",
