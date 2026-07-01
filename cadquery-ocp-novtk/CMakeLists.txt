@@ -140,7 +140,7 @@ add_subdirectory("${RAPIDJSON_SRC}")
 # ##### fmt #####
 set(FMT_SRC "${DEPS_DIR}/fmt-src")
 set(FMT_BIN "${DEPS_DIR}/fmt-build")
-checkout_git_tag(SRC "${FMT_SRC}" URL "https://github.com/fmtlib/fmt.git" TAG "12.1.0")
+checkout_git_tag(SRC "${FMT_SRC}" URL "https://github.com/fmtlib/fmt.git" TAG "12.2.0")
 set_timestamps("${FMT_SRC}")
 # Disable tests/docs/install noise
 set(FMT_DOC OFF CACHE BOOL "" FORCE)
