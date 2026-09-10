@@ -120,7 +120,7 @@ endfunction()
 set(PYBIND11_SRC "${DEPS_DIR}/pybind11-src")
 set(PYBIND11_BIN "${DEPS_DIR}/pybind11-build")
 set(PYBIND11_USE_CROSSCOMPILING ON)
-checkout_git_tag(SRC "${PYBIND11_SRC}" URL "https://github.com/pybind/pybind11.git" TAG "v3.0.4")
+checkout_git_tag(SRC "${PYBIND11_SRC}" URL "https://github.com/pybind/pybind11.git" TAG "v3.1.0")
 execute_process(
   COMMAND ${CMAKE_COMMAND} "-DREAL_SOURCE_DIR=${PYBIND11_SRC}" "-DREAL_BINARY_DIR=${PYBIND11_BIN}"
     -P "${CMAKE_CURRENT_LIST_DIR}/patch_pybind11.cmake"
