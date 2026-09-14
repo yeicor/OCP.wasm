@@ -1,2 +1,2 @@
 pyodide-build==0.36.0
-# pyodide-xbuildenv==314.0.2 # See main.yml
+# pyodide-xbuildenv==314.0.7 # See main.yml
