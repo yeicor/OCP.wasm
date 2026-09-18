@@ -16,6 +16,30 @@ async def main():
         # For the dev branch we must force the built wheel (otherwise we are not testing them!)
         os.environ["_build123d_bootstrap_skip_ocp_install"] = "true"
 
+    if sys.platform == "emscripten":
+        import pyodide.http
+
+        _orig_pyfetch = pyodide.http.pyfetch
+
+        async def _retrying_pyfetch(request, *args, **kwargs):
+            max_attempts = 5
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return await _orig_pyfetch(request, *args, **kwargs)
+                except Exception as e:
+                    if attempt == max_attempts:
+                        raise
+                    logging.getLogger("build123d_test_bootstrap").warning(
+                        "pyfetch failed for %s (%s); retrying (%d/%d)...",
+                        request,
+                        e,
+                        attempt,
+                        max_attempts,
+                    )
+                    await asyncio.sleep(1.5 * attempt)
+
+        pyodide.http.pyfetch = _retrying_pyfetch
+
     import bootstrap as _bootstrap_module
 
     extracted_dir = await _bootstrap_module.bootstrap(branch, debug=True)
@@ -50,7 +74,7 @@ async def main():
 
         import warnings
 
-        await micropip.install("font-fetcher")
+        await micropip.install(["font-fetcher", "pluggy"])
         from font_fetcher.ocp import install_ocp_font_hook  # type: ignore
         from OCP.Font import (  # type: ignore
             Font_FA_Regular,
@@ -180,9 +204,23 @@ if __name__ == "__main__":
     logging.getLogger("build123d").setLevel(logging.WARNING)
     logger = logging.getLogger("build123d_test_bootstrap")
     logger.debug("Starting main async test runner...")
+
+    _keepalive = None
+    if sys.platform == "emscripten":
+        import js
+        _keepalive = js.setInterval(js.Function(""), 200)
+
     try:
         result = asyncio.run(main())
         logger.debug(f"main() returned: {result}")
     except Exception as _e:
         logger.exception("An error occurred during test bootstrap execution.")
         raise
+    finally:
+        if _keepalive is not None:
+            try:
+                import js
+                js.clearInterval(_keepalive)
+            except Exception:
+                pass
+
