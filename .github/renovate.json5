@@ -63,6 +63,11 @@
       // In addition, OCP 8.x wraps OpenCASCADE 8.x which has a completely overhauled structure and is not compatible with OCCT 7.9.x.
       "matchPackageNames": ["CadQuery/OCP"],
       "allowedVersions": "<8.0.0"
+    },
+    {
+      // pyodide-build and pyodide-xbuildenv must be kept in sync as new xbuildenv lockfiles require updated pyodide-build schema
+      "matchPackageNames": ["pyodide/pyodide", "pyodide-build"],
+      "groupName": "pyodide"
     }
   ]
 }
