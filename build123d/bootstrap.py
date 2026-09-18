@@ -317,7 +317,6 @@ async def _platform_install(
             raise RuntimeError("micropip is not available in this environment")
 
         kwargs: dict[str, Any] = {
-            "reinstall": True,
             "keep_going": True,
         }
 
@@ -809,12 +808,24 @@ async def _install_from_github(
 
         for dep in deps:
             dep = dep.strip()
+            if not dep:
+                continue
 
+            import re
+            dep_name = re.split(r"[><=~!\s;]", dep, maxsplit=1)[0].strip().lower().replace("_", "-")
             if (
-                not dep
-                or dep.startswith("lib3mf")
-                or dep.startswith("cadquery-ocp")
-                or dep == "mypy"
+                dep_name.startswith("lib3mf")
+                or dep_name.startswith("cadquery-ocp")
+                or dep_name in {
+                    "mypy",
+                    "black",
+                    "diff-cover",
+                    "pylint",
+                    "covdefaults",
+                    "pytest-cov",
+                    "pytest-xdist",
+                    "wheel",
+                }
             ):
                 continue
 
