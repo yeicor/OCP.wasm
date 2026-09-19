@@ -298,6 +298,7 @@ async def _platform_install(
     *,
     constraints: Sequence[str] | None = None,
     env: Mapping[str, str] | None = None,
+    reinstall: bool = False,
 ) -> None:
     """Install packages on either Pyodide or native Python."""
 
@@ -318,6 +319,7 @@ async def _platform_install(
 
         kwargs: dict[str, Any] = {
             "keep_going": True,
+            "reinstall": reinstall,
         }
 
         if constraint_lines:
@@ -724,6 +726,7 @@ async def _install_ocp_wasm_wheels(
     await _platform_install(
         install_reqs,
         constraints=constraints,
+        reinstall=True,
     )
 
     return await _create_ocp_mock_packages()
