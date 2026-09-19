@@ -199,8 +199,8 @@ jobs:
             local branch="$1"
             echo "Testing build123d branch: $branch"
 
-            # Reinitialize venv for each test to avoid version conflicts
-            type deactivate >/dev/null 2>&1 && deactivate
+            # Reinitialize venv for each branch to avoid version conflicts and partial-install corruption
+            type deactivate >/dev/null 2>&1 && deactivate || true
             [ -f .venv-pyodide/bin/activate ] && rm -rf .venv-pyodide/
             pyodide venv .venv-pyodide
             . .venv-pyodide/bin/activate
@@ -210,21 +210,28 @@ jobs:
             for whl in ../_wheels/*.whl; do
                 pip install "$whl"
             done
+            pip install pytest pytest-benchmark iniconfig pyparsing svgwrite font-fetcher pluggy
 
             # XXX: There is a bug causing async tests to stop at a random point,
-            # so retry until the output contains the proper completion statement or we give up (assume okay then)
-            local max_retries=50
+            # so retry until the output contains the proper completion statement
+            local max_retries=10
             local attempt=1
             while [ $attempt -le $max_retries ]; do
-              FORCE_COLOR=1 python test.py "$branch" | tee -a "test-$branch.log"
-              if grep -q "All tests passed successfully!" "test-$branch.log"; then
-                echo "Tests finished successfully on attempt $attempt"
-                return
+              echo "Starting attempt $attempt/$max_retries for branch $branch"
+              rm -f "test-$branch.log"
+
+              # Run test.py with timeout and kill-after to never get stuck
+              if FORCE_COLOR=1 PYTHONUNBUFFERED=1 timeout -k 30s 20m python -u test.py "$branch" 2>&1 | tee "test-$branch.log"; then
+                if grep -q "All tests passed successfully!" "test-$branch.log"; then
+                  echo "Tests finished successfully on attempt $attempt"
+                  return 0
+                fi
               fi
-              echo "Retrying failed async completion ($attempt/$max_retries)"
+              echo "Retrying failed test execution ($attempt/$max_retries)"
               attempt=$((attempt + 1))
             done
-            echo "Warning: test completion marker missing after retries"
+            echo "Error: test completion marker missing after $max_retries retries"
+            return 1
           }
 
           echo "### Running dev test"

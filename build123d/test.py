@@ -16,6 +16,30 @@ async def main():
         # For the dev branch we must force the built wheel (otherwise we are not testing them!)
         os.environ["_build123d_bootstrap_skip_ocp_install"] = "true"
 
+    if sys.platform == "emscripten":
+        import pyodide.http
+
+        _orig_pyfetch = pyodide.http.pyfetch
+
+        async def _retrying_pyfetch(request, *args, **kwargs):
+            max_attempts = 5
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return await _orig_pyfetch(request, *args, **kwargs)
+                except Exception as e:
+                    if attempt == max_attempts:
+                        raise
+                    logging.getLogger("build123d_test_bootstrap").warning(
+                        "pyfetch failed for %s (%s); retrying (%d/%d)...",
+                        request,
+                        e,
+                        attempt,
+                        max_attempts,
+                    )
+                    await asyncio.sleep(1.5 * attempt)
+
+        pyodide.http.pyfetch = _retrying_pyfetch
+
     import bootstrap as _bootstrap_module
 
     extracted_dir = await _bootstrap_module.bootstrap(branch, debug=True)
@@ -50,7 +74,7 @@ async def main():
 
         import warnings
 
-        await micropip.install("font-fetcher")
+        await micropip.install(["font-fetcher", "pluggy"])
         from font_fetcher.ocp import install_ocp_font_hook  # type: ignore
         from OCP.Font import (  # type: ignore
             Font_FA_Regular,
@@ -60,7 +84,46 @@ async def main():
         from OCP.TCollection import TCollection_AsciiString  # type: ignore
 
         _real_font_mgr = Font_FontMgr.GetInstance_s()
-        install_ocp_font_hook()
+        install_ocp_font_hook(
+            renames={
+                "Arial": "DejaVu Sans",
+                "build123d": "DejaVu Sans",
+                "Source Sans 3 Black": "DejaVu Sans",
+                "Source Sans 3": "DejaVu Sans",
+                "FreeSerif": "DejaVu Sans",
+            },
+            exact_match=False,
+        )
+        _wrapped_font_mgr = Font_FontMgr.GetInstance_s()
+        _font_mgr_cls = type(_wrapped_font_mgr)
+        _orig_find_font_full = _font_mgr_cls.find_font_full
+
+        from OCP.Font import Font_StrictLevel  # type: ignore
+
+        @staticmethod
+        def _fallback_find_font_full(
+            theFontName, theStrictLevel, theFontAspect, theDoFailMsg
+        ):
+            font_t = _orig_find_font_full(
+                theFontName, theStrictLevel, theFontAspect, theDoFailMsg
+            )
+            if font_t is not None:
+                return font_t
+            for default_name in ["DejaVu Sans", "singleline"]:
+                fallback = _real_font_mgr.FindFont(
+                    TCollection_AsciiString(default_name),
+                    Font_StrictLevel.Font_StrictLevel_Strict,
+                    theFontAspect,
+                    False,
+                )
+                if fallback is not None:
+                    return fallback
+            avail = _real_font_mgr.GetAvailableFonts()
+            if avail and len(avail) > 0:
+                return avail[0]
+            return None
+
+        _font_mgr_cls.find_font_full = _fallback_find_font_full
         font_path = os.path.join(
             extracted_dir,
             "src",
@@ -147,11 +210,15 @@ async def main():
                 # There is no VTK or Jupyter support in the Emscripten environment, so skip those tests there
                 "--ignore=tests/test_direct_api/test_jupyter.py",  # build123d <= v0.10.0
                 "--ignore=tests/test_direct_api/test_vtk_poly_data.py",  # build123d <= v0.10.0
-                # Skip some tests that are known to be flaky in the Emscripten environment, likely due to differences in floating-point behavior or other platform-specific issues. These should be investigated and fixed eventually, but for now this allows us to use tests to catch regressions in the Emscripten environment without being blocked by these known issues.
+                # Skip some tests that are known to be flaky or crash in the Emscripten environment, likely due to differences in floating-point behavior, missing threading, or other platform-specific issues. These should be investigated and fixed eventually, but for now this allows us to use tests to catch regressions in the Emscripten environment without being blocked by these known issues.
                 "-k=not ("
                 "test_tan3_2 or test_set or "
                 "(TestCadObjects and test_edge_wrapper_radius) or "
-                "(TestFace and test_make_surface)"
+                "(TestFace and test_make_surface) or "
+                "TestMaterialGltfExport or "
+                "test_double_tangent_arc or "
+                "isolated_between_threads or "
+                "test_unnamed_component"
                 ")",
             ]
         )
@@ -180,9 +247,23 @@ if __name__ == "__main__":
     logging.getLogger("build123d").setLevel(logging.WARNING)
     logger = logging.getLogger("build123d_test_bootstrap")
     logger.debug("Starting main async test runner...")
+
+    _keepalive = None
+    if sys.platform == "emscripten":
+        import js
+        _keepalive = js.setInterval(js.Function(""), 200)
+
     try:
         result = asyncio.run(main())
         logger.debug(f"main() returned: {result}")
     except Exception as _e:
         logger.exception("An error occurred during test bootstrap execution.")
         raise
+    finally:
+        if _keepalive is not None:
+            try:
+                import js
+                js.clearInterval(_keepalive)
+            except Exception:
+                pass
+

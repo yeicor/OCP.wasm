@@ -55,5 +55,20 @@
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "loose"
     }
+  ],
+  "packageRules": [
+    {
+      // Downstream consumers build123d and CadQuery explicitly pin `cadquery-ocp-novtk >= 7.9, < 8.0`.
+      // An OCP 8.x wheel cannot be used by either library at this time.
+      // In addition, OCP 8.x wraps OpenCASCADE 8.x which has a completely overhauled structure and is not compatible with OCCT 7.9.x.
+      "matchPackageNames": ["CadQuery/OCP"],
+      "allowedVersions": "<8.0.0"
+    },
+    {
+      // pyodide-build and pyodide-xbuildenv must be kept in sync as new xbuildenv lockfiles require updated pyodide-build schema
+      "matchPackageNames": ["pyodide/pyodide", "pyodide-build"],
+      "groupName": "pyodide"
+    }
   ]
 }
+
