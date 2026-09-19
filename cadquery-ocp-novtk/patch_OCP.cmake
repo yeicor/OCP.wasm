@@ -8,7 +8,7 @@ if(NOT DEFINED OpenCASCADE_BINARY_DIR)
   message(FATAL_ERROR "OpenCASCADE_BINARY_DIR must be defined")
 endif()
 if(NOT DEFINED rapidjson_SOURCE_DIR)
-  message(FATAL_ERROR "OpenCASCADE_BINARY_DIR must be defined")
+  message(FATAL_ERROR "rapidjson_SOURCE_DIR must be defined")
 endif()
 
 # ----- Remove vtk-related files (case-insensitive) -----

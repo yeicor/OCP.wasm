@@ -11,6 +11,26 @@ if(NOT DEFINED freetype_INCLUDE_DIR)
   message(FATAL_ERROR "freetype_INCLUDE_DIR must be defined")
 endif()
 
+# Check if include/opencascade contains stale forwarding headers pointing to non-existent files
+if(EXISTS "${REAL_BINARY_DIR}/include/opencascade")
+  file(GLOB _sample_headers "${REAL_BINARY_DIR}/include/opencascade/*.hxx")
+  set(_headers_valid TRUE)
+  foreach(_h IN LISTS _sample_headers)
+    file(STRINGS "${_h}" _lines LIMIT_COUNT 1)
+    if("${_lines}" MATCHES "#include \"([^\"]+)\"")
+      set(_target "${CMAKE_MATCH_1}")
+      if(NOT EXISTS "${_target}")
+        set(_headers_valid FALSE)
+        break()
+      endif()
+    endif()
+  endforeach()
+  if(NOT _headers_valid)
+    message(STATUS "Stale forwarding headers detected in ${REAL_BINARY_DIR}/include/opencascade, removing...")
+    file(REMOVE_RECURSE "${REAL_BINARY_DIR}/include/opencascade")
+  endif()
+endif()
+
 file(GLOB_RECURSE cmake_files
   "${REAL_SOURCE_DIR}/CMakeLists.txt"
   "${REAL_SOURCE_DIR}/adm/cmake/*.cmake"
