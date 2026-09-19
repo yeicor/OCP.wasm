@@ -181,6 +181,7 @@ async def main():
                 "isolated_between_threads or "
                 "test_text_resolved_font_attributes or "
                 "test_objects_2d or "
+                "test_objects_examples_text or "
                 "test_unnamed_component"
                 ")",
             ]
