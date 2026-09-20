@@ -117,12 +117,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: sigoden/install-binary@v1
-        with:
-          repo: WebAssembly/binaryen
-          name: wasm-opt
+      - name: Install wasm-opt
+        shell: bash
+        run: |
+          TMP=$(mktemp -d)
+          gh release download --repo WebAssembly/binaryen --pattern "*x86_64-linux.tar.gz" --dir "$TMP"
+          sudo tar -xzf "$TMP"/*.tar.gz -C /usr/local/bin --wildcards --strip-components=2 "*/bin/wasm-opt"
+          rm -rf "$TMP"
+          wasm-opt --version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: hendrikmuhs/ccache-action@v1.2
+      - uses: hendrikmuhs/ccache-action@v1.2.24
 
       - working-directory: "${{ matrix.package }}"
         shell: bash
