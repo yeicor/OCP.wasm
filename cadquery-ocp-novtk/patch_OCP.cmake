@@ -56,6 +56,26 @@ if(NOT content STREQUAL content_old)
   message(STATUS "Patched OSD.cpp")
 endif()
 
+# ----- Modify collections_*.cpp and collections_pre_*.cpp -----
+# OCP 8.x generates collection template instantiations, including some for IVtk and OpenGl
+# which are not available in novtk / wasm builds.
+file(GLOB collections_sources
+  "${REAL_SOURCE_DIR}/collections_*.cpp"
+  "${REAL_SOURCE_DIR}/collections_pre_*.cpp"
+)
+
+foreach(f IN LISTS collections_sources)
+  file(READ "${f}" content)
+  set(content_old "${content}")
+  string(REGEX REPLACE "(\n|^)([ \t]*#include[ \t]*[<\"][^>\"]*([iI][vV][tT][kK]|[oO]pen[gG][lL]|[vV][tT][kK])[^>\"]*[>\"])" "\\1// \\2" content "${content}")
+  string(REGEX REPLACE "(\n|^)([ \t]*class[ \t]+OpenGl[^;]+;)" "\\1// \\2" content "${content}")
+  string(REGEX REPLACE "(\n|^)([ \t]*[a-zA-Z0-9_]*register_template_NCollection[^\n]*([iI][vV][tT][kK]|[oO]pen[gG][lL]|[vV][tT][kK])[^\n]*)" "\\1// \\2" content "${content}")
+  if(NOT content STREQUAL content_old)
+    file(WRITE "${f}" "${content}")
+    message(STATUS "Patched ${f}")
+  endif()
+endforeach()
+
 # ----- Patch CMakeLists.txt -----
 message(STATUS "OpenCASCADE_LIBRARIES=${OpenCASCADE_LIBRARIES}")
 set(OCP_CMAKE "${REAL_SOURCE_DIR}/CMakeLists.txt")
