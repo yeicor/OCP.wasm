@@ -11,14 +11,14 @@ override_install()
 
 set(LIB3MF_VERSION "2.5.0")
 set(LIB3MF_SRC_DIR "${CMAKE_BINARY_DIR}/_deps/lib3mf-src")
-checkout_git_tag(SRC "${LIB3MF_SRC_DIR}" URL "https://github.com/3MFConsortium/lib3mf.git" TAG "v${LIB3MF_VERSION}")
+set(LIB3MF_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/lib3mf-build")
+checkout_git_tag(SRC "${LIB3MF_SRC_DIR}" URL "https://github.com/3MFConsortium/lib3mf.git" TAG "v${LIB3MF_VERSION}" BIN "${LIB3MF_BINARY_DIR}")
 message(STATUS "${LIB3MF_SRC_DIR}")
 execute_process(
   COMMAND "${CMAKE_COMMAND}" "-DREAL_SOURCE_DIR=${LIB3MF_SRC_DIR}" -P "${CMAKE_CURRENT_LIST_DIR}/patch.cmake"
   COMMAND_ERROR_IS_FATAL ANY)
 set_timestamps("${LIB3MF_SRC_DIR}")
 
-set(LIB3MF_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/lib3mf-build")
 add_subdirectory("${LIB3MF_SRC_DIR}" "${LIB3MF_BINARY_DIR}")
 
 if(EMSCRIPTEN)

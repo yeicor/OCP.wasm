@@ -50,47 +50,99 @@ endfunction()
 # Idempotently fetch a specific git tag with --depth 1 and check it out.
 # Creates a local tag ref so subsequent runs are a no-op.
 # Optional: apply a CMake script patch after checkout.
+# Optional: track tag in BIN and wipe BIN if tag changes.
 function(checkout_git_tag)
-  cmake_parse_arguments(PARSE_ARGV 0 _ "" "SRC;URL;TAG;PATCH" "")
+  cmake_parse_arguments(PARSE_ARGV 0 _ "" "SRC;URL;TAG;PATCH;BIN" "")
   get_filename_component(__SRC "${__SRC}" ABSOLUTE)
+  set(tag_stamp_file "")
+  set(cached_tag "")
+  if(DEFINED __BIN)
+    get_filename_component(__BIN "${__BIN}" ABSOLUTE)
+    set(tag_stamp_file "${__BIN}/.git_tag_stamp")
+    if(EXISTS "${tag_stamp_file}")
+      file(STRINGS "${tag_stamp_file}" cached_tag)
+    endif()
+  endif()
+
+  set(needs_checkout FALSE)
   if(NOT EXISTS "${__SRC}/.git")
     execute_process(COMMAND git clone --depth 1 --recurse-submodules
       "${__URL}" "${__SRC}" COMMAND_ERROR_IS_FATAL ANY)
+    set(needs_checkout TRUE)
   endif()
   execute_process(
     COMMAND bash -c "
-      set -ex
       if ! git rev-parse --verify refs/tags/\"${__TAG}\" >/dev/null 2>&1 ||
          [ \"\$(git rev-parse HEAD)\" != \"\$(git rev-parse refs/tags/\"${__TAG}\")\" ]; then
+        exit 1
+      fi
+    "
+    WORKING_DIRECTORY "${__SRC}"
+    RESULT_VARIABLE tag_check_res
+    OUTPUT_QUIET ERROR_QUIET
+  )
+  if(NOT tag_check_res EQUAL 0)
+    set(needs_checkout TRUE)
+  endif()
+
+  if(needs_checkout OR (tag_stamp_file AND NOT "${cached_tag}" STREQUAL "${__TAG}"))
+    execute_process(
+      COMMAND bash -c "
+        set -ex
         git reset --hard
         git clean -fdx
         git fetch --depth 1 origin \"${__TAG}\"
         git checkout FETCH_HEAD
         git tag -f \"${__TAG}\" FETCH_HEAD
         git submodule update --init --recursive --depth 1 --force
-      fi
-    "
-    WORKING_DIRECTORY "${__SRC}"
-    COMMAND_ERROR_IS_FATAL ANY)
+      "
+      WORKING_DIRECTORY "${__SRC}"
+      COMMAND_ERROR_IS_FATAL ANY)
+    if(DEFINED __BIN AND EXISTS "${__BIN}")
+      message(STATUS "Tag changed to ${__TAG}, removing stale build directory: ${__BIN}")
+      file(REMOVE_RECURSE "${__BIN}")
+    endif()
+  endif()
+
+  if(tag_stamp_file)
+    file(MAKE_DIRECTORY "${__BIN}")
+    file(WRITE "${tag_stamp_file}" "${__TAG}")
+  endif()
 endfunction()
 
 # Download and extract a URL archive idempotently into DEST.
 # Skips the download if DEST exists and a stamp file matches the URL.
 # Handles single top-level directory stripping (like FetchContent).
 # Sets ${__NAME}_SOURCE_DIR = DEST in the caller scope.
+# Optional: track URL in BIN and wipe BIN if URL changes.
 function(download_url)
-  cmake_parse_arguments(PARSE_ARGV 0 _ "" "NAME;URL;DEST" "")
+  cmake_parse_arguments(PARSE_ARGV 0 _ "" "NAME;URL;DEST;BIN" "")
   get_filename_component(__DEST "${__DEST}" ABSOLUTE)
   set(stamp_file "${CMAKE_BINARY_DIR}/_deps/${__NAME}.stamp")
   set(cached_stamp "")
   if(EXISTS "${stamp_file}")
     file(STRINGS "${stamp_file}" cached_stamp)
   endif()
-  if("${__URL}" STREQUAL "${cached_stamp}" AND EXISTS "${__DEST}")
+  set(bin_stamp_file "")
+  set(cached_bin_stamp "")
+  if(DEFINED __BIN)
+    get_filename_component(__BIN "${__BIN}" ABSOLUTE)
+    set(bin_stamp_file "${__BIN}/.url_stamp")
+    if(EXISTS "${bin_stamp_file}")
+      file(STRINGS "${bin_stamp_file}" cached_bin_stamp)
+    endif()
+  endif()
+
+  if("${__URL}" STREQUAL "${cached_stamp}" AND EXISTS "${__DEST}"
+     AND (NOT bin_stamp_file OR "${__URL}" STREQUAL "${cached_bin_stamp}"))
     set(${__NAME}_SOURCE_DIR "${__DEST}" PARENT_SCOPE)
     return()
   endif()
   message(STATUS "Downloading ${__NAME}...")
+  if(DEFINED __BIN AND EXISTS "${__BIN}")
+    message(STATUS "URL changed, removing stale build directory: ${__BIN}")
+    file(REMOVE_RECURSE "${__BIN}")
+  endif()
   file(REMOVE_RECURSE "${__DEST}")
   file(MAKE_DIRECTORY "${__DEST}")
   set(archive "${CMAKE_BINARY_DIR}/_deps/${__NAME}.dl")
@@ -112,5 +164,9 @@ function(download_url)
     endif()
   endif()
   file(WRITE "${stamp_file}" "${__URL}")
+  if(bin_stamp_file)
+    file(MAKE_DIRECTORY "${__BIN}")
+    file(WRITE "${bin_stamp_file}" "${__URL}")
+  endif()
   set(${__NAME}_SOURCE_DIR "${__DEST}" PARENT_SCOPE)
 endfunction()

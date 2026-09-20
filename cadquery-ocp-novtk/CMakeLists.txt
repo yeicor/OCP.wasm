@@ -120,7 +120,7 @@ endfunction()
 set(PYBIND11_SRC "${DEPS_DIR}/pybind11-src")
 set(PYBIND11_BIN "${DEPS_DIR}/pybind11-build")
 set(PYBIND11_USE_CROSSCOMPILING ON)
-checkout_git_tag(SRC "${PYBIND11_SRC}" URL "https://github.com/pybind/pybind11.git" TAG "v3.1.0")
+checkout_git_tag(SRC "${PYBIND11_SRC}" URL "https://github.com/pybind/pybind11.git" TAG "v3.1.0" BIN "${PYBIND11_BIN}")
 execute_process(
   COMMAND ${CMAKE_COMMAND} "-DREAL_SOURCE_DIR=${PYBIND11_SRC}" "-DREAL_BINARY_DIR=${PYBIND11_BIN}"
     -P "${CMAKE_CURRENT_LIST_DIR}/patch_pybind11.cmake"
@@ -140,7 +140,7 @@ add_subdirectory("${RAPIDJSON_SRC}")
 # ##### fmt #####
 set(FMT_SRC "${DEPS_DIR}/fmt-src")
 set(FMT_BIN "${DEPS_DIR}/fmt-build")
-checkout_git_tag(SRC "${FMT_SRC}" URL "https://github.com/fmtlib/fmt.git" TAG "12.2.0")
+checkout_git_tag(SRC "${FMT_SRC}" URL "https://github.com/fmtlib/fmt.git" TAG "12.2.0" BIN "${FMT_BIN}")
 set_timestamps("${FMT_SRC}")
 # Disable tests/docs/install noise
 set(FMT_DOC OFF CACHE BOOL "" FORCE)
@@ -153,7 +153,7 @@ set(OCCT_SRC "${DEPS_DIR}/OpenCASCADE-src")
 set(OCCT_BIN "${DEPS_DIR}/OpenCASCADE-build")
 set(BUILD_DOC_Overview OFF)
 set(BUILD_ADDITIONAL_TOOLKITS TKV3d)
-checkout_git_tag(SRC "${OCCT_SRC}" URL "https://github.com/Open-Cascade-SAS/OCCT.git" TAG "V7_9_3")
+checkout_git_tag(SRC "${OCCT_SRC}" URL "https://github.com/Open-Cascade-SAS/OCCT.git" TAG "V8_0_1" BIN "${OCCT_BIN}")
 execute_process(
   COMMAND ${CMAKE_COMMAND} "-DREAL_SOURCE_DIR=${OCCT_SRC}" "-DREAL_BINARY_DIR=${OCCT_BIN}"
     "-Drapidjson_SOURCE_DIR=${RAPIDJSON_SRC}"
@@ -183,7 +183,7 @@ message(STATUS "-DOpenCASCADE_LIBRARIES=\\\"${BUILD_TOOLKITS_C}\\\"")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../util") # Findpybind11.cmake
 set(OCP_SRC "${DEPS_DIR}/OCP-src")
 set(OCP_BIN "${DEPS_DIR}/OCP-build")
-download_url(NAME OCP URL "https://github.com/CadQuery/OCP/releases/download/7.9.3.1/OCP_src_stubs_Linux.zip" DEST "${OCP_SRC}")
+download_url(NAME OCP URL "https://github.com/CadQuery/OCP/releases/download/8.0.1.0/OCP_src_stubs_Linux.zip" DEST "${OCP_SRC}" BIN "${OCP_BIN}")
 
 execute_process(
   COMMAND ${CMAKE_COMMAND} "-DREAL_SOURCE_DIR=${OCP_SRC}" "-DREAL_BINARY_DIR=${OCP_BIN}"
