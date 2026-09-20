@@ -19,10 +19,12 @@ jobs:
             cflags: "-O3"
             cxxflags: "-O3"
             ldflags: "-O3"
+            parallel_level: 4
           - build_type: "Debug"
             cflags: "-Og -g"
             cxxflags: "-Og -g"
             ldflags: "-Og -g -gsource-map=inline"
+            parallel_level: 4
 
           - pyodide_args: ""
           - package: "cadquery-ocp-novtk"
@@ -31,13 +33,33 @@ jobs:
           - package: "cadquery-ocp-novtk"
             build_type: "Release"
             ldflags: "-O1" # XXX: See repair_wasm.py invocation in CMakeLists.txt
+            parallel_level: 4
           - package: "cadquery-ocp-novtk"
             build_type: "Debug"
+            cflags: "-Og -g2"
+            cxxflags: "-Og -g2"
             ldflags: "-Og -g2 -gseparate-dwarf" # Smaller debug files, default is too big for CI. The usual g3 level also crashes CI.
+            parallel_level: 2
     steps:
       - uses: "actions/checkout@v7"
         with:
           fetch-depth: 0 # Fetch all history for caching purposes
+
+      - name: Disable systemd-oomd
+        run: |
+          sudo systemctl disable --now systemd-oomd || true
+          sudo systemctl mask systemd-oomd || true
+
+      - name: Ensure swap space
+        run: |
+          if [ ! -f /swapfile ]; then
+            sudo fallocate -l 10G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=10240
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+          fi
+          swapon --show
+          free -h
 
       - id: "xbuildenv_data"
         shell: bash
@@ -125,7 +147,7 @@ jobs:
           CFLAGS: "${{ matrix.cflags }}"
           CXXFLAGS: "${{ matrix.cxxflags }}"
           LDFLAGS: "${{ matrix.ldflags }}"
-          #CMAKE_BUILD_PARALLEL_LEVEL: 2
+          CMAKE_BUILD_PARALLEL_LEVEL: "${{ matrix.parallel_level }}"
           _FORCE_OLD_SOURCES: "TRUE"
           CCACHE_DIR: "${{ github.workspace }}/${{ matrix.package }}/ccache"
           CCACHE_COMPILERCHECK: "content" # We are re-downloading the compiler on every run, so avoid timestamp-based checks that will always miss
